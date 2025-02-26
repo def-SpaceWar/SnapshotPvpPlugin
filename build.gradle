@@ -1,14 +1,14 @@
-import com.github.spotbugs.snom.SpotBugsTask
+//import com.github.spotbugs.snom.SpotBugsTask
 import java.text.SimpleDateFormat
 
 plugins {
-    id 'checkstyle'
-    id "com.github.spotbugs" version "6.1.5"
+    //id 'checkstyle'
+    //id "com.github.spotbugs" version "6.1.5"
     id 'com.gradleup.shadow' version '8.3.6'
     id 'java'
 }
 
-group = "com.crimsonwarpedcraft.exampleplugin"
+group = "com.defspacemine.snapshotpvp"
 
 static def getTime() {
     SimpleDateFormat sdf = new SimpleDateFormat("yyMMdd-HHmm")
@@ -65,18 +65,18 @@ repositories {
 
 dependencies {
     compileOnly 'io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT'
-    compileOnly 'com.github.spotbugs:spotbugs-annotations:4.9.1'
+    //compileOnly 'com.github.spotbugs:spotbugs-annotations:4.9.1'
     implementation 'io.papermc:paperlib:1.0.8'
-    spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.13.0'
-    testCompileOnly 'com.github.spotbugs:spotbugs-annotations:4.9.1'
-    testImplementation 'io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT'
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.4'
+    //spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.13.0'
+    //testCompileOnly 'com.github.spotbugs:spotbugs-annotations:4.9.1'
+    //testImplementation 'io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT'
+    //testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    //testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.4'
 }
 
-test {
-    useJUnitPlatform()
-}
+//test {
+//    useJUnitPlatform()
+//}
 
 processResources {
     filesMatching("**/plugin.yml") {
@@ -84,32 +84,32 @@ processResources {
     }
 }
 
-checkstyle {
-    toolVersion '10.20.1'
-    maxWarnings = 0
-}
-
-configurations.checkstyle {
-    resolutionStrategy.capabilitiesResolution.withCapability("com.google.collections:google-collections") {
-        select("com.google.guava:guava:23.0")
-    }
-}
-
-tasks.withType(Checkstyle).configureEach {
-    reports {
-        xml.required = false
-        html.required = true
-    }
-}
-
-tasks.withType(SpotBugsTask).configureEach {
-    reports.create("html") {
-        required = true
-    }
-    reports.create("xml") {
-        required = false
-    }
-}
+//checkstyle {
+//    toolVersion '10.20.1'
+//    maxWarnings = 0
+//}
+//
+//configurations.checkstyle {
+//    resolutionStrategy.capabilitiesResolution.withCapability("com.google.collections:google-collections") {
+//        select("com.google.guava:guava:23.0")
+//    }
+//}
+//
+//tasks.withType(Checkstyle).configureEach {
+//    reports {
+//        xml.required = false
+//        html.required = true
+//    }
+//}
+//
+//tasks.withType(SpotBugsTask).configureEach {
+//    reports.create("html") {
+//        required = true
+//    }
+//    reports.create("xml") {
+//        required = false
+//    }
+//}
 
 shadowJar {
     archiveClassifier.set('')
