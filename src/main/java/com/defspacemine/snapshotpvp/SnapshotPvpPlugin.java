@@ -196,10 +196,12 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         }
 
         String kitId = meta.getPersistentDataContainer().get(MANA_KIT, PersistentDataType.STRING);
+        server.sendMessage(Component.text(player.getName() + " : " + kitId));
         ManaKit kit = getPlayerKit(player);
-        if (kit == null || kitId.equals(kit.getId()))
+        if (kitId.equals(kit.getId()))
             return;
 
+        kit = getKit(kitId);
         pdc.set(MANA_KIT, PersistentDataType.STRING, kit.getId());
         kit.resetKit(player);
         player.sendMessage(ChatColor.WHITE + "You have selected "
@@ -225,8 +227,9 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
             public void run() {
                 for (Player player : getServer().getOnlinePlayers()) {
                     Set<String> playerTags = player.getScoreboardTags();
+                    setPlayerKit(player);
+
                     if (!hasKit(player)) {
-                        setPlayerKit(player);
                         continue;
                     }
 
@@ -236,7 +239,6 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
 
                     if (playerTags.contains("fighting")) {
                         if (!playerTags.contains("combat")) {
-                            setPlayerKit(player);
                             player.addScoreboardTag("combat");
                             kit.onEnterCombat(player);
                         }
