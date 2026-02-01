@@ -116,10 +116,6 @@ public class Poacher extends ManaKit {
     }
 
     @Override
-    public void onIdleTick(Player p) {
-    }
-
-    @Override
     public void onLeaveCombat(Player p) {
         p.sendActionBar(" ");
     }

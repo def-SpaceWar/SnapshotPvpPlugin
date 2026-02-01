@@ -50,10 +50,6 @@ public class Juggernaut extends ManaKit {
     }
 
     @Override
-    public void onIdleTick(Player p) {
-    }
-
-    @Override
     public void onLeaveCombat(Player p) {
         p.sendActionBar(" ");
     }
@@ -68,11 +64,5 @@ public class Juggernaut extends ManaKit {
     public void onKill(Player p, PlayerDeathEvent e) {
         p.addPotionEffect(new PotionEffect(PotionEffectType.HEALTH_BOOST, -1, 1));
         p.setHealth(28);
-    }
-
-    public void onEnterCombat(Player p) {
-    }
-
-    public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
     }
 }
