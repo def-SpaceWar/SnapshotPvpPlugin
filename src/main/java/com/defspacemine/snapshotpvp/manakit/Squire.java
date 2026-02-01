@@ -20,9 +20,9 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Squire extends ManaKit {
     final int arrowRestock = 400; // 3 arrows every 20 seconds, they auto reset
-    final NamespacedKey arrowRestockCounter = SnapshotPvpPlugin.MANA_KIT_DATA0;
-    final int honorableRestock = 30; // 30 attacks, arrow shots count too!
-    final NamespacedKey honorableRestockCounter = SnapshotPvpPlugin.MANA_KIT_DATA1;
+    final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;
+    final int honorableRestock = 20; // 20 attacks, arrow shots count too!
+    final NamespacedKey honorableRestockCounter = ManaKitListener.MANA_KIT_DATA1;
 
     private ItemStack arrows;
     private ItemStack honorPotion;
@@ -66,7 +66,7 @@ public class Squire extends ManaKit {
     @Override
     public void resetKit(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        pdc.set(SnapshotPvpPlugin.MANA_KIT, PersistentDataType.STRING, this.id);
+        pdc.set(ManaKitListener.MANA_KIT, PersistentDataType.STRING, this.id);
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         pdc.set(honorableRestockCounter, PersistentDataType.INTEGER, 0);
     }
@@ -79,10 +79,10 @@ public class Squire extends ManaKit {
         int honorableRestockC = pdc.get(honorableRestockCounter, PersistentDataType.INTEGER);
 
         p.sendActionBar(ChatColor.GREEN + "Arrow Restock: " +
-                ChatColor.WHITE + arrowRestockC + "/400" +
+                ChatColor.WHITE + arrowRestockC + "/" + arrowRestock +
                 ChatColor.GRAY + "  |  " +
                 ChatColor.AQUA + "Honorable Restock: " +
-                ChatColor.WHITE + honorableRestockC + "/30" +
+                ChatColor.WHITE + honorableRestockC + "/" + honorableRestock +
                 ChatColor.GRAY + "  |  " +
                 ChatColor.RED + "Killstreak: " +
                 ChatColor.WHITE + killstreak + "/2");
@@ -100,7 +100,7 @@ public class Squire extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (arrowRestockC >= arrowRestock) {
-            inv.remove(Material.ARROW);
+            SnapshotPvpPlugin.clearInv(inv, Material.ARROW);
             p.getInventory().addItem(arrows);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
@@ -112,6 +112,10 @@ public class Squire extends ManaKit {
     }
 
     @Override
+    public void onIdleTick(Player p) {
+    }
+
+    @Override
     public void onLeaveCombat(Player p) {
         p.sendActionBar(" ");
     }
@@ -119,16 +123,18 @@ public class Squire extends ManaKit {
     @Override
     public void onDeath(Player p, PlayerDeathEvent e) {
         PlayerInventory inv = p.getInventory();
-        inv.remove(Material.ARROW);
-        inv.remove(Material.POTION);
+        SnapshotPvpPlugin.clearInv(inv, Material.ARROW);
+        SnapshotPvpPlugin.clearInv(inv, Material.POTION);
         resetKit(p);
     }
 
+    @Override
     public void onEnterCombat(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 400);
+        pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestock);
     }
 
+    @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
         if (e.getEntity() instanceof Player) {
             PersistentDataContainer pdc = p.getPersistentDataContainer();

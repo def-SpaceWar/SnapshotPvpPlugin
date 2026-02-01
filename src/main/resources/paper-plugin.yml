@@ -1,0 +1,13 @@
+main: com.defspacemine.snapshotpvp.SnapshotPvpPlugin
+name: SnapshotPvpPlugin
+version: 1.0.0
+api-version: "1.21.7"
+author: defSpaceMine
+description: The SnapshotPvp Plugin!
+
+dependencies:
+  server:
+    NBTAPI:
+      load: BEFORE
+      required: true
+      join-classpath: true

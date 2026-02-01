@@ -1,5 +1,5 @@
-main: ${PACKAGE}.${NAME}
-name: ${NAME}
+main: com.defspacemine.snapshotpvp.SnapshotPvpPlugin
+name: SnapshotPvpPlugin
 version: "${VERSION}"
 api-version: "1.21.7"
 author: defSpaceMine
@@ -22,6 +22,6 @@ commands:
   
   kit:
     description: Select a kit
-    usage: /kit
+    usage: /kit [kit] or /kit to list all kits
     permission: perm.player
     permission-message: You don't have permission to get a kit!

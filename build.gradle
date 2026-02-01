@@ -4,8 +4,9 @@ import java.text.SimpleDateFormat
 plugins {
     //id 'checkstyle'
     //id "com.github.spotbugs" version "6.1.5"
-    id 'com.gradleup.shadow' version '8.3.6'
+    id 'com.gradleup.shadow' version '9.3.1'
     id 'java'
+    id 'eclipse'
 }
 
 group = "com.defspacemine.snapshotpvp"
@@ -60,11 +61,17 @@ repositories {
         }
     }
 
+    maven {
+        name 'codemc'
+        url 'https://repo.codemc.io/repository/maven-public/'
+    }
+
     mavenCentral()
 }
 
 dependencies {
     compileOnly 'io.papermc.paper:paper-api:1.21.7-R0.1-SNAPSHOT'
+    compileOnly "de.tr7zw:item-nbt-api-plugin:2.15.5"
     //compileOnly 'com.github.spotbugs:spotbugs-annotations:4.9.1'
     implementation 'io.papermc:paperlib:1.0.8'
     //spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.13.0'
@@ -137,5 +144,12 @@ tasks.register('release') {
                     .renameTo(layout.buildDirectory.get().toString() + File.separator + 'libs' + File.separator
                             + rootProject.name + '.jar')
         }
+    }
+}
+
+eclipse {
+    classpath {
+        downloadSources = true
+        downloadJavadoc = true
     }
 }

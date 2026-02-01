@@ -16,27 +16,32 @@ public abstract class ManaKit {
         this.description = description;
     }
 
-    public String getId() {
+    public final String getId() {
         return id;
     }
 
-    public String getDisplayName() {
+    public final String getDisplayName() {
         return displayName;
     }
 
-    public String getDescription() {
+    public final String getDescription() {
         return description;
     }
 
-    public abstract void giveKit(Player p);
+    public void giveKit(Player p) {
+    }
 
-    public abstract void resetKit(Player p);
+    public void resetKit(Player p) {
+    }
 
-    public abstract void onCombatTick(Player p);
+    public void onCombatTick(Player p) {
+    }
 
-    public abstract void onIdleTick(Player p);
+    public void onIdleTick(Player p) {
+    }
 
-    public abstract void onDeath(Player p, PlayerDeathEvent e);
+    public void onDeath(Player p, PlayerDeathEvent e) {
+    }
 
     public void onKill(Player p, PlayerDeathEvent e) {
     }

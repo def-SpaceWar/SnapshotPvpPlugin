@@ -1,5 +1,5 @@
-main: ${PACKAGE}.${NAME}
-name: ${NAME}
+main: com.defspacemine.snapshotpvp.SnapshotPvpPlugin
+name: SnapshotPvpPlugin
 version: "${VERSION}"
 api-version: "1.21.7"
 author: defSpaceMine
