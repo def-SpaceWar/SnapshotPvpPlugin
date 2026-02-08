@@ -20,9 +20,9 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 
 public class FireInTheHole extends ManaKit {
-    final int arrowRestock = 400; // 3 arrows every 20 seconds, they auto reset
+    final int arrowRestock = 300; // 3 arrows every 15 seconds, they auto reset
     final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;
-    final int bombersRestock = 8; // 8 melee/ranged/bomb attacks = bombs!
+    final int bombersRestock = 6; // 6 melee/ranged/bomb attacks = bombs!
     final NamespacedKey bombersRestockCounter = ManaKitListener.MANA_KIT_DATA1;
     final int nukeRestock = 3; // 3 kills = nuke!
     final NamespacedKey nukeRestockCounter = ManaKitListener.MANA_KIT_DATA2;
@@ -34,7 +34,7 @@ public class FireInTheHole extends ManaKit {
     private ItemStack nuke;
 
     public FireInTheHole() {
-        super("fire_in_the_hole", "Fire In The Hole", "[Utility Bomber]");
+        super("fire_in_the_hole", "Fire In The Hole", "[Utility Bomber]", 3);
 
         {
             arrows = new ItemStack(Material.SPECTRAL_ARROW, 3);
@@ -119,13 +119,10 @@ public class FireInTheHole extends ManaKit {
                 ChatColor.RED + "Killstreak: " +
                 ChatColor.WHITE + killstreak + "/2");
 
-        if (killstreak >= 1) {
+        if (killstreak >= 1)
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 1));
-        }
-
-        if (killstreak >= 2) {
+        if (killstreak >= 2)
             p.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 100, 1));
-        }
 
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestockC + 1);
 
@@ -159,11 +156,6 @@ public class FireInTheHole extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        p.sendActionBar(" ");
-    }
-
-    @Override
-    public void onDeath(Player p, PlayerDeathEvent e) {
         PlayerInventory inv = p.getInventory();
         SnapshotPvpPlugin.clearInv(inv, Material.SPECTRAL_ARROW);
         SnapshotPvpPlugin.clearInv(inv, Material.CREEPER_SPAWN_EGG);

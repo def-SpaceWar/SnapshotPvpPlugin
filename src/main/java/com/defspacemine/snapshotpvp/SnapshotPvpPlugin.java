@@ -1,47 +1,36 @@
 package com.defspacemine.snapshotpvp;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Server;
-import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
-import com.defspacemine.snapshotpvp.manakit.FireInTheHole;
-import com.defspacemine.snapshotpvp.manakit.Juggernaut;
-import com.defspacemine.snapshotpvp.manakit.ManaKit;
 import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
-import com.defspacemine.snapshotpvp.manakit.Poacher;
-import com.defspacemine.snapshotpvp.manakit.Squire;
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
 
 import de.tr7zw.nbtapi.NBT;
 import io.papermc.lib.PaperLib;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.command.brigadier.Commands;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import net.kyori.adventure.text.Component;
 
 public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
@@ -101,30 +90,36 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
 
         if (!NBT.preloadApi()) {
             logger.warning("NBT-API wasn't initialized properly, disabling the plugin");
-            getPluginLoader().disablePlugin(this);
+            server.getPluginManager().disablePlugin(this);
             return;
         }
 
         server.getPluginManager().registerEvents(new ManaKitListener(this), this);
         server.getPluginManager().registerEvents(new CustomEggListener(this), this);
-    }
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (command.getName().equalsIgnoreCase("hub")) {
-            hub(sender);
-            return true;
-        }
+        getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, commands -> {
+            commands.registrar()
+                    .register(Commands.literal("hub")
+                            .executes((CommandContext<CommandSourceStack> ctx) -> {
+                                hub(ctx.getSource().getSender());
+                                return Command.SINGLE_SUCCESS;
+                            })
+                            .build());
 
-        if (command.getName().equalsIgnoreCase("kit")) {
-            switch (args.length) {
-                case 0:
-                case 1:
-                    return ManaKitListener.instance.kit(sender, args[0]);
-            }
-        }
-
-        return false;
+            commands.registrar().register(
+                    Commands.literal("kit")
+                            .executes((CommandContext<CommandSourceStack> ctx) -> {
+                                ManaKitListener.instance.kit(ctx.getSource().getSender(), null);
+                                return Command.SINGLE_SUCCESS;
+                            })
+                            .then(Commands.argument("id", StringArgumentType.string())
+                                    .executes((CommandContext<CommandSourceStack> ctx) -> {
+                                        String id = StringArgumentType.getString(ctx, "id");
+                                        ManaKitListener.instance.kit(ctx.getSource().getSender(), id);
+                                        return Command.SINGLE_SUCCESS;
+                                    }))
+                            .build());
+        });
     }
 
     public void hub(CommandSender sender) {
@@ -132,7 +127,12 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
             return;
 
         Player player = (Player) sender;
-        // if (player is fighting) return;
+        if (player.getLastDamageCause().getDamageSource().getCausingEntity() instanceof Player p) {
+            // no idea if this works btw lol
+            player.damage(32767, p);
+        }
+        player.removeScoreboardTag("fighting");
+        player.clearActivePotionEffects();
 
         player.teleport(new Location(
                 Bukkit.getWorld("goopshotpeshvp"),

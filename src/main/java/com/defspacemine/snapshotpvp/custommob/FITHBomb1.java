@@ -33,7 +33,7 @@ public class FITHBomb1 implements CustomMob {
         creeper.setCustomName("Small Bomb");
         creeper.setCustomNameVisible(true);
         creeper.getAttribute(Attribute.MAX_HEALTH).setBaseValue(16);
-        creeper.setHealth(16);
+        creeper.setHealth(10);
         creeper.getAttribute(Attribute.SCALE).setBaseValue(.75);
         creeper.setMaxFuseTicks(30);
         creeper.setExplosionRadius(4);

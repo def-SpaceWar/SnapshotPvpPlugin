@@ -5,23 +5,23 @@ api-version: "1.21.7"
 author: defSpaceMine
 description: The SnapshotPvp Plugin!
 
-permissions:
-  perm.admin:
-    description: "Operators/Administrators"
-    default: op
-  perm.player:
-    description: "All Players"
-    default: 
-
-commands:
-  hub:
-    description: Teleport to the hub
-    usage: /hub
-    permission: perm.player
-    permission-message: You don't have permission to go to the hub!
-  
-  kit:
-    description: Select a kit
-    usage: /kit [kit] or /kit to list all kits
-    permission: perm.player
-    permission-message: You don't have permission to get a kit!
+#permissions:
+#  perm.admin:
+#    description: "Operators/Administrators"
+#    default: op
+#  perm.player:
+#    description: "All Players"
+#    default: 
+#
+#commands:
+#  hub:
+#    description: Teleport to the hub
+#    usage: /hub
+#    permission: perm.player
+#    permission-message: You don't have permission to go to the hub!
+#  
+#  kit:
+#    description: Select a kit
+#    usage: /kit [kit] or /kit to list all kits
+#    permission: perm.player
+#    permission-message: You don't have permission to get a kit!

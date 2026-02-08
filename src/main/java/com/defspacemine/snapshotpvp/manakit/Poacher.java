@@ -26,7 +26,7 @@ public class Poacher extends ManaKit {
     private ItemStack powerfulToxin;
 
     public Poacher() {
-        super("poacher", "Poacher", "[Ranged Sniper]");
+        super("poacher", "Poacher", "[Ranged Sniper]", 1);
 
         powerfulToxin = new ItemStack(Material.TIPPED_ARROW, 1);
         powerfulToxin.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
@@ -58,7 +58,7 @@ public class Poacher extends ManaKit {
                 true), true);
         meta.addCustomEffect(new PotionEffect(
                 PotionEffectType.POISON,
-                1600,
+                2400,
                 4,
                 false,
                 true,
@@ -100,13 +100,10 @@ public class Poacher extends ManaKit {
                 ChatColor.RED + "Killstreak: " +
                 ChatColor.WHITE + killstreak + "/2");
 
-        if (killstreak >= 1) {
+        if (killstreak == 1)
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 0));
-        }
-
-        if (killstreak >= 2) {
+        else if (killstreak >= 2)
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 1));
-        }
 
         PlayerInventory inv = p.getInventory();
         if (killShotC >= killShot) {
@@ -117,11 +114,6 @@ public class Poacher extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        p.sendActionBar(" ");
-    }
-
-    @Override
-    public void onDeath(Player p, PlayerDeathEvent e) {
         PlayerInventory inv = p.getInventory();
         SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
         resetKit(p);

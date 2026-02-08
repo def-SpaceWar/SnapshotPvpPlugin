@@ -25,7 +25,7 @@ public class Berserk extends ManaKit {
     private ItemStack ragePotion;
 
     public Berserk() {
-        super("berserk", "Berserk", "[Melee Damage]");
+        super("berserk", "Berserk", "[Melee Damage]", 1);
 
         ragePotion = new ItemStack(Material.POTION);
         PotionMeta meta = (PotionMeta) ragePotion.getItemMeta();
@@ -83,21 +83,14 @@ public class Berserk extends ManaKit {
                 ChatColor.RED + "Killstreak: " +
                 ChatColor.WHITE + killstreak + "/4");
 
-        if (killstreak == 1) {
+        if (killstreak == 1)
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 0));
-        }
-
-        if (killstreak >= 2) {
+        else if (killstreak >= 2)
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 1));
-        }
-
-        if (killstreak >= 3) {
+        if (killstreak >= 3)
             p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 100, 1));
-        }
-
-        if (killstreak >= 4) {
+        if (killstreak >= 4)
             p.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 100, 0));
-        }
 
         PlayerInventory inv = p.getInventory();
         if (enrageC >= enrage) {
@@ -108,11 +101,6 @@ public class Berserk extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        p.sendActionBar(" ");
-    }
-
-    @Override
-    public void onDeath(Player p, PlayerDeathEvent e) {
         PlayerInventory inv = p.getInventory();
         SnapshotPvpPlugin.clearInv(inv, Material.POTION);
         resetKit(p);

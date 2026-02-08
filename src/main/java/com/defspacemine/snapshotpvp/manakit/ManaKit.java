@@ -9,11 +9,13 @@ public abstract class ManaKit {
     protected final String id;
     protected final String displayName;
     protected final String description;
+    protected final int stars;
 
-    public ManaKit(String id, String displayName, String description) {
+    public ManaKit(String id, String displayName, String description, int stars) {
         this.id = id;
         this.displayName = displayName;
         this.description = description;
+        this.stars = stars;
     }
 
     public final String getId() {

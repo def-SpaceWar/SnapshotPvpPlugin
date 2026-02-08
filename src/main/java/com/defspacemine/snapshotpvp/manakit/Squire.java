@@ -21,14 +21,14 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 public class Squire extends ManaKit {
     final int arrowRestock = 400; // 3 arrows every 20 seconds, they auto reset
     final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;
-    final int honorableRestock = 20; // 20 attacks, arrow shots count too!
+    final int honorableRestock = 12; // 20 attacks, arrow shots count too!
     final NamespacedKey honorableRestockCounter = ManaKitListener.MANA_KIT_DATA1;
 
     private ItemStack arrows;
     private ItemStack honorPotion;
 
     public Squire() {
-        super("squire", "Squire", "[Melee Damage]");
+        super("squire", "Squire", "[Melee Damage]", 1);
 
         arrows = new ItemStack(Material.ARROW, 3);
         arrows.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
@@ -87,14 +87,10 @@ public class Squire extends ManaKit {
                 ChatColor.RED + "Killstreak: " +
                 ChatColor.WHITE + killstreak + "/2");
 
-        if (killstreak >= 1) {
+        if (killstreak >= 1)
             p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 0));
-        }
-
-        if (killstreak >= 2) {
-            p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 0));
+        if (killstreak >= 2)
             p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 0));
-        }
 
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestockC + 1);
 
@@ -113,11 +109,6 @@ public class Squire extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        p.sendActionBar(" ");
-    }
-
-    @Override
-    public void onDeath(Player p, PlayerDeathEvent e) {
         PlayerInventory inv = p.getInventory();
         SnapshotPvpPlugin.clearInv(inv, Material.ARROW);
         SnapshotPvpPlugin.clearInv(inv, Material.POTION);

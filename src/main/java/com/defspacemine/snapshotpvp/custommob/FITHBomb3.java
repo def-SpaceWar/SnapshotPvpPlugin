@@ -33,7 +33,7 @@ public class FITHBomb3 implements CustomMob {
         creeper.setHealth(20);
         creeper.getAttribute(Attribute.SCALE).setBaseValue(1.25);
         creeper.setMaxFuseTicks(60);
-        creeper.setExplosionRadius(8);
+        creeper.setExplosionRadius(7);
 
         loc.getWorld().playSound(loc, Sound.ENTITY_CREEPER_PRIMED, 1, 0.7f);
 

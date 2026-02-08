@@ -20,7 +20,7 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Juggernaut extends ManaKit {
     public Juggernaut() {
-        super("juggernaut", "Juggernaut", "[Melee Damage Tank]");
+        super("juggernaut", "Juggernaut", "[Melee Damage Tank]", 2);
     }
 
     @Override
@@ -44,18 +44,12 @@ public class Juggernaut extends ManaKit {
         p.sendActionBar(ChatColor.RED + "Killstreak: " +
                 ChatColor.WHITE + killstreak + "/2");
 
-        if (killstreak >= 2) {
+        if (killstreak >= 2)
             p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 1));
-        }
     }
 
     @Override
     public void onLeaveCombat(Player p) {
-        p.sendActionBar(" ");
-    }
-
-    @Override
-    public void onDeath(Player p, PlayerDeathEvent e) {
         PlayerInventory inv = p.getInventory();
         resetKit(p);
     }

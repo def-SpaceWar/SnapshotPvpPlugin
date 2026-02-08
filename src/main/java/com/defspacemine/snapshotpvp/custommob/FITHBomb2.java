@@ -30,10 +30,10 @@ public class FITHBomb2 implements CustomMob {
         creeper.setCustomName("Medium Bomb");
         creeper.setCustomNameVisible(true);
         creeper.getAttribute(Attribute.MAX_HEALTH).setBaseValue(24);
-        creeper.setHealth(24);
+        creeper.setHealth(15);
         creeper.getAttribute(Attribute.SCALE).setBaseValue(1);
         creeper.setMaxFuseTicks(45);
-        creeper.setExplosionRadius(6);
+        creeper.setExplosionRadius(5);
 
         loc.getWorld().playSound(loc, Sound.ENTITY_CREEPER_PRIMED, 1, 0.7f);
 

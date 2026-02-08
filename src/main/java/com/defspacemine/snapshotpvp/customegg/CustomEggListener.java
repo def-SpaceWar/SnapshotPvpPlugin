@@ -24,10 +24,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import com.defspacemine.snapshotpvp.custommob.FITHBomb1;
-import com.defspacemine.snapshotpvp.custommob.FITHBomb2;
-import com.defspacemine.snapshotpvp.custommob.FITHBomb3;
-import com.defspacemine.snapshotpvp.custommob.FITHNuke;
+import com.defspacemine.snapshotpvp.custommob.*;
 
 import net.kyori.adventure.text.Component;
 
@@ -79,7 +76,7 @@ public class CustomEggListener implements Listener {
     }
 
     @EventHandler
-    public void onUse(PlayerInteractEvent e) {
+    public void onInteract(PlayerInteractEvent e) {
         if (e.getClickedBlock() == null)
             return;
 
@@ -118,27 +115,26 @@ public class CustomEggListener implements Listener {
 
     @EventHandler
     public void onExplosionDamage(EntityDamageByEntityEvent e) {
-        if (!(e.getDamager() instanceof Creeper))
+        if (!(e.getDamager() instanceof Creeper creeper))
             return;
-        Creeper creeper = (Creeper) e.getDamager();
         Player owner = getOwner(creeper);
 
-        if (e.getEntity() instanceof Player) {
-            Player victim = (Player) e.getEntity();
+        if (e.getEntity() instanceof Player victim) {
             if (owner == null)
                 return;
-
             e.setCancelled(true);
-            ((Player) e.getEntity()).damage(e.getFinalDamage(), owner);
-        } else if (e.getEntity() instanceof Creeper) {
+            victim.damage(e.getFinalDamage(), owner);
+        } else if (e.getEntity() instanceof Creeper c) {
             if (getOwner(e.getEntity()) == null)
                 return;
-            Boolean chainable = e.getEntity().getPersistentDataContainer().get(CREEPER_CHAIN,
+            Boolean chainable = c.getPersistentDataContainer().get(CREEPER_CHAIN,
                     PersistentDataType.BOOLEAN);
             if (chainable == null || !chainable)
                 return;
             e.setCancelled(true);
-            ((Creeper) e.getEntity()).explode();
+            if (creeper.isPowered())
+                c.setPowered(true);
+            c.explode();
         }
     }
 }
