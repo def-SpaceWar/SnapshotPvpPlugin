@@ -28,7 +28,7 @@ public class FITHNuke implements CustomMob {
 
         creeper.setCustomName("Nuke");
         creeper.setCustomNameVisible(true);
-        creeper.getAttribute(Attribute.MAX_HEALTH).setBaseValue(10);
+        creeper.getAttribute(Attribute.MAX_HEALTH).setBaseValue(40);
         creeper.setHealth(40);
         creeper.getAttribute(Attribute.SCALE).setBaseValue(1.5);
         creeper.setMaxFuseTicks(80);

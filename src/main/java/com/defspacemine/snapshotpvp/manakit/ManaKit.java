@@ -4,6 +4,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 
 public abstract class ManaKit {
     protected final String id;
@@ -61,6 +62,9 @@ public abstract class ManaKit {
     }
 
     public void onInteract(Player p, PlayerInteractEvent e) {
+    }
+
+    public void onConsume(Player p, PlayerItemConsumeEvent e) {
     }
 
     // add more later

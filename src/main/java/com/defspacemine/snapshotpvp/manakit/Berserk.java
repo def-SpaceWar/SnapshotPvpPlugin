@@ -109,6 +109,7 @@ public class Berserk extends ManaKit {
     @Override
     public void onEnterCombat(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
+        pdc.set(enrageCounter, PersistentDataType.INTEGER, 0);
     }
 
     @Override

@@ -21,7 +21,7 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 public class Squire extends ManaKit {
     final int arrowRestock = 400; // 3 arrows every 20 seconds, they auto reset
     final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;
-    final int honorableRestock = 12; // 20 attacks, arrow shots count too!
+    final int honorableRestock = 12; // 12 attacks, arrow shots count too!
     final NamespacedKey honorableRestockCounter = ManaKitListener.MANA_KIT_DATA1;
 
     private ItemStack arrows;
@@ -119,6 +119,7 @@ public class Squire extends ManaKit {
     public void onEnterCombat(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestock);
+        pdc.set(honorableRestockCounter, PersistentDataType.INTEGER, 0);
     }
 
     @Override

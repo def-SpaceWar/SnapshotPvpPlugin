@@ -44,6 +44,8 @@ public class Juggernaut extends ManaKit {
         p.sendActionBar(ChatColor.RED + "Killstreak: " +
                 ChatColor.WHITE + killstreak + "/2");
 
+        if (killstreak >= 1 && !p.hasPotionEffect(PotionEffectType.HEALTH_BOOST))
+            p.addPotionEffect(new PotionEffect(PotionEffectType.HEALTH_BOOST, -1, 1));
         if (killstreak >= 2)
             p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 1));
     }
@@ -51,6 +53,7 @@ public class Juggernaut extends ManaKit {
     @Override
     public void onLeaveCombat(Player p) {
         PlayerInventory inv = p.getInventory();
+        p.clearActivePotionEffects();
         resetKit(p);
     }
 

@@ -3,6 +3,7 @@ package com.defspacemine.snapshotpvp;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -127,11 +128,11 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
             return;
 
         Player player = (Player) sender;
-        if (player.getLastDamageCause().getDamageSource().getCausingEntity() instanceof Player p) {
-            // no idea if this works btw lol
-            player.damage(32767, p);
+        if (player.getScoreboardTags().contains("fighting")) {
+            player.sendMessage(ChatColor.DARK_RED + "You are fighting!");
+            return;
         }
-        player.removeScoreboardTag("fighting");
+
         player.clearActivePotionEffects();
 
         player.teleport(new Location(

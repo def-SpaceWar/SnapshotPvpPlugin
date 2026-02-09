@@ -14,6 +14,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -44,6 +45,9 @@ public final class ManaKitListener implements Listener {
         registerKit(new FireInTheHole());
         registerKit(new Juggernaut());
         registerKit(new Berserk());
+        registerKit(new Thief());
+        registerKit(new ICBM());
+        registerKit(new Tridentite());
         manakitGameLoop();
     }
 
@@ -144,6 +148,15 @@ public final class ManaKitListener implements Listener {
         if (kit == null)
             return;
         kit.onInteract(p, e);
+    }
+
+    @EventHandler
+    public void onConsume(PlayerItemConsumeEvent e) {
+        Player p = e.getPlayer();
+        ManaKit kit = getPlayerKit(p);
+        if (kit == null)
+            return;
+        kit.onConsume(p, e);
     }
 
     void showKits(Player player) {
