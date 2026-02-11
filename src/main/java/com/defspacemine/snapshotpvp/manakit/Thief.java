@@ -123,7 +123,7 @@ public class Thief extends ManaKit {
         if (ammoRestockC >= ammoRestock) {
             SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
             p.getInventory().addItem(ammo);
-            pdc.set(ammoRestockCounter, PersistentDataType.INTEGER, 0);
+            pdc.set(ammoRestockCounter, PersistentDataType.INTEGER, ammoRestockC - ammoRestock);
         }
 
         if (smokeRestockC >= smokeRestock) {
@@ -202,6 +202,7 @@ public class Thief extends ManaKit {
                 return;
         }
 
+        p.setHealth(20);
         p.addPotionEffect(new PotionEffect(
                 PotionEffectType.SPEED,
                 160,
@@ -217,13 +218,12 @@ public class Thief extends ManaKit {
                 false,
                 true));
 
+        Team eaterTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(p.getName());
         for (Player target : p.getWorld().getNearbyPlayers(p.getLocation(), smokeBombRadius)) {
             if (target.equals(p) || target.getGameMode() != GameMode.ADVENTURE)
                 continue;
 
-            Team eaterTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(p.getName());
             Team targetTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(target.getName());
-
             if (eaterTeam != null && eaterTeam.equals(targetTeam))
                 continue;
 
@@ -232,7 +232,7 @@ public class Thief extends ManaKit {
                     300,
                     0,
                     false,
-                    false,
+                    true,
                     true));
         }
 

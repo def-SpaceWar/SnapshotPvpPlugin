@@ -28,15 +28,21 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.Team;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.custommob.FITHBomb1;
 import com.defspacemine.snapshotpvp.custommob.FITHBomb2;
 import com.defspacemine.snapshotpvp.custommob.FITHBomb3;
 import com.defspacemine.snapshotpvp.custommob.FITHNuke;
+import com.defspacemine.snapshotpvp.manakit.ICBM;
+import com.defspacemine.snapshotpvp.manakit.LightPaladin;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -45,8 +51,10 @@ import net.kyori.adventure.text.format.TextDecoration;
 public class CustomEggListener implements Listener {
     public final static NamespacedKey CUSTOM_EGG = new NamespacedKey("defspacemine", "custom_egg");
     public final static NamespacedKey OWNER = new NamespacedKey("defspacemine", "owner");
+
     public final static NamespacedKey CREEPER_CHAIN = new NamespacedKey("defspacemine", "creeper_chain");
     public final static NamespacedKey RED_TERROR = new NamespacedKey("defspacemine", "red_terror");
+    public final static NamespacedKey BLINDING_LIGHT = new NamespacedKey("defspacemine", "blinding_light");
 
     private static final Map<String, CustomMob> registry = new HashMap<>();
 
@@ -142,28 +150,36 @@ public class CustomEggListener implements Listener {
     }
 
     @EventHandler
-    public void onExplosionDamage(EntityDamageByEntityEvent e) {
-        if (!(e.getDamager() instanceof Creeper creeper))
-            return;
-        Player owner = getOwner(creeper);
+    public void onEntityDamage(EntityDamageByEntityEvent e) {
+        if (e.getDamager() instanceof Creeper creeper) {
+            Player owner = getOwner(creeper);
 
-        if (e.getEntity() instanceof Player victim) {
-            if (owner == null)
-                return;
+            if (e.getEntity() instanceof Player victim) {
+                if (owner == null)
+                    return;
+                e.setCancelled(true);
+                victim.damage(e.getFinalDamage(), owner);
+                applyExplosionKnockback(victim, creeper.getLocation(), creeper.getExplosionRadius(),
+                        creeper.isPowered());
+            } else if (e.getEntity() instanceof Creeper c) {
+                if (getOwner(e.getEntity()) == null)
+                    return;
+                Boolean chainable = c.getPersistentDataContainer().get(CREEPER_CHAIN,
+                        PersistentDataType.BOOLEAN);
+                if (chainable == null || !chainable)
+                    return;
+                e.setCancelled(true);
+                if (creeper.isPowered())
+                    c.setPowered(true);
+                c.explode();
+            }
+            return;
+        }
+
+        Player owner = getOwner(e.getDamager());
+        if (owner != null && e.getEntity() instanceof Player victim) {
             e.setCancelled(true);
             victim.damage(e.getFinalDamage(), owner);
-            applyExplosionKnockback(victim, creeper.getLocation(), creeper.getExplosionRadius(), creeper.isPowered());
-        } else if (e.getEntity() instanceof Creeper c) {
-            if (getOwner(e.getEntity()) == null)
-                return;
-            Boolean chainable = c.getPersistentDataContainer().get(CREEPER_CHAIN,
-                    PersistentDataType.BOOLEAN);
-            if (chainable == null || !chainable)
-                return;
-            e.setCancelled(true);
-            if (creeper.isPowered())
-                c.setPowered(true);
-            c.explode();
         }
     }
 
@@ -263,10 +279,13 @@ public class CustomEggListener implements Listener {
             return;
 
         if (meta.getPersistentDataContainer().has(RED_TERROR, PersistentDataType.INTEGER))
-            startRedTerrorTask(firework, meta);
+            startRedTerrorTask(firework);
+
+        if (meta.getPersistentDataContainer().has(BLINDING_LIGHT, PersistentDataType.INTEGER))
+            startBlindingLightTask(firework);
     }
 
-    private void startRedTerrorTask(Firework firework, ItemMeta meta) {
+    private void startRedTerrorTask(Firework firework) {
         firework.getPersistentDataContainer().set(
                 RED_TERROR,
                 PersistentDataType.INTEGER,
@@ -294,10 +313,74 @@ public class CustomEggListener implements Listener {
                         .color(NamedTextColor.RED)
                         .decorate(TextDecoration.BOLD));
                 creeper.setFuseTicks(0);
+                creeper.setExplosionRadius(ICBM.RED_TERROR_RADIUS); 
                 creeper.explode();
 
                 firework.setVelocity(dir);
             }
-        }.runTaskTimer(plugin, 0L, 1L); // every tick
+        }.runTaskTimer(plugin, 0L, 2L);
+    }
+
+    private void startBlindingLightTask(Firework firework) {
+        firework.getPersistentDataContainer().set(
+                BLINDING_LIGHT,
+                PersistentDataType.INTEGER,
+                1);
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (firework.isDead() || !firework.isValid()) {
+                    cancel();
+                    return;
+                }
+
+                Location loc = firework.getLocation();
+                World world = loc.getWorld();
+
+                Entity e = world.spawnEntity(loc, EntityType.LIGHTNING_BOLT);
+                if (firework.getShooter() instanceof Player owner)
+                    injectOwner(e, owner);
+
+                e.customName(Component.text("Blinding Light")
+                        .color(NamedTextColor.GOLD)
+                        .decorate(TextDecoration.BOLD));
+
+                if (!(firework.getShooter() instanceof Player p))
+                    return;
+                Team pTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(p.getName());
+
+                for (Player target : world.getNearbyPlayers(loc, LightPaladin.BLINDING_LIGHT_RADIUS)) {
+                    if (target.equals(p) || target.getGameMode() != GameMode.ADVENTURE)
+                        continue;
+
+                    Team targetTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(target.getName());
+                    if (pTeam != null && pTeam.equals(targetTeam))
+                        continue;
+
+                    target.addPotionEffect(new PotionEffect(
+                            PotionEffectType.GLOWING,
+                            100,
+                            0,
+                            false,
+                            true,
+                            true));
+                    target.addPotionEffect(new PotionEffect(
+                            PotionEffectType.BLINDNESS,
+                            100,
+                            0,
+                            false,
+                            true,
+                            true));
+                    target.addPotionEffect(new PotionEffect(
+                            PotionEffectType.LEVITATION,
+                            20,
+                            6,
+                            false,
+                            true,
+                            true));
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 2L);
     }
 }

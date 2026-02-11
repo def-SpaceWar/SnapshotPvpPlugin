@@ -20,6 +20,26 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 
 public class FireInTheHole extends ManaKit {
+    public static final double SMALL_BOMB_HEALTH = 10;
+    public static final double SMALL_BOMB_SCALE = .75;
+    public static final int SMALL_BOMB_TICKS = 30;
+    public static final int SMALL_BOMB_RADIUS = 3;
+
+    public static final double MEDIUM_BOMB_HEALTH = 15;
+    public static final double MEDIUM_BOMB_SCALE = 1;
+    public static final int MEDIUM_BOMB_TICKS = 45;
+    public static final int MEDIUM_BOMB_RADIUS = 5;
+
+    public static final double LARGE_BOMB_HEALTH = 20;
+    public static final double LARGE_BOMB_SCALE = 1.25;
+    public static final int LARGE_BOMB_TICKS = 60;
+    public static final int LARGE_BOMB_RADIUS = 7;
+
+    public static final double NUKE_HEALTH = 40;
+    public static final double NUKE_SCALE = 1.5;
+    public static final int NUKE_TICKS = 80;
+    public static final int NUKE_RADIUS = 40;
+
     final int arrowRestock = 300; // 3 arrows every 15 seconds, they auto reset
     final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;
     final int bombersRestock = 6; // 6 melee/ranged/bomb attacks = bombs!
@@ -34,7 +54,7 @@ public class FireInTheHole extends ManaKit {
     private ItemStack nuke;
 
     public FireInTheHole() {
-        super("fire_in_the_hole", "Fire In The Hole", "[Utility Bomber]", 3);
+        super("fire_in_the_hole", "Fire In The Hole", "[Utility Bomber]", 2);
 
         {
             arrows = new ItemStack(Material.SPECTRAL_ARROW, 3);

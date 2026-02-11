@@ -56,7 +56,7 @@ public class Tridentite extends ManaKit {
         int hasTridentC = pdc.get(hasTridentCounter, PersistentDataType.INTEGER);
         int tridentReturnC = pdc.get(tridentReturnCounter, PersistentDataType.INTEGER);
 
-        String displayMessage = ChatColor.RED + "Killstreak: " + ChatColor.WHITE + killstreak + "/4";
+        String displayMessage = ChatColor.RED + "Killstreak: " + ChatColor.WHITE + killstreak + "/2";
 
         PlayerInventory inv = p.getInventory();
         if (inv.contains(Material.TRIDENT) ||

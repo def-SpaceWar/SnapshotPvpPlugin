@@ -48,6 +48,7 @@ public final class ManaKitListener implements Listener {
         registerKit(new Thief());
         registerKit(new ICBM());
         registerKit(new Tridentite());
+        registerKit(new LightPaladin());
         manakitGameLoop();
     }
 
@@ -134,7 +135,8 @@ public final class ManaKitListener implements Listener {
         if (victimKit != null)
             victimKit.onDeath(victim, event);
 
-        if (event.getDamageSource().getCausingEntity() instanceof Player attacker) {
+        Player attacker = victim.getKiller();
+        if (attacker != null) {
             ManaKit attackerKit = getPlayerKit(attacker);
             if (attackerKit != null)
                 attackerKit.onKill(attacker, event);

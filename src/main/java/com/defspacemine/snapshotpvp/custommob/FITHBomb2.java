@@ -11,6 +11,7 @@ import org.bukkit.persistence.PersistentDataType;
 
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 import com.defspacemine.snapshotpvp.customegg.CustomMob;
+import com.defspacemine.snapshotpvp.manakit.FireInTheHole;
 
 public class FITHBomb2 implements CustomMob {
     public String getId() {
@@ -29,11 +30,11 @@ public class FITHBomb2 implements CustomMob {
 
         creeper.setCustomName("Medium Bomb");
         creeper.setCustomNameVisible(true);
-        creeper.getAttribute(Attribute.MAX_HEALTH).setBaseValue(24);
-        creeper.setHealth(15);
-        creeper.getAttribute(Attribute.SCALE).setBaseValue(1);
-        creeper.setMaxFuseTicks(45);
-        creeper.setExplosionRadius(5);
+        creeper.getAttribute(Attribute.MAX_HEALTH).setBaseValue(FireInTheHole.MEDIUM_BOMB_HEALTH);
+        creeper.setHealth(FireInTheHole.MEDIUM_BOMB_HEALTH);
+        creeper.getAttribute(Attribute.SCALE).setBaseValue(FireInTheHole.MEDIUM_BOMB_SCALE);
+        creeper.setMaxFuseTicks(FireInTheHole.MEDIUM_BOMB_TICKS);
+        creeper.setExplosionRadius(FireInTheHole.MEDIUM_BOMB_RADIUS);
 
         loc.getWorld().playSound(loc, Sound.ENTITY_CREEPER_PRIMED, 1, 0.7f);
 

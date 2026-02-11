@@ -25,6 +25,8 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 public class ICBM extends ManaKit {
+    public static final int RED_TERROR_RADIUS = 3;
+
     final int ammoRestock = 400; // 20 firework rockets every 20 seconds
     final NamespacedKey ammoRestockCounter = ManaKitListener.MANA_KIT_DATA0;
     final int terrorism = 2; // 2 kills for 5 red terrors
@@ -123,7 +125,7 @@ public class ICBM extends ManaKit {
                 ChatColor.WHITE + terrorismC + "/" + terrorism +
                 ChatColor.GRAY + "  |  " +
                 ChatColor.RED + "Killstreak: " +
-                ChatColor.WHITE + killstreak + "/2");
+                ChatColor.WHITE + killstreak + "/3");
 
         if (killstreak >= 1)
             p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 0));
