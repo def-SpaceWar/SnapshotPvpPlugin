@@ -40,7 +40,7 @@ public class ICBM extends ManaKit {
         super("icbm", "ICBM", "[Ranged Control]", 1);
 
         {
-            avgMissiles = new ItemStack(Material.FIREWORK_ROCKET, 8);
+            avgMissiles = new ItemStack(Material.FIREWORK_ROCKET, 4);
             FireworkMeta meta = (FireworkMeta) avgMissiles.getItemMeta();
             meta.displayName(Component.text("Average Missiles")
                     .color(NamedTextColor.GREEN)
@@ -54,14 +54,13 @@ public class ICBM extends ManaKit {
                     .trail(true)
                     .flicker(true)
                     .build();
-            meta.addEffect(effect);
-            meta.addEffect(effect);
+           for (int i =0; i < 8; i++) meta.addEffect(effect);
             meta.setPower(7);
             avgMissiles.setItemMeta(meta);
         }
 
         {
-            antimatterMissiles = new ItemStack(Material.FIREWORK_ROCKET, 1);
+            antimatterMissiles = new ItemStack(Material.FIREWORK_ROCKET, 2);
             FireworkMeta meta = (FireworkMeta) antimatterMissiles.getItemMeta();
             meta.displayName(Component.text("Antimatter Missiles")
                     .color(NamedTextColor.BLACK)
@@ -71,13 +70,7 @@ public class ICBM extends ManaKit {
             FireworkEffect effect = FireworkEffect.builder()
                     .with(FireworkEffect.Type.BALL)
                     .build();
-            meta.addEffect(effect);
-            meta.addEffect(effect);
-            meta.addEffect(effect);
-            meta.addEffect(effect);
-            meta.addEffect(effect);
-            meta.addEffect(effect);
-            meta.addEffect(effect);
+            for (int i =0; i < 12; i++) meta.addEffect(effect);
             meta.setPower(0);
             antimatterMissiles.setItemMeta(meta);
         }

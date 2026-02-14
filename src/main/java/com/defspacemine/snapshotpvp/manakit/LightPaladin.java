@@ -130,6 +130,7 @@ public class LightPaladin extends ManaKit {
         PlayerInventory inv = p.getInventory();
         SnapshotPvpPlugin.clearInv(inv, Material.CROSSBOW);
         SnapshotPvpPlugin.clearInv(inv, Material.SPLASH_POTION);
+        p.clearActivePotionEffects();
         resetKit(p);
     }
 

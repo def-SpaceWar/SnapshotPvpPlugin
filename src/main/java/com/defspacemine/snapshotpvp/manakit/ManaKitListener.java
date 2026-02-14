@@ -49,6 +49,11 @@ public final class ManaKitListener implements Listener {
         registerKit(new ICBM());
         registerKit(new Tridentite());
         registerKit(new LightPaladin());
+        registerKit(new Mercenary());
+        registerKit(new Cultist());
+        registerKit(new Barbarian());
+        registerKit(new Shulkian());
+        registerKit(new JapaneseGoblin());
         manakitGameLoop();
     }
 
@@ -187,7 +192,7 @@ public final class ManaKitListener implements Listener {
                     difficulty = ChatColor.RED + "★★★★";
                     break;
                 case 5:
-                    difficulty = ChatColor.DARK_RED + "★★★★★";
+                    difficulty = ChatColor.DARK_GRAY + "★★★★★";
                     break;
             }
             player.sendMessage(ChatColor.GOLD + kit.getId()

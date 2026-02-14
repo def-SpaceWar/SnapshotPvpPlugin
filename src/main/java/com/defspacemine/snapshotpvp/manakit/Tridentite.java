@@ -69,7 +69,7 @@ public class Tridentite extends ManaKit {
             if (hasTridentC == 0) {
                 double health = p.getHealth();
                 double maxHealth = p.getMaxHealth();
-                p.setHealth(Math.min(maxHealth, health + (maxHealth - health) * .2));
+                p.setHealth(Math.min(maxHealth, health + (maxHealth - health) * .35));
             }
         } else {
             displayMessage = ChatColor.DARK_AQUA + "Trident: " + ChatColor.WHITE + tridentReturnC + "/"

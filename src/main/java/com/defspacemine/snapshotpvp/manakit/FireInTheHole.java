@@ -38,7 +38,7 @@ public class FireInTheHole extends ManaKit {
     public static final double NUKE_HEALTH = 40;
     public static final double NUKE_SCALE = 1.5;
     public static final int NUKE_TICKS = 80;
-    public static final int NUKE_RADIUS = 40;
+    public static final int NUKE_RADIUS = 100;
 
     final int arrowRestock = 300; // 3 arrows every 15 seconds, they auto reset
     final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;

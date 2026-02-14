@@ -1,7 +1,10 @@
 package com.defspacemine.snapshotpvp.customegg;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -11,11 +14,14 @@ import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -31,6 +37,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.RayTraceResult;
@@ -41,6 +48,9 @@ import com.defspacemine.snapshotpvp.custommob.FITHBomb1;
 import com.defspacemine.snapshotpvp.custommob.FITHBomb2;
 import com.defspacemine.snapshotpvp.custommob.FITHBomb3;
 import com.defspacemine.snapshotpvp.custommob.FITHNuke;
+import com.defspacemine.snapshotpvp.custommob.MercAutoBomb;
+import com.defspacemine.snapshotpvp.custommob.MercGoodShotBhaiya;
+import com.defspacemine.snapshotpvp.custommob.MercLauncher;
 import com.defspacemine.snapshotpvp.manakit.ICBM;
 import com.defspacemine.snapshotpvp.manakit.LightPaladin;
 
@@ -100,15 +110,18 @@ public class CustomEggListener implements Listener {
         return Bukkit.getPlayer(UUID.fromString(uuid));
     }
 
-    private final JavaPlugin plugin;
+    private static JavaPlugin plugin;
 
     public CustomEggListener(JavaPlugin plugin) {
-        this.plugin = plugin;
+        CustomEggListener.plugin = plugin;
 
         register(new FITHBomb1());
         register(new FITHBomb2());
         register(new FITHBomb3());
         register(new FITHNuke());
+        register(new MercLauncher());
+        register(new MercAutoBomb());
+        register(new MercGoodShotBhaiya());
     }
 
     @EventHandler
@@ -139,14 +152,25 @@ public class CustomEggListener implements Listener {
         if (!exists(id))
             return;
 
+        Block clicked = e.getClickedBlock();
+        BlockFace face = e.getBlockFace();
+
+        if (clicked == null || face == null)
+            return;
+
+        Block targetBlock = clicked.getRelative(face);
+
+        if (!targetBlock.isPassable())
+            return;
+
         e.setCancelled(true);
 
+        Location spawnLoc = targetBlock.getLocation().add(0.5, 0, 0.5);
         CustomMob mob = get(id);
-        LivingEntity entity = mob.spawn(e.getClickedBlock().getLocation().add(0, 1, 0), pdc);
+        LivingEntity entity = mob.spawn(spawnLoc.add(0, 0.01, 0), pdc);
 
-        if (e.getPlayer().getGameMode() != GameMode.CREATIVE) {
+        if (e.getPlayer().getGameMode() != GameMode.CREATIVE)
             item.setAmount(item.getAmount() - 1);
-        }
     }
 
     @EventHandler
@@ -313,12 +337,12 @@ public class CustomEggListener implements Listener {
                         .color(NamedTextColor.RED)
                         .decorate(TextDecoration.BOLD));
                 creeper.setFuseTicks(0);
-                creeper.setExplosionRadius(ICBM.RED_TERROR_RADIUS); 
+                creeper.setExplosionRadius(ICBM.RED_TERROR_RADIUS);
                 creeper.explode();
 
                 firework.setVelocity(dir);
             }
-        }.runTaskTimer(plugin, 0L, 2L);
+        }.runTaskTimer(plugin, 0L, 3L);
     }
 
     private void startBlindingLightTask(Firework firework) {
@@ -382,5 +406,63 @@ public class CustomEggListener implements Listener {
                 }
             }
         }.runTaskTimer(plugin, 0L, 2L);
+    }
+
+    private static final Set<Mob> factionMobs = new HashSet<>();
+
+    public static void registerFactionMob(Mob mob) {
+        factionMobs.add(mob);
+    }
+
+    public void startGlobalAggroTask() {
+        Bukkit.getScheduler().runTaskTimer(plugin, task -> {
+            if (factionMobs.isEmpty())
+                return;
+            Scoreboard scoreboard = SnapshotPvpPlugin.scoreboard;
+            Iterator<Mob> iterator = factionMobs.iterator();
+
+            while (iterator.hasNext()) {
+                Mob mob = iterator.next();
+
+                if (!mob.isValid() || mob.isDead()) {
+                    iterator.remove();
+                    continue;
+                }
+
+                LivingEntity current = mob.getTarget();
+                if (current != null && !current.isDead())
+                    continue;
+
+                Team mobTeam = scoreboard.getEntryTeam(mob.getUniqueId().toString());
+                if (mobTeam == null)
+                    continue;
+
+                double range = 16;
+                LivingEntity closestEnemy = null;
+                double closestDistance = Double.MAX_VALUE;
+
+                for (Entity nearby : mob.getNearbyEntities(range, range, range)) {
+                    if (!(nearby instanceof LivingEntity target))
+                        continue;
+                    if (target.isDead())
+                        continue;
+                    if (target == mob)
+                        continue;
+
+                    Team targetTeam = scoreboard.getEntryTeam(target.getUniqueId().toString());
+                    if (targetTeam != null && !targetTeam.equals(mobTeam)) {
+                        double distance = mob.getLocation().distanceSquared(target.getLocation());
+                        if (distance >= closestDistance)
+                            continue;
+
+                        closestDistance = distance;
+                        closestEnemy = target;
+                    }
+                }
+
+                if (closestEnemy != null)
+                    mob.setTarget(closestEnemy);
+            }
+        }, 0L, 10L);
     }
 }
