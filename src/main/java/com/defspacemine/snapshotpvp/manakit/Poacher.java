@@ -133,4 +133,10 @@ public class Poacher extends ManaKit {
                     pdc.get(killShotCounter, PersistentDataType.INTEGER) + 1);
         }
     }
+
+    @Override
+    public void onKill(Player p, PlayerDeathEvent e) {
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        pdc.set(killShotCounter, PersistentDataType.INTEGER, killShot);
+    }
 }

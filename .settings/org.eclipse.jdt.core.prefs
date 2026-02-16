@@ -9,6 +9,7 @@ org.eclipse.jdt.core.compiler.problem.rawTypeReference=ignore
 org.eclipse.jdt.core.compiler.problem.redundantSuperinterface=ignore
 org.eclipse.jdt.core.compiler.problem.terminalDeprecation=ignore
 org.eclipse.jdt.core.compiler.problem.uncheckedTypeOperation=ignore
+org.eclipse.jdt.core.compiler.problem.unlikelyEqualsArgumentType=ignore
 org.eclipse.jdt.core.compiler.problem.unusedImport=ignore
 org.eclipse.jdt.core.compiler.problem.unusedLocal=ignore
 org.eclipse.jdt.core.compiler.problem.unusedPrivateMember=ignore

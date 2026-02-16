@@ -101,6 +101,7 @@ public class Shulkian extends ManaKit {
     public void onLeaveCombat(Player p) {
         PlayerInventory inv = p.getInventory();
         SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
+        p.clearActivePotionEffects();
         resetKit(p);
     }
 

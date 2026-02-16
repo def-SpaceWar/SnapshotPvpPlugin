@@ -54,6 +54,8 @@ public final class ManaKitListener implements Listener {
         registerKit(new Barbarian());
         registerKit(new Shulkian());
         registerKit(new JapaneseGoblin());
+        registerKit(new JadeTrio());
+        registerKit(new Titan());
         manakitGameLoop();
     }
 
@@ -177,7 +179,7 @@ public final class ManaKitListener implements Listener {
             return a.getDisplayName().charAt(0) - b.getDisplayName().charAt(0);
         });
         for (ManaKit kit : kits) {
-            String difficulty = "?";
+            String difficulty = ChatColor.MAGIC + "?????";
             switch (kit.stars) {
                 case 1:
                     difficulty = ChatColor.AQUA + "★";
