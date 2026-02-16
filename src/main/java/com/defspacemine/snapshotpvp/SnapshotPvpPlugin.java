@@ -22,6 +22,7 @@ import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
+import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
 import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -97,6 +98,7 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
 
         server.getPluginManager().registerEvents(new ManaKitListener(this), this);
         server.getPluginManager().registerEvents(new CustomEggListener(this), this);
+        server.getPluginManager().registerEvents(new EnchantmentListener(this), this);
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, commands -> {
             commands.registrar()

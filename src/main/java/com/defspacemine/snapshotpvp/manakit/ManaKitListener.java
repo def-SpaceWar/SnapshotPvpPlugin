@@ -56,6 +56,7 @@ public final class ManaKitListener implements Listener {
         registerKit(new JapaneseGoblin());
         registerKit(new JadeTrio());
         registerKit(new Titan());
+        registerKit(new Frog());
         manakitGameLoop();
     }
 

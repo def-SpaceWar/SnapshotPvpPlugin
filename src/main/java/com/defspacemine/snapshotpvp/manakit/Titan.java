@@ -25,7 +25,7 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 public class Titan extends ManaKit {
     private static final NamespacedKey FURY_SPEED = new NamespacedKey("defspacemine", "titan_speed");
     private static final NamespacedKey FURY_ATTACK_SPEED = new NamespacedKey("defspacemine", "titan_attack_speed");
-    private static final NamespacedKey FURY_ATTACK_DAMAGE = new NamespacedKey("defspacemine", "titan_attack_damage");
+    private static final NamespacedKey FINAL_FURY_ATTACK_DAMAGE = new NamespacedKey("defspacemine", "titan_attack_damage");
     final NamespacedKey furyCounter = ManaKitListener.MANA_KIT_DATA0;
 
     private int getStage(int fury) {
@@ -59,7 +59,7 @@ public class Titan extends ManaKit {
                 .forEach(attackSpeedAttr::removeModifier);
 
         attackDamageAttr.getModifiers().stream()
-                .filter(mod -> mod.getKey().equals(FURY_ATTACK_DAMAGE))
+                .filter(mod -> mod.getKey().equals(FINAL_FURY_ATTACK_DAMAGE))
                 .forEach(attackDamageAttr::removeModifier);
 
         if (stage <= 0)
@@ -85,7 +85,7 @@ public class Titan extends ManaKit {
             return;
 
         AttributeModifier attackDamageMod = new AttributeModifier(
-                FURY_ATTACK_DAMAGE,
+                FINAL_FURY_ATTACK_DAMAGE,
                 furyC / 500 - 5,
                 AttributeModifier.Operation.ADD_NUMBER);
         attackDamageAttr.addModifier(attackDamageMod);
