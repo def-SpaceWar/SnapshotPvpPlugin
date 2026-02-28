@@ -408,9 +408,9 @@ public class Pharmacist extends ManaKit {
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
-                    PotionEffectType.HUNGER,
+                    PotionEffectType.WITHER,
                     400,
-                    9,
+                    0,
                     false,
                     true,
                     true), true);
