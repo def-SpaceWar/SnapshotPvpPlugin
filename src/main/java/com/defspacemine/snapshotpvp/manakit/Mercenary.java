@@ -43,7 +43,7 @@ public class Mercenary extends ManaKit {
         super("mercenary", "Mercenary", "[Melee Assassin]", 4);
 
         {
-            launchers = new ItemStack(Material.CREEPER_SPAWN_EGG, 2);
+            launchers = new ItemStack(Material.CREEPER_SPAWN_EGG, 4);
             SpawnEggMeta meta = (SpawnEggMeta) launchers.getItemMeta();
             meta.displayName(Component.text("Launcher")
                     .color(NamedTextColor.GREEN)
@@ -56,7 +56,7 @@ public class Mercenary extends ManaKit {
         }
 
         {
-            autoBombs = new ItemStack(Material.CREEPER_SPAWN_EGG, 2);
+            autoBombs = new ItemStack(Material.CREEPER_SPAWN_EGG, 4);
             SpawnEggMeta meta = (SpawnEggMeta) autoBombs.getItemMeta();
             meta.displayName(Component.text("Auto Bomb")
                     .color(NamedTextColor.RED)
@@ -72,7 +72,7 @@ public class Mercenary extends ManaKit {
         enderpearl.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
 
         {
-            goodShotBhaiyas = new ItemStack(Material.OCELOT_SPAWN_EGG, 1);
+            goodShotBhaiyas = new ItemStack(Material.OCELOT_SPAWN_EGG, 2);
             SpawnEggMeta meta = (SpawnEggMeta) goodShotBhaiyas.getItemMeta();
             meta.displayName(Component.text("good shot bhaiya")
                     .color(NamedTextColor.WHITE)

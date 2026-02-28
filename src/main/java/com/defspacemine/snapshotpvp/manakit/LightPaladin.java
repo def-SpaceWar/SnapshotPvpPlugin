@@ -4,6 +4,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.damage.DamageType;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -147,7 +148,8 @@ public class LightPaladin extends ManaKit {
                 pdc.get(holyShieldRestockCounter, PersistentDataType.INTEGER) + 1);
         if (p.getHealth() <= 0)
             return;
-        p.setHealth(Math.min(p.getHealth() + .5, p.getMaxHealth()));
+        if (e.getDamageSource().getDamageType() != DamageType.PLAYER_ATTACK) return;
+        p.setHealth(Math.min(p.getHealth() + 2, p.getMaxHealth()));
     }
 
     @Override

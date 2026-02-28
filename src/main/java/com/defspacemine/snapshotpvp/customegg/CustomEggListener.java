@@ -1,10 +1,7 @@
 package com.defspacemine.snapshotpvp.customegg;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -14,7 +11,6 @@ import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.damage.DamageSource;
@@ -126,6 +122,8 @@ public class CustomEggListener implements Listener {
         register(new MercLauncher());
         register(new MercAutoBomb());
         register(new MercGoodShotBhaiya());
+
+        startGlobalAggroTask();
     }
 
     @EventHandler
@@ -409,6 +407,12 @@ public class CustomEggListener implements Listener {
                     if (pTeam != null && pTeam.equals(targetTeam))
                         continue;
 
+                    LightningStrike s = world.strikeLightning(target.getLocation());
+                    if (firework.getShooter() instanceof Player owner) {
+                        s.setCausingPlayer(owner);
+                        target.damage(1, owner);
+                    }
+
                     target.addPotionEffect(new PotionEffect(
                             PotionEffectType.GLOWING,
                             100,
@@ -432,52 +436,47 @@ public class CustomEggListener implements Listener {
                             true));
                 }
             }
-        }.runTaskTimer(plugin, 0L, 2L);
-    }
-
-    private static final Set<Mob> factionMobs = new HashSet<>();
-
-    public static void registerFactionMob(Mob mob) {
-        factionMobs.add(mob);
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     public void startGlobalAggroTask() {
         Bukkit.getScheduler().runTaskTimer(plugin, task -> {
-            if (factionMobs.isEmpty())
-                return;
             Scoreboard scoreboard = SnapshotPvpPlugin.scoreboard;
-            Iterator<Mob> iterator = factionMobs.iterator();
 
-            while (iterator.hasNext()) {
-                Mob mob = iterator.next();
+            for (World world : Bukkit.getWorlds()) {
+                for (Mob mob : world.getEntitiesByClass(Mob.class)) {
 
-                if (!mob.isValid() || mob.isDead()) {
-                    iterator.remove();
-                    continue;
-                }
-
-                LivingEntity current = mob.getTarget();
-                if (current != null && !current.isDead())
-                    continue;
-
-                Team mobTeam = scoreboard.getEntryTeam(mob.getUniqueId().toString());
-                if (mobTeam == null)
-                    continue;
-
-                double range = 16;
-                LivingEntity closestEnemy = null;
-                double closestDistance = Double.MAX_VALUE;
-
-                for (Entity nearby : mob.getNearbyEntities(range, range, range)) {
-                    if (!(nearby instanceof LivingEntity target))
-                        continue;
-                    if (target.isDead())
-                        continue;
-                    if (target == mob)
+                    if (!mob.isValid() || mob.isDead())
                         continue;
 
-                    Team targetTeam = scoreboard.getEntryTeam(target.getUniqueId().toString());
-                    if (targetTeam != null && !targetTeam.equals(mobTeam)) {
+                    Team mobTeam = scoreboard.getEntryTeam(mob.getUniqueId().toString());
+                    if (mobTeam == null)
+                        continue;
+
+                    LivingEntity current = mob.getTarget();
+                    if (current != null && !current.isDead())
+                        continue;
+
+                    double range = 16;
+                    LivingEntity closestEnemy = null;
+                    double closestDistance = Double.MAX_VALUE;
+
+                    for (Entity nearby : mob.getNearbyEntities(range, range, range)) {
+
+                        if (!(nearby instanceof LivingEntity target))
+                            continue;
+                        if (target.isDead())
+                            continue;
+                        if (target == mob)
+                            continue;
+
+                        Team targetTeam = scoreboard.getEntryTeam(target.getUniqueId().toString());
+                        if (targetTeam == null)
+                            continue;
+
+                        if (targetTeam.equals(mobTeam))
+                            continue;
+
                         double distance = mob.getLocation().distanceSquared(target.getLocation());
                         if (distance >= closestDistance)
                             continue;
@@ -485,10 +484,10 @@ public class CustomEggListener implements Listener {
                         closestDistance = distance;
                         closestEnemy = target;
                     }
-                }
 
-                if (closestEnemy != null)
-                    mob.setTarget(closestEnemy);
+                    if (closestEnemy != null)
+                        mob.setTarget(closestEnemy);
+                }
             }
         }, 0L, 10L);
     }

@@ -35,11 +35,17 @@ public class Pharmacist extends ManaKit {
     final ItemStack mustardGas;
     final int TA_LETHAL_INJECTION = 4;
     final ItemStack lethalInjection;
+    final int SP_CONTRAINDICTION = 5;
+    final ItemStack contraindiction;
+    final int P_UNSTABLE_OVERCLOCK = 6;
+    final ItemStack unstableOverclock;
+    final int LP_SARIN = 7;
+    final ItemStack sarin;
 
     final List<Integer> TA = List.of(TA_SEDATIVE_SHOT, TA_LETHAL_INJECTION);
-    final List<Integer> P = List.of(P_ANABOLIC_STEROIDS);
-    final List<Integer> SP = List.of(SP_PANACEA_RUSH);
-    final List<Integer> LP = List.of(LP_MUSTARD_GAS);
+    final List<Integer> P = List.of(P_ANABOLIC_STEROIDS, P_UNSTABLE_OVERCLOCK);
+    final List<Integer> SP = List.of(SP_PANACEA_RUSH, SP_CONTRAINDICTION);
+    final List<Integer> LP = List.of(LP_MUSTARD_GAS, LP_SARIN);
 
     int chooseRandomFromList(List<Integer> list) {
         return list.get(ThreadLocalRandom.current().nextInt(list.size()));
@@ -70,13 +76,19 @@ public class Pharmacist extends ManaKit {
             case TA_SEDATIVE_SHOT:
                 return 5;
             case P_ANABOLIC_STEROIDS:
-                return 8;
-            case SP_PANACEA_RUSH:
                 return 7;
+            case SP_PANACEA_RUSH:
+                return 8;
             case LP_MUSTARD_GAS:
                 return 6;
             case TA_LETHAL_INJECTION:
+                return 9;
+            case SP_CONTRAINDICTION:
+                return 8;
+            case P_UNSTABLE_OVERCLOCK:
                 return 10;
+            case LP_SARIN:
+                return 6;
         }
         return -1;
     }
@@ -93,6 +105,12 @@ public class Pharmacist extends ManaKit {
                 return ChatColor.GOLD + "(LP) Mustard Gas: ";
             case TA_LETHAL_INJECTION:
                 return ChatColor.BLACK + "(TA) Lethal Injection: ";
+            case SP_CONTRAINDICTION:
+                return ChatColor.DARK_RED + "(SP) Contraindiction: ";
+            case P_UNSTABLE_OVERCLOCK:
+                return ChatColor.AQUA + "(P) Unstable Overclock: ";
+            case LP_SARIN:
+                return ChatColor.BLACK + "(LP) Sarin: ";
         }
         return ChatColor.GRAY + "" + ChatColor.MAGIC + "?????" + ChatColor.RESET + "" + ChatColor.GRAY + ": ";
     }
@@ -120,11 +138,23 @@ public class Pharmacist extends ManaKit {
                 SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
                 inv.addItem(lethalInjection);
                 break;
+            case SP_CONTRAINDICTION:
+                SnapshotPvpPlugin.clearInv(inv, Material.SPLASH_POTION);
+                inv.addItem(contraindiction);
+                break;
+            case P_UNSTABLE_OVERCLOCK:
+                SnapshotPvpPlugin.clearInv(inv, Material.POTION);
+                inv.addItem(unstableOverclock);
+                break;
+            case LP_SARIN:
+                SnapshotPvpPlugin.clearInv(inv, Material.LINGERING_POTION);
+                inv.addItem(sarin);
+                break;
         }
     }
 
     public Pharmacist() {
-        super("pharmacist", "Pharmacist", "[Melee Damage]", 0);
+        super("pharmacist", "Pharmacist", "[Utility Debuff]", 2);
 
         {
             sedativeShot = new ItemStack(Material.TIPPED_ARROW, 1);
@@ -186,7 +216,7 @@ public class Pharmacist extends ManaKit {
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.STRENGTH,
                     400,
-                    1,
+                    0,
                     false,
                     true,
                     true), true);
@@ -281,6 +311,110 @@ public class Pharmacist extends ManaKit {
                     true,
                     true), true);
             lethalInjection.setItemMeta(meta);
+        }
+
+        {
+            contraindiction = new ItemStack(Material.SPLASH_POTION, 1);
+            PotionMeta meta = (PotionMeta) contraindiction.getItemMeta();
+            meta.setDisplayName(ChatColor.DARK_RED + "Contraindiction");
+            meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
+            meta.setColor(Color.fromRGB(0xDD0000));
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.WITHER,
+                    400,
+                    2,
+                    false,
+                    true,
+                    true), true);
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.WEAKNESS,
+                    400,
+                    1,
+                    false,
+                    true,
+                    true), true);
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.INSTANT_DAMAGE,
+                    2,
+                    1,
+                    false,
+                    true,
+                    true), true);
+            contraindiction.setItemMeta(meta);
+        }
+
+        {
+            unstableOverclock = new ItemStack(Material.POTION, 1);
+            PotionMeta meta = (PotionMeta) unstableOverclock.getItemMeta();
+            meta.setDisplayName(ChatColor.AQUA + "Unstable Overclock");
+            meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
+            meta.setColor(Color.fromRGB(0x00FFDD));
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.SPEED,
+                    400,
+                    2,
+                    false,
+                    true,
+                    true), true);
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.HASTE,
+                    400,
+                    2,
+                    false,
+                    true,
+                    true), true);
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.STRENGTH,
+                    400,
+                    2,
+                    false,
+                    true,
+                    true), true);
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.WITHER,
+                    400,
+                    3,
+                    false,
+                    true,
+                    true), true);
+            unstableOverclock.setItemMeta(meta);
+        }
+
+        {
+            sarin = new ItemStack(Material.LINGERING_POTION, 1);
+            PotionMeta meta = (PotionMeta) sarin.getItemMeta();
+            meta.setDisplayName(ChatColor.BLACK + "Sarin");
+            meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
+            meta.setColor(Color.fromRGB(0x005500));
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.MINING_FATIGUE,
+                    400,
+                    2,
+                    false,
+                    true,
+                    true), true);
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.WEAKNESS,
+                    400,
+                    2,
+                    false,
+                    true,
+                    true), true);
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.SLOWNESS,
+                    400,
+                    5,
+                    false,
+                    true,
+                    true), true);
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.HUNGER,
+                    400,
+                    9,
+                    false,
+                    true,
+                    true), true);
+            sarin.setItemMeta(meta);
         }
     }
 
