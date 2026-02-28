@@ -78,7 +78,6 @@ public class Tridentite extends ManaKit {
             pdc.set(tridentReturnCounter, PersistentDataType.INTEGER, tridentReturnC + 1);
             pdc.set(hasTridentCounter, PersistentDataType.INTEGER, 0);
 
-            p.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 200, 0));
             p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 80, 1));
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 40, 2));
         }

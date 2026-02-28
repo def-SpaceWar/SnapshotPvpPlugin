@@ -11,13 +11,14 @@ import org.bukkit.potion.PotionEffectType;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
-public class Juggernaut extends ManaKit {
-    public Juggernaut() {
-        super("juggernaut", "Juggernaut", "[Melee Damage Tank]", 2);
+public class Breezy extends ManaKit {
+    public Breezy() {
+        super("breezy", "Breezy", "[Melee Movement]", 2);
     }
 
     @Override
     public void giveKit(Player p) {
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
         resetKit(p);
 
         // give items
@@ -36,10 +37,10 @@ public class Juggernaut extends ManaKit {
         p.sendActionBar(ChatColor.RED + "Killstreak: " +
                 ChatColor.WHITE + killstreak + "/2");
 
-        if (killstreak >= 1 && !p.hasPotionEffect(PotionEffectType.HEALTH_BOOST))
-            p.addPotionEffect(new PotionEffect(PotionEffectType.HEALTH_BOOST, -1, 1));
+        if (killstreak >= 1)
+            p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 0));
         if (killstreak >= 2)
-            p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 1));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 100, 0));
     }
 
     @Override
@@ -51,7 +52,6 @@ public class Juggernaut extends ManaKit {
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
-        p.addPotionEffect(new PotionEffect(PotionEffectType.HEALTH_BOOST, -1, 1));
-        p.setHealth(28);
+        p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, -1, 1));
     }
 }

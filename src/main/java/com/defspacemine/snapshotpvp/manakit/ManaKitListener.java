@@ -8,6 +8,7 @@ import java.util.Set;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.LightningStrike;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -57,7 +58,11 @@ public final class ManaKitListener implements Listener {
         registerKit(new JadeTrio());
         registerKit(new Titan());
         registerKit(new Frog());
+        registerKit(new Breezy());
+        registerKit(new Colossus());
+        registerKit(new Pharmacist());
         manakitGameLoop();
+        registerKit(new Gambler());
     }
 
     private void registerKit(ManaKit kit) {
@@ -123,13 +128,25 @@ public final class ManaKitListener implements Listener {
 
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (event.getDamageSource().getCausingEntity() instanceof Player attacker) {
+        Player attacker = null;
+        Player victim = null;
+
+        if (event.getDamageSource().getCausingEntity() instanceof Player p)
+            attacker = p;
+        else if (event.getDamager() instanceof LightningStrike strike)
+            if (strike.getCausingEntity() instanceof Player p)
+                attacker = p;
+
+        if (event.getEntity() instanceof Player p)
+            victim = p;
+
+        if (attacker != null && !attacker.equals(victim)) {
             ManaKit attackerKit = getPlayerKit(attacker);
             if (attackerKit != null)
                 attackerKit.onDamageDealt(attacker, event);
         }
 
-        if (event.getEntity() instanceof Player victim) {
+        if (victim != null && !victim.equals(attacker)) {
             ManaKit victimKit = getPlayerKit(victim);
             if (victimKit != null)
                 victimKit.onDamageTaken(victim, event);

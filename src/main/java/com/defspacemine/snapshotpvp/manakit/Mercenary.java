@@ -1,6 +1,7 @@
 package com.defspacemine.snapshotpvp.manakit;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -42,7 +43,7 @@ public class Mercenary extends ManaKit {
         super("mercenary", "Mercenary", "[Melee Assassin]", 4);
 
         {
-            launchers = new ItemStack(Material.CREEPER_SPAWN_EGG, 4);
+            launchers = new ItemStack(Material.CREEPER_SPAWN_EGG, 2);
             SpawnEggMeta meta = (SpawnEggMeta) launchers.getItemMeta();
             meta.displayName(Component.text("Launcher")
                     .color(NamedTextColor.GREEN)
@@ -55,7 +56,7 @@ public class Mercenary extends ManaKit {
         }
 
         {
-            autoBombs = new ItemStack(Material.CREEPER_SPAWN_EGG, 4);
+            autoBombs = new ItemStack(Material.CREEPER_SPAWN_EGG, 2);
             SpawnEggMeta meta = (SpawnEggMeta) autoBombs.getItemMeta();
             meta.displayName(Component.text("Auto Bomb")
                     .color(NamedTextColor.RED)
@@ -71,13 +72,13 @@ public class Mercenary extends ManaKit {
         enderpearl.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
 
         {
-            goodShotBhaiyas = new ItemStack(Material.OCELOT_SPAWN_EGG, 4);
+            goodShotBhaiyas = new ItemStack(Material.OCELOT_SPAWN_EGG, 1);
             SpawnEggMeta meta = (SpawnEggMeta) goodShotBhaiyas.getItemMeta();
             meta.displayName(Component.text("good shot bhaiya")
                     .color(NamedTextColor.WHITE)
                     .decoration(TextDecoration.BOLD, false)
                     .decoration(TextDecoration.ITALIC, false));
-            ArrayList<Component> lore = new ArrayList();
+            List<Component> lore = new ArrayList<>();
             lore.add(Component.text("bum chidi chidi bum bum")
                     .decoration(TextDecoration.ITALIC, false));
             meta.lore(lore);
@@ -128,7 +129,7 @@ public class Mercenary extends ManaKit {
         if (mercRestockC >= mercRestock) {
             SnapshotPvpPlugin.clearInv(inv, Material.CREEPER_SPAWN_EGG);
             SnapshotPvpPlugin.clearInv(inv, Material.ENDER_PEARL);
-            inv.addItem(launchers);
+            inv.addItem(CustomEggListener.injectOwner(launchers, p));
             inv.addItem(CustomEggListener.injectOwner(autoBombs, p));
             inv.addItem(enderpearl);
             pdc.set(mercRestockCounter, PersistentDataType.INTEGER, 0);
@@ -154,6 +155,6 @@ public class Mercenary extends ManaKit {
     public void onKill(Player p, PlayerDeathEvent e) {
         PlayerInventory inv = p.getInventory();
         SnapshotPvpPlugin.clearInv(inv, Material.OCELOT_SPAWN_EGG);
-        inv.addItem(goodShotBhaiyas);
+        inv.addItem(CustomEggListener.injectOwner(goodShotBhaiyas, p));
     }
 }

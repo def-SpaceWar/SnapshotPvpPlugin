@@ -9,6 +9,7 @@ import org.bukkit.Particle;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -192,6 +193,12 @@ public class Thief extends ManaKit {
                 pdc.set(smokeRestockCounter, PersistentDataType.INTEGER,
                         pdc.get(smokeRestockCounter, PersistentDataType.INTEGER) + 1);
         }
+    }
+
+    @Override
+    public void onKill(Player p, PlayerDeathEvent e) {
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        pdc.set(ammoRestockCounter, PersistentDataType.INTEGER, ammoRestock);
     }
 
     @Override

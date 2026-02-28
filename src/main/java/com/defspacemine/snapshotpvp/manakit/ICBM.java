@@ -25,7 +25,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 public class ICBM extends ManaKit {
-    public static final int RED_TERROR_RADIUS = 3;
+    public static final int RED_TERROR_RADIUS = 4;
 
     final int ammoRestock = 400; // 20 firework rockets every 20 seconds
     final NamespacedKey ammoRestockCounter = ManaKitListener.MANA_KIT_DATA0;
@@ -54,7 +54,8 @@ public class ICBM extends ManaKit {
                     .trail(true)
                     .flicker(true)
                     .build();
-           for (int i =0; i < 8; i++) meta.addEffect(effect);
+            for (int i = 0; i < 8; i++)
+                meta.addEffect(effect);
             meta.setPower(7);
             avgMissiles.setItemMeta(meta);
         }
@@ -70,7 +71,8 @@ public class ICBM extends ManaKit {
             FireworkEffect effect = FireworkEffect.builder()
                     .with(FireworkEffect.Type.BALL)
                     .build();
-            for (int i =0; i < 12; i++) meta.addEffect(effect);
+            for (int i = 0; i < 16; i++)
+                meta.addEffect(effect);
             meta.setPower(0);
             antimatterMissiles.setItemMeta(meta);
         }

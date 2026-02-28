@@ -14,12 +14,16 @@ import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.damage.DamageSource;
+import org.bukkit.damage.DamageType;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Firework;
+import org.bukkit.entity.LightningStrike;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
@@ -167,7 +171,7 @@ public class CustomEggListener implements Listener {
 
         Location spawnLoc = targetBlock.getLocation().add(0.5, 0, 0.5);
         CustomMob mob = get(id);
-        LivingEntity entity = mob.spawn(spawnLoc.add(0, 0.01, 0), pdc);
+        mob.spawn(spawnLoc.add(0, 0.01, 0), pdc);
 
         if (e.getPlayer().getGameMode() != GameMode.CREATIVE)
             item.setAmount(item.getAmount() - 1);
@@ -175,16 +179,29 @@ public class CustomEggListener implements Listener {
 
     @EventHandler
     public void onEntityDamage(EntityDamageByEntityEvent e) {
-        if (e.getDamager() instanceof Creeper creeper) {
-            Player owner = getOwner(creeper);
+        Entity entity = e.getDamager();
+        Player owner = getOwner(entity);
+        if (owner == null)
+            return;
 
+        {
+            Entity causing = e.getDamageSource().getCausingEntity();
+            if (causing instanceof LightningStrike strike)
+                causing = strike.getCausingEntity();
+            if (causing != null && causing.equals(owner))
+                return;
+        }
+
+        Team ownerTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(owner.getName());
+        if (entity instanceof Creeper creeper) {
             if (e.getEntity() instanceof Player victim) {
-                if (owner == null)
-                    return;
                 e.setCancelled(true);
-                victim.damage(e.getFinalDamage(), owner);
                 applyExplosionKnockback(victim, creeper.getLocation(), creeper.getExplosionRadius(),
                         creeper.isPowered());
+                victim.damage(e.getDamage(), DamageSource.builder(DamageType.EXPLOSION)
+                        .withDirectEntity(creeper)
+                        .withCausingEntity(owner)
+                        .build());
             } else if (e.getEntity() instanceof Creeper c) {
                 if (getOwner(e.getEntity()) == null)
                     return;
@@ -192,18 +209,23 @@ public class CustomEggListener implements Listener {
                         PersistentDataType.BOOLEAN);
                 if (chainable == null || !chainable)
                     return;
-                e.setCancelled(true);
                 if (creeper.isPowered())
                     c.setPowered(true);
+                e.setCancelled(true);
                 c.explode();
             }
             return;
         }
 
-        Player owner = getOwner(e.getDamager());
-        if (owner != null && e.getEntity() instanceof Player victim) {
+        if (e.getEntity() instanceof Player victim) {
             e.setCancelled(true);
-            victim.damage(e.getFinalDamage(), owner);
+            Entity direct = e.getDamageSource().getDirectEntity();
+            if (direct == null)
+                direct = owner;
+            victim.damage(e.getDamage(), DamageSource.builder(e.getDamageSource().getDamageType())
+                    .withDirectEntity(direct)
+                    .withCausingEntity(owner)
+                    .build());
         }
     }
 
@@ -272,6 +294,11 @@ public class CustomEggListener implements Listener {
                     Vector dir = new Vector(x - explosionLoc.getX(),
                             y - explosionLoc.getY(),
                             z - explosionLoc.getZ());
+                    if (dir.isZero()) {
+                        unobstructed++;
+                        total++;
+                        continue;
+                    }
                     RayTraceResult result = world.rayTraceBlocks(
                             explosionLoc,
                             dir,
@@ -342,7 +369,7 @@ public class CustomEggListener implements Listener {
 
                 firework.setVelocity(dir);
             }
-        }.runTaskTimer(plugin, 0L, 3L);
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     private void startBlindingLightTask(Firework firework) {
@@ -362,9 +389,9 @@ public class CustomEggListener implements Listener {
                 Location loc = firework.getLocation();
                 World world = loc.getWorld();
 
-                Entity e = world.spawnEntity(loc, EntityType.LIGHTNING_BOLT);
+                LightningStrike e = world.strikeLightning(loc);
                 if (firework.getShooter() instanceof Player owner)
-                    injectOwner(e, owner);
+                    e.setCausingPlayer(owner);
 
                 e.customName(Component.text("Blinding Light")
                         .color(NamedTextColor.GOLD)

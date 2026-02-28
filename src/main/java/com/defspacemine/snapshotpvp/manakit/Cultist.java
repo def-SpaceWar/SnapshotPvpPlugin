@@ -88,6 +88,8 @@ public class Cultist extends ManaKit {
             displayMessage = ChatColor.DARK_RED + "Doom Ritual: " + ChatColor.WHITE + doomRitualC + "/"
                     + doomRitual + ChatColor.GRAY + " | " + displayMessage;
 
+        p.removePotionEffect(PotionEffectType.WITHER);
+        p.removePotionEffect(PotionEffectType.POISON);
         p.sendActionBar(displayMessage);
 
         if (killstreak == 1)

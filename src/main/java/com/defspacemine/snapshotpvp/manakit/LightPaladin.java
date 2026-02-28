@@ -29,7 +29,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 public class LightPaladin extends ManaKit {
     public static final float BLINDING_LIGHT_RADIUS = 6;
 
-    final int holyShieldRestock = 40; // 40 attacks given or taken
+    final int holyShieldRestock = 50; // 50 attacks given or taken
     final NamespacedKey holyShieldRestockCounter = ManaKitListener.MANA_KIT_DATA0;
 
     private ItemStack holyShield;
@@ -142,19 +142,18 @@ public class LightPaladin extends ManaKit {
 
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
-        if (e.getEntity() instanceof Player) {
-            PersistentDataContainer pdc = p.getPersistentDataContainer();
-            pdc.set(holyShieldRestockCounter, PersistentDataType.INTEGER,
-                    pdc.get(holyShieldRestockCounter, PersistentDataType.INTEGER) + 1);
-        }
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        pdc.set(holyShieldRestockCounter, PersistentDataType.INTEGER,
+                pdc.get(holyShieldRestockCounter, PersistentDataType.INTEGER) + 1);
+        if (p.getHealth() <= 0)
+            return;
+        p.setHealth(Math.min(p.getHealth() + .5, p.getMaxHealth()));
     }
 
     @Override
     public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {
-        if (e.getDamageSource().getCausingEntity() instanceof Player) {
-            PersistentDataContainer pdc = p.getPersistentDataContainer();
-            pdc.set(holyShieldRestockCounter, PersistentDataType.INTEGER,
-                    pdc.get(holyShieldRestockCounter, PersistentDataType.INTEGER) + 1);
-        }
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        pdc.set(holyShieldRestockCounter, PersistentDataType.INTEGER,
+                pdc.get(holyShieldRestockCounter, PersistentDataType.INTEGER) + 1);
     }
 }

@@ -22,6 +22,11 @@ public class MercGoodShotBhaiya implements CustomMob {
 
     public LivingEntity spawn(Location loc, PersistentDataContainer pdc) {
         Creeper creeper = (Creeper) loc.getWorld().spawnEntity(loc, EntityType.CREEPER);
+        PersistentDataContainer cPdc = creeper.getPersistentDataContainer();
+        String owner = pdc.get(CustomEggListener.OWNER, PersistentDataType.STRING);
+        if (owner != null) {
+            // cPdc.set(CustomEggListener.OWNER, PersistentDataType.STRING, owner);
+        }
 
         creeper.setCustomName("good shot bhaiya");
         creeper.setCustomNameVisible(true);
