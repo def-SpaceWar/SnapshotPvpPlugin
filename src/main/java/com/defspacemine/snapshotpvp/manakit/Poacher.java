@@ -20,7 +20,7 @@ import org.bukkit.potion.PotionEffectType;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Poacher extends ManaKit {
-    final int killShot = 15; // 15 attacks = 1 power toxin!
+    final int killShot = 9; // 9 attacks = 1 power toxin!
     final NamespacedKey killShotCounter = ManaKitListener.MANA_KIT_DATA0;
 
     private ItemStack powerfulToxin;
@@ -107,6 +107,7 @@ public class Poacher extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (killShotC >= killShot) {
+            SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
             p.getInventory().addItem(powerfulToxin);
             pdc.set(killShotCounter, PersistentDataType.INTEGER, 0);
         }
@@ -122,7 +123,7 @@ public class Poacher extends ManaKit {
     @Override
     public void onEnterCombat(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        pdc.set(killShotCounter, PersistentDataType.INTEGER, killShot);
+        pdc.set(killShotCounter, PersistentDataType.INTEGER, 0);
     }
 
     @Override

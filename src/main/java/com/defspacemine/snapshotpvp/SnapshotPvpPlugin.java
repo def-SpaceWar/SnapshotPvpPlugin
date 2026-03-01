@@ -96,6 +96,7 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
             return;
         }
 
+        server.getPluginManager().registerEvents(new AntiSwapExploit(), this);
         server.getPluginManager().registerEvents(new ManaKitListener(this), this);
         server.getPluginManager().registerEvents(new CustomEggListener(this), this);
         server.getPluginManager().registerEvents(new EnchantmentListener(this), this);

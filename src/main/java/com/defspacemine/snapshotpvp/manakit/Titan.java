@@ -179,7 +179,7 @@ public class Titan extends ManaKit {
         int furyC = pdc.get(furyCounter, PersistentDataType.INTEGER);
         int stage = getStage(furyC);
         pdc.set(furyCounter, PersistentDataType.INTEGER,
-                furyC + ((killstreak > 1) ? 160 : 80));
+                (p.getFireTicks() > 0 ? 3 : 1) * (furyC + ((killstreak > 1) ? 160 : 80)));
         if (stage < 5)
             return;
         e.setDamage(e.getDamage() + (furyC / 500) - 5);
@@ -189,9 +189,9 @@ public class Titan extends ManaKit {
     public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
-        pdc.set(furyCounter, PersistentDataType.INTEGER,
+        pdc.set(furyCounter, PersistentDataType.INTEGER, (p.getFireTicks() > 0 ? 3 : 1) * (
                 pdc.get(furyCounter, PersistentDataType.INTEGER)
-                        + (int) (e.getDamage() * 4 + 20) * (((killstreak > 1) ? 2 : 1)));
+                        + (int) (e.getDamage() * 4 + 20) * (((killstreak > 1) ? 2 : 1))));
     }
 
     @Override

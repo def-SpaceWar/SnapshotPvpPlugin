@@ -50,6 +50,7 @@ public class EnchantmentListener implements Listener {
     public static Enchantment BREEZY_ASPECT;
     public static Enchantment LIGHTNING_ASPECT;
     public static Enchantment DOUBLE_JUMP;
+    public static Enchantment CURSE_HEAVY_HIT;
 
     private final JavaPlugin plugin;
 
@@ -64,6 +65,7 @@ public class EnchantmentListener implements Listener {
         BREEZY_ASPECT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "breezy_aspect"));
         LIGHTNING_ASPECT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "lightning_aspect"));
         DOUBLE_JUMP = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "double_jump"));
+        CURSE_HEAVY_HIT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "curse_heavy_hit"));
     }
 
     @EventHandler
@@ -245,6 +247,13 @@ public class EnchantmentListener implements Listener {
         if (weapon.containsEnchantment(LIGHTNING_ASPECT)) {
             int level = weapon.getEnchantmentLevel(LIGHTNING_ASPECT);
             spawnLightningAttack(player, target, level);
+        }
+
+        if (weapon.containsEnchantment(CURSE_HEAVY_HIT)) {
+            int level = weapon.getEnchantmentLevel(CURSE_HEAVY_HIT);
+            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, (int)e.getFinalDamage() * 4 * level, 4));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, (int)e.getFinalDamage() * 2 * level, 0));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, (int)e.getFinalDamage() * 2 * (level + 1), 255));
         }
     }
 

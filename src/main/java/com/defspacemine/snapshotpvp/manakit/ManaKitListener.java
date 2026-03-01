@@ -61,6 +61,7 @@ public final class ManaKitListener implements Listener {
         registerKit(new Breezy());
         registerKit(new Colossus());
         registerKit(new Pharmacist());
+        registerKit(new Incendiary());
         manakitGameLoop();
         registerKit(new Gambler());
     }
@@ -288,6 +289,7 @@ public final class ManaKitListener implements Listener {
                     if (playerTags.contains("fighting")) {
                         if (!playerTags.contains("combat")) {
                             player.addScoreboardTag("combat");
+                            player.clearActivePotionEffects();
                             kit.onEnterCombat(player);
                         }
                         kit.onCombatTick(player);

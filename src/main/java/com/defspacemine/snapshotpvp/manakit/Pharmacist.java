@@ -304,8 +304,15 @@ public class Pharmacist extends ManaKit {
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.POISON,
+                    800,
+                    3,
+                    false,
+                    true,
+                    true), true);
+            meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.INSTANT_DAMAGE,
-                    1,
+                    2,
                     1,
                     false,
                     true,
@@ -352,26 +359,54 @@ public class Pharmacist extends ManaKit {
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.SPEED,
                     400,
-                    2,
+                    4,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.HASTE,
                     400,
-                    2,
+                    4,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.STRENGTH,
                     400,
-                    2,
+                    5,
+                    false,
+                    true,
+                    true), true);
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.WEAKNESS,
+                    800,
+                    1,
+                    false,
+                    true,
+                    true), true);
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.MINING_FATIGUE,
+                    800,
+                    1,
+                    false,
+                    true,
+                    true), true);
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.SLOWNESS,
+                    800,
+                    1,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.WITHER,
+                    800,
+                    3,
+                    false,
+                    true,
+                    true), true);
+            meta.addCustomEffect(new PotionEffect(
+                    PotionEffectType.POISON,
                     400,
                     3,
                     false,
@@ -404,13 +439,6 @@ public class Pharmacist extends ManaKit {
                     PotionEffectType.SLOWNESS,
                     400,
                     5,
-                    false,
-                    true,
-                    true), true);
-            meta.addCustomEffect(new PotionEffect(
-                    PotionEffectType.WITHER,
-                    400,
-                    0,
                     false,
                     true,
                     true), true);
