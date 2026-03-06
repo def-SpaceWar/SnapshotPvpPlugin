@@ -20,7 +20,7 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class JapaneseGoblin extends ManaKit {
     public JapaneseGoblin() {
-        super("japanese_goblin", "Japanese Goblin", "[Melee Movement]", 3);
+        super("japanese_goblin", "Japanese Goblin", "[Melee Assassin]", 3);
     }
 
     @Override

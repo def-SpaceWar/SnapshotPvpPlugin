@@ -179,18 +179,18 @@ public class CustomEggListener implements Listener {
 
     @EventHandler
     public void onEntityDamage(EntityDamageByEntityEvent e) {
-        Entity entity = e.getDamager();
-        Player owner = getOwner(entity);
-        if (owner == null)
-            return;
-
         {
             Entity causing = e.getDamageSource().getCausingEntity();
             if (causing instanceof LightningStrike strike)
                 causing = strike.getCausingEntity();
-            if (causing != null && causing.equals(owner))
+            if (causing instanceof Player)
                 return;
         }
+
+        Entity entity = e.getDamager();
+        Player owner = getOwner(entity);
+        if (owner == null)
+            return;
 
         Team ownerTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(owner.getName());
         if (entity instanceof Creeper creeper) {
@@ -219,10 +219,11 @@ public class CustomEggListener implements Listener {
 
         if (e.getEntity() instanceof Player victim) {
             e.setCancelled(true);
-            Entity direct = e.getDamageSource().getDirectEntity();
+            DamageSource dmgSrc = e.getDamageSource();
+            Entity direct = dmgSrc.getDirectEntity();
             if (direct == null)
                 direct = owner;
-            victim.damage(e.getDamage(), DamageSource.builder(e.getDamageSource().getDamageType())
+            victim.damage(e.getDamage(), DamageSource.builder(dmgSrc.getDamageType())
                     .withDirectEntity(direct)
                     .withCausingEntity(owner)
                     .build());
@@ -412,7 +413,7 @@ public class CustomEggListener implements Listener {
                     LightningStrike s = world.strikeLightning(target.getLocation());
                     if (firework.getShooter() instanceof Player owner) {
                         s.setCausingPlayer(owner);
-                        target.damage(1, owner);
+                        target.damage(2, DamageSource.builder(DamageType.MAGIC).withCausingEntity(owner).build());
                     }
 
                     target.addPotionEffect(new PotionEffect(

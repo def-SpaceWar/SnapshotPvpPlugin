@@ -14,6 +14,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
@@ -185,6 +186,16 @@ public final class ManaKitListener implements Listener {
         if (kit == null)
             return;
         kit.onConsume(p, e);
+    }
+
+    @EventHandler
+    public void onProjectileHit(ProjectileHitEvent e) {
+        if (!(e.getEntity().getShooter() instanceof Player p))
+            return;
+        ManaKit kit = getPlayerKit(p);
+        if (kit == null)
+            return;
+        kit.onProjectileHit(p, e);
     }
 
     void showKits(Player player) {

@@ -8,11 +8,13 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
-import org.bukkit.enchantments.Enchantment;
+import org.bukkit.damage.DamageSource;
+import org.bukkit.damage.DamageType;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -26,19 +28,20 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Incendiary extends ManaKit {
     final double SIPHON_RADIUS = 24;
-    private static final int MAX_HEAT = 250;
-    private static final int HEAT_PER_TICK = 5;
-    private static final int COOL_RATE = 1;
-    private static final int MAX_RAMP = 20;
+    private static final int HEAT_PER_TICK = 15;
+    private static final int COOL_RATE = 2;
+    private static final int MAX_RANGE = 8;
 
-    final int flamethrower = 1000; // max ammo
+    final int flamethrower = 2000; // max ammo
     final NamespacedKey flamethrowerCounter = ManaKitListener.MANA_KIT_DATA0;
+    private static final int maxHeat = 1800;
     final NamespacedKey heatKey = ManaKitListener.MANA_KIT_DATA1;
+    private static final int maxRamp = 60;
     final NamespacedKey rampKey = ManaKitListener.MANA_KIT_DATA2;
     final NamespacedKey overheatKey = ManaKitListener.MANA_KIT_DATA3;
 
     public Incendiary() {
-        super("incendiary", "Incendiary", "[Utility Attrition]", 0);
+        super("incendiary", "Incendiary", "[Utility Attrition]", 3);
     }
 
     @Override
@@ -63,17 +66,11 @@ public class Incendiary extends ManaKit {
     public void onCombatTick(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         ItemStack item = p.getInventory().getItemInMainHand();
-        if (!isFlamethrower(item)) {
-			pdc.set(rampKey, PersistentDataType.INTEGER, 0);
+        if (!isFlamethrower(item) || !p.isHandRaised()) {
+            pdc.set(rampKey, PersistentDataType.INTEGER, Math.max(0,
+       			pdc.getOrDefault(rampKey, PersistentDataType.INTEGER, 0) - 1));
             cool(p);
-        } else {
-            if (!p.isHandRaised()) {
-				pdc.set(rampKey, PersistentDataType.INTEGER, 0);
-                cool(p);
-            } else {
-                fireTick(p);
-            }
-        }
+        } else fireTick(p);
 
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         int flamethrowerC = pdc.get(flamethrowerCounter, PersistentDataType.INTEGER);
@@ -84,11 +81,11 @@ public class Incendiary extends ManaKit {
         p.sendActionBar(ChatColor.GOLD + "Flamethrower: " +
                 ChatColor.WHITE + flamethrowerC + "/" + flamethrower +
                 ChatColor.GRAY + "  |  " +
-                ChatColor.DARK_RED + "Heat: " +
-                ChatColor.WHITE + heatC + "/" + MAX_HEAT +
+                ChatColor.YELLOW + "Heat: " +
+                ChatColor.WHITE + heatC + "/" + maxHeat +
                 ChatColor.GRAY + "  |  " +
                 (overheatC ? ChatColor.RED + "" + ChatColor.BOLD + "OVERHEATED!" + ChatColor.RESET
-                        : ChatColor.DARK_GREEN + "Damage Ramp: " + ChatColor.WHITE + rampC + "/" + MAX_RAMP)
+                        : ChatColor.LIGHT_PURPLE + "Damage Ramp: " + ChatColor.WHITE + rampC + "/" + maxRamp)
                 +
                 ChatColor.GRAY + "  |  " +
                 ChatColor.RED + "Killstreak: " +
@@ -124,13 +121,13 @@ public class Incendiary extends ManaKit {
             p.setSaturation(Math.min(20, p.getSaturation() + 1));
             p.setFoodLevel(Math.min(20, p.getFoodLevel() + 1));
             p.setHealth(Math.min(20, p.getHealth() + .05));
-            newFlamethrowerC += 1;
+            newFlamethrowerC += 2;
         }
         if (p.getFireTicks() > 0) {
             p.setSaturation(Math.min(20, p.getSaturation() + 1));
             p.setFoodLevel(Math.min(20, p.getFoodLevel() + 1));
             p.setHealth(Math.min(20, p.getHealth() + .05));
-            newFlamethrowerC += 2;
+            newFlamethrowerC += 3;
 
             p.setHealth(p.getHealth() * (.98));
             p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 1));
@@ -156,6 +153,12 @@ public class Incendiary extends ManaKit {
     }
 
     @Override
+    public void onKill(Player p, PlayerDeathEvent e) {
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+		pdc.set(heatKey, PersistentDataType.INTEGER, 0);
+    }
+
+    @Override
     public void onInteract(Player p, PlayerInteractEvent e) {
         if (!e.getAction().isRightClick())
             return;
@@ -171,39 +174,11 @@ public class Incendiary extends ManaKit {
                                 .getOrDefault(overheatKey, PersistentDataType.BOOLEAN, false));
     }
 
-    private void overheat(Player player) {
-        PersistentDataContainer pdc = player.getPersistentDataContainer();
-
-        pdc.set(overheatKey, PersistentDataType.BOOLEAN, true);
-        pdc.set(rampKey, PersistentDataType.INTEGER, 0);
-
-        // player.sendMessage("§c§lFLAMETHROWER OVERHEATED!");
-        player.playSound(player.getLocation(), Sound.BLOCK_FIRE_EXTINGUISH, 1f, 0.5f);
-
-        player.setFireTicks(60);
-        player.damage(2.0);
-
-        Bukkit.getScheduler().runTaskTimer(SnapshotPvpPlugin.instance, task -> {
-
-            int heat = pdc.getOrDefault(heatKey, PersistentDataType.INTEGER, 0);
-            heat -= COOL_RATE;
-
-            if (heat <= 0) {
-                pdc.set(heatKey, PersistentDataType.INTEGER, 0);
-                pdc.set(overheatKey, PersistentDataType.BOOLEAN, false);
-                task.cancel();
-                return;
-            }
-
-            pdc.set(heatKey, PersistentDataType.INTEGER, heat);
-
-        }, 20L, 20L);
-    }
-
     private void fireTick(Player player) {
         PersistentDataContainer pdc = player.getPersistentDataContainer();
         int flamethrowerC = pdc.get(flamethrowerCounter, PersistentDataType.INTEGER);
-        if (flamethrowerC <= 0) return;
+        if (flamethrowerC <= 0)
+            return;
 
         int heat = pdc.getOrDefault(heatKey, PersistentDataType.INTEGER, 0);
         int ramp = pdc.getOrDefault(rampKey, PersistentDataType.INTEGER, 0);
@@ -217,31 +192,41 @@ public class Incendiary extends ManaKit {
         heat += HEAT_PER_TICK;
         pdc.set(heatKey, PersistentDataType.INTEGER, heat);
 
-        if (ramp < MAX_RAMP) {
+        if (ramp < maxRamp) {
             ramp++;
             pdc.set(rampKey, PersistentDataType.INTEGER, ramp);
         }
 
-        if (heat >= MAX_HEAT) {
+        if (heat >= maxHeat) {
             triggerOverheat(player);
             return;
         }
 
-        double damage = 0.1 + (ramp * 0.02);
+        double damage = 0.05 + (ramp * 0.005);
 
         World world = player.getWorld();
         Vector direction = player.getEyeLocation().getDirection().normalize();
         Location start = player.getEyeLocation();
         Team pTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(player.getName());
 
-        main: for (double i = 0; i < 6; i += 0.5) {
-            Location point = start.clone().add(direction.clone().multiply(i));
-            world.spawnParticle(Particle.FLAME, point, 8, 0.2, 0.2, 0.2, 0.02);
-            flamethrowerC -= 2;
+        main: for (double i = 0; i < (MAX_RANGE * ramp / maxRamp); i += 0.5) {
+            if (flamethrowerC <= 0) {
+                ramp -= 2;
+                pdc.set(rampKey, PersistentDataType.INTEGER, Math.max(0, ramp));
+                break main;
+            }
 
-            for (Entity entity : world.getNearbyEntities(point, 1, 1, 1)) {
-                if (flamethrowerC <= 0)
+            double r = i / 2 + 1;
+            Location point = start.clone().add(direction.clone().multiply(i));
+            world.spawnParticle(Particle.FLAME, point, (int)r, 0.2 * r, 0.2 * r, 0.2 * r, 0.02);
+            flamethrowerC -= 1;
+
+            for (Entity entity : world.getNearbyEntities(point, r, r, r)) {
+                if (flamethrowerC <= 0) {
+                    ramp -= 2;
+                    pdc.set(rampKey, PersistentDataType.INTEGER, Math.max(0, ramp));
                     break main;
+                }
                 if (entity.equals(player))
                     continue;
 
@@ -251,8 +236,9 @@ public class Incendiary extends ManaKit {
 
                 entity.setFireTicks(40 + ramp * 15);
                 if (entity instanceof LivingEntity living)
-                    living.damage(damage, player);
-                flamethrowerC--;
+                    living.damage(damage, DamageSource.builder(DamageType.IN_FIRE)
+                            .withDirectEntity(player)
+                            .withCausingEntity(player).build());
             }
         }
 
@@ -264,10 +250,10 @@ public class Incendiary extends ManaKit {
         pdc.set(overheatKey, PersistentDataType.BOOLEAN, true);
         pdc.set(rampKey, PersistentDataType.INTEGER, 0);
 
-        player.sendMessage("§c§lFLAMETHROWER OVERHEATED!");
+        // player.sendMessage("§c§lFLAMETHROWER OVERHEATED!");
         player.playSound(player.getLocation(), Sound.BLOCK_FIRE_EXTINGUISH, 1f, 0.5f);
         player.setFireTicks(60);
-        player.damage(2.0);
+        player.damage(15.0);
     }
 
     private void cool(Player player) {
