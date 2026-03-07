@@ -24,8 +24,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.WindCharge;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerFishEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.inventory.ItemStack;
@@ -51,6 +53,9 @@ public class EnchantmentListener implements Listener {
     public static Enchantment LIGHTNING_ASPECT;
     public static Enchantment DOUBLE_JUMP;
     public static Enchantment CURSE_HEAVY_HIT;
+    public static Enchantment BACKSTAB;
+    public static Enchantment UPPERCUT;
+    public static Enchantment DASHING;
 
     private final JavaPlugin plugin;
 
@@ -66,6 +71,9 @@ public class EnchantmentListener implements Listener {
         LIGHTNING_ASPECT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "lightning_aspect"));
         DOUBLE_JUMP = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "double_jump"));
         CURSE_HEAVY_HIT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "curse_heavy_hit"));
+        BACKSTAB = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "backstab"));
+        UPPERCUT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "uppercut"));
+        DASHING = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "dashing"));
     }
 
     @EventHandler
@@ -251,9 +259,59 @@ public class EnchantmentListener implements Listener {
 
         if (weapon.containsEnchantment(CURSE_HEAVY_HIT)) {
             int level = weapon.getEnchantmentLevel(CURSE_HEAVY_HIT);
-            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, (int)e.getFinalDamage() * 4 * level, 4));
-            player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, (int)e.getFinalDamage() * 2 * level, 0));
-            player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, (int)e.getFinalDamage() * 2 * (level + 1), 255));
+            player.addPotionEffect(
+                    new PotionEffect(PotionEffectType.SLOWNESS, (int) e.getFinalDamage() * 4 * level, 4));
+            player.addPotionEffect(
+                    new PotionEffect(PotionEffectType.WEAKNESS, (int) e.getFinalDamage() * 2 * level, 0));
+            player.addPotionEffect(
+                    new PotionEffect(PotionEffectType.JUMP_BOOST, (int) e.getFinalDamage() * 2 * (level + 1), 255));
+        }
+
+        if (weapon.containsEnchantment(BACKSTAB)) {
+            int level = weapon.getEnchantmentLevel(BACKSTAB);
+            performBackstab(player, target, level);
+        }
+
+        if (weapon.containsEnchantment(UPPERCUT)) {
+            int level = weapon.getEnchantmentLevel(UPPERCUT);
+            performUppercut(player, target, level);
+        }
+    }
+
+    @EventHandler
+    public void onInteract(PlayerInteractEvent e) {
+        Player player = e.getPlayer();
+
+        if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK)
+            return;
+
+        ItemStack weapon = player.getInventory().getItemInMainHand();
+
+        if (weapon.containsEnchantment(DASHING)) {
+            if (player.hasCooldown(weapon))
+                return;
+
+            Location playerLoc = player.getLocation();
+            Location idealLoc = playerLoc.clone().add(playerLoc.getDirection().normalize().clone().multiply(3));
+            Location teleportLoc = raycastToWall(playerLoc, idealLoc);
+
+            player.addPotionEffect(new PotionEffect(
+                    PotionEffectType.SPEED,
+                    20,
+                    2,
+                    false,
+                    true,
+                    true));
+
+            player.getWorld().spawnParticle(
+                    Particle.CLOUD,
+                    playerLoc,
+                    20,
+                    0.3, 0.5, 0.3,
+                    0.1);
+
+            player.setCooldown(weapon.getType(), 35);
+            player.teleport(teleportLoc);
         }
     }
 
@@ -312,5 +370,55 @@ public class EnchantmentListener implements Listener {
                     true,
                     true));
         }
+    }
+
+    private void performBackstab(Player player, LivingEntity target, int level) {
+        double maxDistance = 2.0 + (level * 1);
+
+        Location targetLoc = target.getLocation();
+        Location idealLoc = targetLoc.clone().add(targetLoc.getDirection().normalize().clone().multiply(-maxDistance));
+        Location teleportLoc = raycastToWall(target.getLocation(), idealLoc);
+        if (teleportLoc == null)
+            return;
+
+        player.teleport(teleportLoc.setDirection(player.getLocation().getDirection()));
+    }
+
+    private void performUppercut(Player player, LivingEntity target, int level) {
+        double maxDistance = 3.0 + (level * 1);
+
+        Location targetLoc = target.getLocation();
+        Vector direction = targetLoc.getDirection().normalize();
+
+        Vector rightVec = direction.clone().crossProduct(new Vector(0, 1, 0)).normalize();
+        Vector upVec = rightVec.clone().crossProduct(direction).normalize();
+        Location idealLoc = targetLoc.clone().add(upVec.clone().multiply(maxDistance));
+
+        Location teleportLoc = raycastToWall(target.getLocation(), idealLoc);
+        if (teleportLoc == null)
+            return;
+
+        player.teleport(teleportLoc.setDirection(player.getLocation().getDirection()));
+    }
+
+    private Location raycastToWall(Location from, Location to) {
+        World world = from.getWorld();
+        Vector direction = to.toVector().subtract(from.toVector());
+        double maxDistance = direction.length();
+        direction.normalize();
+
+        Location lastValidLoc = from.clone();
+
+        double step = .25;
+        for (double d = step; d <= maxDistance; d += step) {
+            Location checkPoint = from.clone().add(direction.clone().multiply(d));
+            Material type = checkPoint.getBlock().getType();
+
+            if (type.isSolid() && type.isOccluding() && !type.isInteractable())
+                return lastValidLoc;
+            lastValidLoc = checkPoint.clone();
+        }
+
+        return to.clone();
     }
 }
