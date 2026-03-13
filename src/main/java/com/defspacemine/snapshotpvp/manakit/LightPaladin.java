@@ -149,7 +149,7 @@ public class LightPaladin extends ManaKit {
         if (p.getHealth() <= 0)
             return;
         if (e.getDamageSource().getDamageType() != DamageType.PLAYER_ATTACK) return;
-        p.setHealth(Math.min(p.getHealth() + 2, p.getMaxHealth()));
+        p.setHealth(Math.min(p.getHealth() + 1, p.getMaxHealth()));
     }
 
     @Override

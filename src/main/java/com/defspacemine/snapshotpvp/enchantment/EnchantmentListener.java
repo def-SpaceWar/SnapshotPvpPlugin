@@ -31,6 +31,8 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -130,6 +132,8 @@ public class EnchantmentListener implements Listener {
     private void explosiveHook(Player p, Location loc, int level) {
         Creeper creeper = (Creeper) loc.getWorld().spawnEntity(loc, EntityType.CREEPER);
         CustomEggListener.injectOwner(creeper, p);
+        PersistentDataContainer pdc = creeper.getPersistentDataContainer();
+        pdc.set(CustomEggListener.CUSTOM_DAMAGE, PersistentDataType.FLOAT, 1f);
         creeper.customName(Component.text("Explosive Hook")
                 .color(NamedTextColor.GOLD)
                 .decoration(TextDecoration.BOLD, true)
@@ -231,7 +235,7 @@ public class EnchantmentListener implements Listener {
         creeper.setIgnited(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onHit(EntityDamageByEntityEvent e) {
         if (e.getDamageSource().getDamageType() != DamageType.PLAYER_ATTACK)
             return;

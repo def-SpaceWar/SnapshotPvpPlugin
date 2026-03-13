@@ -9,6 +9,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -20,6 +21,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
@@ -34,6 +36,8 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 
 public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
     public static SnapshotPvpPlugin instance;
@@ -73,11 +77,22 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         return true;
     }
 
+    public static TextColor getTeamColor(Entity e) {
+	    Team team = scoreboard.getEntryTeam(e.getName());
+    	return (team != null) ? team.color() : NamedTextColor.WHITE;
+	}
+
     public static void clearInv(PlayerInventory inv, Material type) {
         inv.remove(type);
         ItemStack offhand = inv.getItemInOffHand();
         if (offhand.getType() == type)
             inv.setItemInOffHand(null);
+    }
+
+    public static void clearInv(PlayerInventory inv, ItemStack type) {
+        ItemStack stack = type.clone();
+        stack.setAmount(type.getAmount() * 99);
+        inv.removeItemAnySlot(stack);
     }
 
     @Override
@@ -96,7 +111,7 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
             return;
         }
 
-        server.getPluginManager().registerEvents(new AntiSwapExploit(), this);
+        server.getPluginManager().registerEvents(new AntiSwapExploit(this), this);
         server.getPluginManager().registerEvents(new CustomEggListener(this), this);
         server.getPluginManager().registerEvents(new EnchantmentListener(this), this);
         server.getPluginManager().registerEvents(new ManaKitListener(this), this);

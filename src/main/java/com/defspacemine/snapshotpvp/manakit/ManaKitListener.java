@@ -8,11 +8,13 @@ import java.util.Set;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
+import org.bukkit.damage.DeathMessageType;
 import org.bukkit.entity.LightningStrike;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -26,17 +28,36 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
+import net.kyori.adventure.text.Component;
+
 public final class ManaKitListener implements Listener {
     public static ManaKitListener instance;
     private final JavaPlugin plugin;
 
     private final Map<String, ManaKit> manakitRegistry = new HashMap<String, ManaKit>();
     public static final NamespacedKey MANA_KIT = new NamespacedKey("defspacemine", "mana_kit");
+
     public static final NamespacedKey MANA_KIT_DATA0 = new NamespacedKey("defspacemine", "mana_kit_data0");
     public static final NamespacedKey MANA_KIT_DATA1 = new NamespacedKey("defspacemine", "mana_kit_data1");
     public static final NamespacedKey MANA_KIT_DATA2 = new NamespacedKey("defspacemine", "mana_kit_data2");
     public static final NamespacedKey MANA_KIT_DATA3 = new NamespacedKey("defspacemine", "mana_kit_data3");
     public static final NamespacedKey MANA_KIT_DATA4 = new NamespacedKey("defspacemine", "mana_kit_data4");
+    public static final NamespacedKey MANA_KIT_DATA5 = new NamespacedKey("defspacemine", "mana_kit_data5");
+    public static final NamespacedKey MANA_KIT_DATA6 = new NamespacedKey("defspacemine", "mana_kit_data6");
+    public static final NamespacedKey MANA_KIT_DATA7 = new NamespacedKey("defspacemine", "mana_kit_data7");
+    public static final NamespacedKey MANA_KIT_DATA8 = new NamespacedKey("defspacemine", "mana_kit_data8");
+    public static final NamespacedKey MANA_KIT_DATA9 = new NamespacedKey("defspacemine", "mana_kit_data9");
+
+    public static final NamespacedKey MANA_KIT_DATASTR0 = new NamespacedKey("defspacemine", "mana_kit_datastr0");
+    public static final NamespacedKey MANA_KIT_DATASTR1 = new NamespacedKey("defspacemine", "mana_kit_datastr1");
+    public static final NamespacedKey MANA_KIT_DATASTR2 = new NamespacedKey("defspacemine", "mana_kit_datastr2");
+    public static final NamespacedKey MANA_KIT_DATASTR3 = new NamespacedKey("defspacemine", "mana_kit_datastr3");
+    public static final NamespacedKey MANA_KIT_DATASTR4 = new NamespacedKey("defspacemine", "mana_kit_datastr4");
+    public static final NamespacedKey MANA_KIT_DATASTR5 = new NamespacedKey("defspacemine", "mana_kit_datastr5");
+    public static final NamespacedKey MANA_KIT_DATASTR6 = new NamespacedKey("defspacemine", "mana_kit_datastr6");
+    public static final NamespacedKey MANA_KIT_DATASTR7 = new NamespacedKey("defspacemine", "mana_kit_datastr7");
+    public static final NamespacedKey MANA_KIT_DATASTR8 = new NamespacedKey("defspacemine", "mana_kit_datastr8");
+    public static final NamespacedKey MANA_KIT_DATASTR9 = new NamespacedKey("defspacemine", "mana_kit_datastr9");
 
     public ManaKitListener(JavaPlugin plugin) {
         instance = this;
@@ -63,8 +84,8 @@ public final class ManaKitListener implements Listener {
         registerKit(new Colossus());
         registerKit(new Pharmacist());
         registerKit(new Incendiary());
-        manakitGameLoop();
         registerKit(new Gambler());
+        manakitGameLoop();
     }
 
     private void registerKit(ManaKit kit) {
@@ -128,7 +149,7 @@ public final class ManaKitListener implements Listener {
         return true;
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         Player attacker = null;
         Player victim = null;
@@ -157,7 +178,7 @@ public final class ManaKitListener implements Listener {
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
-        Player victim = event.getEntity();
+        Player victim = event.getPlayer();
         ManaKit victimKit = getPlayerKit(victim);
         if (victimKit != null)
             victimKit.onDeath(victim, event);

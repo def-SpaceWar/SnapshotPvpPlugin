@@ -29,7 +29,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -58,11 +60,14 @@ import com.defspacemine.snapshotpvp.manakit.LightPaladin;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 public class CustomEggListener implements Listener {
     public final static NamespacedKey CUSTOM_EGG = new NamespacedKey("defspacemine", "custom_egg");
     public final static NamespacedKey OWNER = new NamespacedKey("defspacemine", "owner");
+    public final static NamespacedKey CUSTOM_DAMAGE = new NamespacedKey("defspacemine", "custom_damage");
 
     public final static NamespacedKey CREEPER_CHAIN = new NamespacedKey("defspacemine", "creeper_chain");
     public final static NamespacedKey RED_TERROR = new NamespacedKey("defspacemine", "red_terror");
@@ -192,16 +197,22 @@ public class CustomEggListener implements Listener {
         if (owner == null)
             return;
 
+        PersistentDataContainer pdc = entity.getPersistentDataContainer();
+        double damage = pdc.getOrDefault(CUSTOM_DAMAGE, PersistentDataType.FLOAT, (float) e.getDamage());
+
         Team ownerTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(owner.getName());
         if (entity instanceof Creeper creeper) {
             if (e.getEntity() instanceof Player victim) {
                 e.setCancelled(true);
                 applyExplosionKnockback(victim, creeper.getLocation(), creeper.getExplosionRadius(),
                         creeper.isPowered());
-                victim.damage(e.getDamage(), DamageSource.builder(DamageType.EXPLOSION)
-                        .withDirectEntity(creeper)
-                        .withCausingEntity(owner)
-                        .build());
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (victim.isValid() && !victim.isDead())
+                        victim.damage(damage, DamageSource.builder(DamageType.EXPLOSION)
+                                .withDirectEntity(creeper)
+                                .withCausingEntity(owner)
+                                .build());
+                }, 1L);
             } else if (e.getEntity() instanceof Creeper c) {
                 if (getOwner(e.getEntity()) == null)
                     return;
@@ -220,13 +231,17 @@ public class CustomEggListener implements Listener {
         if (e.getEntity() instanceof Player victim) {
             e.setCancelled(true);
             DamageSource dmgSrc = e.getDamageSource();
-            Entity direct = dmgSrc.getDirectEntity();
-            if (direct == null)
-                direct = owner;
-            victim.damage(e.getDamage(), DamageSource.builder(dmgSrc.getDamageType())
-                    .withDirectEntity(direct)
-                    .withCausingEntity(owner)
-                    .build());
+            Entity d = dmgSrc.getDirectEntity();
+            if (d == null)
+                d = owner;
+            final Entity direct = d;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (victim.isValid() && !victim.isDead())
+                    victim.damage(damage, DamageSource.builder(dmgSrc.getDamageType())
+                            .withDirectEntity(direct)
+                            .withCausingEntity(owner)
+                            .build());
+            }, 1L);
         }
     }
 
@@ -413,7 +428,9 @@ public class CustomEggListener implements Listener {
                     LightningStrike s = world.strikeLightning(target.getLocation());
                     if (firework.getShooter() instanceof Player owner) {
                         s.setCausingPlayer(owner);
-                        target.damage(2, DamageSource.builder(DamageType.MAGIC).withCausingEntity(owner).build());
+                        target.damage(2, DamageSource.builder(DamageType.MAGIC)
+                                .withDirectEntity(owner)
+                                .withCausingEntity(owner).build());
                     }
 
                     target.addPotionEffect(new PotionEffect(
@@ -493,5 +510,38 @@ public class CustomEggListener implements Listener {
                 }
             }
         }, 0L, 10L);
+    }
+
+    @EventHandler
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        Component currentMsg = event.deathMessage();
+        if (currentMsg == null)
+            return;
+
+        String rawText = PlainTextComponentSerializer.plainText().serialize(currentMsg);
+        if (rawText.equals("death.attack.explosion.item")) {
+            Player victim = event.getEntity();
+            EntityDamageEvent lastDamage = victim.getLastDamageCause();
+
+            if (lastDamage instanceof EntityDamageByEntityEvent damageEvent)
+                if (damageEvent.getDamager() instanceof Creeper creeper) {
+                    Player owner = getOwner(creeper);
+                    if (owner == null)
+                        return;
+
+                    ItemStack item = owner.getItemInHand();
+                    Component customMsg = Component.text()
+                            .append(victim.displayName().hoverEvent(victim.asHoverEvent())
+                                    .color(SnapshotPvpPlugin.getTeamColor(victim)))
+                            .append(Component.text(" was blown up by ", NamedTextColor.WHITE))
+                            .append(owner.displayName().hoverEvent(owner.asHoverEvent())
+                                    .color(SnapshotPvpPlugin.getTeamColor(owner)))
+                            .append(Component.text(" using ", NamedTextColor.WHITE))
+                            .append(item.displayName().hoverEvent(item.asHoverEvent()))
+                            .build();
+
+                    event.deathMessage(customMsg);
+                }
+        }
     }
 }

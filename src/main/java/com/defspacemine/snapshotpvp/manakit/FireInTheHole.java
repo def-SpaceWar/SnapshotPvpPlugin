@@ -163,7 +163,7 @@ public class FireInTheHole extends ManaKit {
 
         if (nukeRestockC >= nukeRestock) {
             p.getInventory().addItem(CustomEggListener.injectOwner(nuke, p));
-            pdc.set(nukeRestockCounter, PersistentDataType.INTEGER, 0);
+            pdc.set(nukeRestockCounter, PersistentDataType.INTEGER, nukeRestockC - nukeRestock);
         }
     }
 

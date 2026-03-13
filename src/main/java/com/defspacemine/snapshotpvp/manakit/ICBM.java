@@ -3,10 +3,13 @@ package com.defspacemine.snapshotpvp.manakit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -26,8 +29,9 @@ import net.kyori.adventure.text.format.TextDecoration;
 
 public class ICBM extends ManaKit {
     public static final int RED_TERROR_RADIUS = 4;
+    final double DMG_PER_DISTANCE = 20;
 
-    final int ammoRestock = 400; // 20 firework rockets every 20 seconds
+    final int ammoRestock = 240; // 20 firework rockets every 20 seconds
     final NamespacedKey ammoRestockCounter = ManaKitListener.MANA_KIT_DATA0;
     final int terrorism = 2; // 2 kills for 5 red terrors
     final NamespacedKey terrorismCounter = ManaKitListener.MANA_KIT_DATA1;
@@ -54,14 +58,14 @@ public class ICBM extends ManaKit {
                     .trail(true)
                     .flicker(true)
                     .build();
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < 6; i++)
                 meta.addEffect(effect);
             meta.setPower(7);
             avgMissiles.setItemMeta(meta);
         }
 
         {
-            antimatterMissiles = new ItemStack(Material.FIREWORK_ROCKET, 2);
+            antimatterMissiles = new ItemStack(Material.FIREWORK_ROCKET, 1);
             FireworkMeta meta = (FireworkMeta) antimatterMissiles.getItemMeta();
             meta.displayName(Component.text("Antimatter Missiles")
                     .color(NamedTextColor.BLACK)
@@ -71,14 +75,14 @@ public class ICBM extends ManaKit {
             FireworkEffect effect = FireworkEffect.builder()
                     .with(FireworkEffect.Type.BALL)
                     .build();
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < 12; i++)
                 meta.addEffect(effect);
             meta.setPower(0);
             antimatterMissiles.setItemMeta(meta);
         }
 
         {
-            redTerrors = new ItemStack(Material.FIREWORK_ROCKET, 5);
+            redTerrors = new ItemStack(Material.FIREWORK_ROCKET, 2);
             ItemMeta meta = redTerrors.getItemMeta();
             meta.displayName(Component.text("Red Terrors")
                     .color(NamedTextColor.RED)
@@ -133,14 +137,17 @@ public class ICBM extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (ammoRestockC >= ammoRestock) {
+            SnapshotPvpPlugin.clearInv(inv, avgMissiles);
+            SnapshotPvpPlugin.clearInv(inv, antimatterMissiles);
             p.getInventory().addItem(avgMissiles);
             p.getInventory().addItem(antimatterMissiles);
             pdc.set(ammoRestockCounter, PersistentDataType.INTEGER, 0);
         }
 
         if (terrorismC >= terrorism) {
+            SnapshotPvpPlugin.clearInv(inv, redTerrors);
             p.getInventory().addItem(redTerrors);
-            pdc.set(terrorismCounter, PersistentDataType.INTEGER, 0);
+            pdc.set(terrorismCounter, PersistentDataType.INTEGER, terrorismC - terrorism);
         }
     }
 
@@ -164,5 +171,18 @@ public class ICBM extends ManaKit {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(ammoRestockCounter, PersistentDataType.INTEGER, ammoRestock);
         pdc.set(terrorismCounter, PersistentDataType.INTEGER, 0);
+    }
+
+    @Override
+    public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
+        if (!(e.getDamager() instanceof Firework firework))
+            return;
+
+        Location origin = firework.getOrigin();
+        if (origin == null)
+            return;
+
+        double distance = firework.getLocation().distance(origin);
+        e.setDamage(e.getDamage() * (1 + distance/DMG_PER_DISTANCE));
     }
 }

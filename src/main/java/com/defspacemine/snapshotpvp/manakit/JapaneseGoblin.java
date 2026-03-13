@@ -14,6 +14,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Snowball;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -32,7 +33,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 public class JapaneseGoblin extends ManaKit {
     final static double KUNAI_DAMAGE = 8;
     final static int KUNAI_TICKS = 40;
-    final static int KUNAI_RADIUS = 3;
+    final static int KUNAI_RADIUS = 4;
 
     final int kunaiRestock = 10; // 10 player hits for kunai
     final NamespacedKey kunaiRestockCounter = ManaKitListener.MANA_KIT_DATA0;
@@ -91,6 +92,12 @@ public class JapaneseGoblin extends ManaKit {
     }
 
     @Override
+    public void onKill(Player p, PlayerDeathEvent e) {
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        pdc.set(kunaiRestockCounter, PersistentDataType.INTEGER, kunaiRestock);
+    }
+
+    @Override
     public void onLeaveCombat(Player p) {
         p.clearActivePotionEffects();
         PlayerInventory inv = p.getInventory();
@@ -109,11 +116,9 @@ public class JapaneseGoblin extends ManaKit {
         if (e.getDamageSource().getDamageType() == DamageType.EXPLOSION)
             return;
 
-        // if (e.getEntity() instanceof Player) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(kunaiRestockCounter, PersistentDataType.INTEGER,
                 pdc.get(kunaiRestockCounter, PersistentDataType.INTEGER) + 1);
-        // }
     }
 
     @Override

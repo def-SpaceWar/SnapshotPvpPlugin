@@ -127,12 +127,11 @@ public class Incendiary extends ManaKit {
             p.setSaturation(Math.min(20, p.getSaturation() + 1));
             p.setFoodLevel(Math.min(20, p.getFoodLevel() + 1));
             p.setHealth(Math.min(20, p.getHealth() + .05));
-            newFlamethrowerC += 3;
 
             p.setHealth(p.getHealth() * (.98));
             p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 1));
             p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 100, 1));
-            p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 0));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 1));
         }
         pdc.set(flamethrowerCounter, PersistentDataType.INTEGER, newFlamethrowerC);
     }
