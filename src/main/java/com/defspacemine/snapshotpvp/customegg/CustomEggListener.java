@@ -24,7 +24,9 @@ import org.bukkit.entity.Firework;
 import org.bukkit.entity.LightningStrike;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
+import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -48,15 +50,10 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import com.defspacemine.snapshotpvp.custommob.FITHBomb1;
-import com.defspacemine.snapshotpvp.custommob.FITHBomb2;
-import com.defspacemine.snapshotpvp.custommob.FITHBomb3;
-import com.defspacemine.snapshotpvp.custommob.FITHNuke;
-import com.defspacemine.snapshotpvp.custommob.MercAutoBomb;
-import com.defspacemine.snapshotpvp.custommob.MercGoodShotBhaiya;
-import com.defspacemine.snapshotpvp.custommob.MercLauncher;
+import com.defspacemine.snapshotpvp.custommob.*;
 import com.defspacemine.snapshotpvp.manakit.ICBM;
 import com.defspacemine.snapshotpvp.manakit.LightPaladin;
+import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -102,6 +99,8 @@ public class CustomEggListener implements Listener {
     }
 
     public static Player getOwner(Entity entity) {
+        if (entity == null)
+            return null;
         String uuid = entity.getPersistentDataContainer().get(OWNER, PersistentDataType.STRING);
 
         if (uuid == null)
@@ -110,6 +109,8 @@ public class CustomEggListener implements Listener {
     }
 
     public static Player getOwner(ItemMeta meta) {
+        if (meta == null)
+            return null;
         String uuid = meta.getPersistentDataContainer().get(OWNER, PersistentDataType.STRING);
 
         if (uuid == null)
@@ -129,6 +130,8 @@ public class CustomEggListener implements Listener {
         register(new MercLauncher());
         register(new MercAutoBomb());
         register(new MercGoodShotBhaiya());
+        register(new EngineerDroid());
+        register(new EngineerSentry());
 
         startGlobalAggroTask();
     }
@@ -193,6 +196,10 @@ public class CustomEggListener implements Listener {
         }
 
         Entity entity = e.getDamager();
+        if (entity instanceof Projectile projectile)
+            if (projectile.getShooter() instanceof Entity shooter)
+                entity = shooter;
+
         Player owner = getOwner(entity);
         if (owner == null)
             return;
@@ -202,7 +209,7 @@ public class CustomEggListener implements Listener {
 
         Team ownerTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(owner.getName());
         if (entity instanceof Creeper creeper) {
-            if (e.getEntity() instanceof Player victim) {
+            if (e.getEntity() instanceof LivingEntity victim) {
                 e.setCancelled(true);
                 applyExplosionKnockback(victim, creeper.getLocation(), creeper.getExplosionRadius(),
                         creeper.isPowered());
@@ -228,7 +235,7 @@ public class CustomEggListener implements Listener {
             return;
         }
 
-        if (e.getEntity() instanceof Player victim) {
+        if (e.getEntity() instanceof LivingEntity victim) {
             e.setCancelled(true);
             DamageSource dmgSrc = e.getDamageSource();
             Entity d = dmgSrc.getDirectEntity();
@@ -428,7 +435,7 @@ public class CustomEggListener implements Listener {
                     LightningStrike s = world.strikeLightning(target.getLocation());
                     if (firework.getShooter() instanceof Player owner) {
                         s.setCausingPlayer(owner);
-                        target.damage(2, DamageSource.builder(DamageType.MAGIC)
+                        target.damage(1, DamageSource.builder(DamageType.MAGIC)
                                 .withDirectEntity(owner)
                                 .withCausingEntity(owner).build());
                     }
@@ -473,40 +480,34 @@ public class CustomEggListener implements Listener {
                     if (mobTeam == null)
                         continue;
 
-                    LivingEntity current = mob.getTarget();
-                    if (current != null && !current.isDead())
-                        continue;
-
                     double range = 16;
                     LivingEntity closestEnemy = null;
                     double closestDistance = Double.MAX_VALUE;
 
+                    // We search for enemies every tick instead of skipping if target != null
+                    // This ensures mobs switch to CLOSER enemies if they appear.
                     for (Entity nearby : mob.getNearbyEntities(range, range, range)) {
-
                         if (!(nearby instanceof LivingEntity target))
                             continue;
-                        if (target.isDead())
-                            continue;
-                        if (target == mob)
+                        if (target.isDead() || target == mob)
                             continue;
 
                         Team targetTeam = scoreboard.getEntryTeam(target.getUniqueId().toString());
-                        if (targetTeam == null)
-                            continue;
-
-                        if (targetTeam.equals(mobTeam))
+                        if (targetTeam == null || targetTeam.equals(mobTeam))
                             continue;
 
                         double distance = mob.getLocation().distanceSquared(target.getLocation());
-                        if (distance >= closestDistance)
-                            continue;
-
-                        closestDistance = distance;
-                        closestEnemy = target;
+                        if (distance < closestDistance) {
+                            closestDistance = distance;
+                            closestEnemy = target;
+                        }
                     }
 
-                    if (closestEnemy != null)
+                    if (closestEnemy != null
+                            && (mob.getTarget() == null || !mob.getTarget().equals(closestEnemy)))
                         mob.setTarget(closestEnemy);
+                    else if (mob.getTarget() != null)
+                        mob.setTarget(null);
                 }
             }
         }, 0L, 10L);

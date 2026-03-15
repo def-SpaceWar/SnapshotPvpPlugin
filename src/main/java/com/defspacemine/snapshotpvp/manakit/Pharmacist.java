@@ -298,21 +298,21 @@ public class Pharmacist extends ManaKit {
             meta.setColor(Color.fromRGB(0x000000));
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.WITHER,
-                    800,
+                    1600,
                     3,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.POISON,
-                    800,
+                    1600,
                     3,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.INSTANT_DAMAGE,
-                    2,
+                    3,
                     1,
                     false,
                     true,

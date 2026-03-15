@@ -11,8 +11,10 @@ import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
@@ -77,10 +79,25 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         return true;
     }
 
+    public static Team getTeam(Player p) {
+        return scoreboard.getEntryTeam(p.getName());
+    }
+
+    public static Team getTeamE(Entity e) {
+        return scoreboard.getEntryTeam(e.getUniqueId().toString());
+    }
+
+    public static void addToTeam(Player p, Entity e) {
+        Team team = getTeam(p);
+        if (team == null)
+            return;
+        team.addEntity(e);
+    }
+
     public static TextColor getTeamColor(Entity e) {
-	    Team team = scoreboard.getEntryTeam(e.getName());
-    	return (team != null) ? team.color() : NamedTextColor.WHITE;
-	}
+        Team team = scoreboard.getEntryTeam(e.getName());
+        return (team != null) ? team.color() : NamedTextColor.WHITE;
+    }
 
     public static void clearInv(PlayerInventory inv, Material type) {
         inv.remove(type);
@@ -169,5 +186,11 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
     public void onQuit(PlayerQuitEvent e) {
         Player player = e.getPlayer();
         server.sendMessage(Component.text(player.getName() + " left. ;["));
+    }
+
+    @EventHandler
+    public void onExplosion(EntityExplodeEvent e) {
+        if (e.getEntity() instanceof TNTPrimed tnt)
+            e.blockList().clear();
     }
 }

@@ -36,6 +36,7 @@ public final class ManaKitListener implements Listener {
 
     private final Map<String, ManaKit> manakitRegistry = new HashMap<String, ManaKit>();
     public static final NamespacedKey MANA_KIT = new NamespacedKey("defspacemine", "mana_kit");
+    public static final NamespacedKey MANA_FOOD = new NamespacedKey("defspacemine", "mana_food");
 
     public static final NamespacedKey MANA_KIT_DATA0 = new NamespacedKey("defspacemine", "mana_kit_data0");
     public static final NamespacedKey MANA_KIT_DATA1 = new NamespacedKey("defspacemine", "mana_kit_data1");
@@ -58,6 +59,17 @@ public final class ManaKitListener implements Listener {
     public static final NamespacedKey MANA_KIT_DATASTR7 = new NamespacedKey("defspacemine", "mana_kit_datastr7");
     public static final NamespacedKey MANA_KIT_DATASTR8 = new NamespacedKey("defspacemine", "mana_kit_datastr8");
     public static final NamespacedKey MANA_KIT_DATASTR9 = new NamespacedKey("defspacemine", "mana_kit_datastr9");
+
+    public static final NamespacedKey MANA_KIT_DATABOOL0 = new NamespacedKey("defspacemine", "mana_kit_databool0");
+    public static final NamespacedKey MANA_KIT_DATABOOL1 = new NamespacedKey("defspacemine", "mana_kit_databool1");
+    public static final NamespacedKey MANA_KIT_DATABOOL2 = new NamespacedKey("defspacemine", "mana_kit_databool2");
+    public static final NamespacedKey MANA_KIT_DATABOOL3 = new NamespacedKey("defspacemine", "mana_kit_databool3");
+    public static final NamespacedKey MANA_KIT_DATABOOL4 = new NamespacedKey("defspacemine", "mana_kit_databool4");
+    public static final NamespacedKey MANA_KIT_DATABOOL5 = new NamespacedKey("defspacemine", "mana_kit_databool5");
+    public static final NamespacedKey MANA_KIT_DATABOOL6 = new NamespacedKey("defspacemine", "mana_kit_databool6");
+    public static final NamespacedKey MANA_KIT_DATABOOL7 = new NamespacedKey("defspacemine", "mana_kit_databool7");
+    public static final NamespacedKey MANA_KIT_DATABOOL8 = new NamespacedKey("defspacemine", "mana_kit_databool8");
+    public static final NamespacedKey MANA_KIT_DATABOOL9 = new NamespacedKey("defspacemine", "mana_kit_databool9");
 
     public ManaKitListener(JavaPlugin plugin) {
         instance = this;
@@ -85,6 +97,7 @@ public final class ManaKitListener implements Listener {
         registerKit(new Pharmacist());
         registerKit(new Incendiary());
         registerKit(new Gambler());
+        registerKit(new Engineer());
         manakitGameLoop();
     }
 
@@ -203,6 +216,27 @@ public final class ManaKitListener implements Listener {
     @EventHandler
     public void onConsume(PlayerItemConsumeEvent e) {
         Player p = e.getPlayer();
+        ItemStack consumedItem = e.getItem();
+
+        if (consumedItem.hasItemMeta()) {
+            ItemMeta meta = consumedItem.getItemMeta();
+            if (meta.getPersistentDataContainer().has(MANA_FOOD, PersistentDataType.BYTE)) {
+
+                ItemStack replacement = consumedItem.clone();
+                replacement.add(1);
+                boolean isOffHand = consumedItem.equals(p.getInventory().getItemInOffHand());
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        if (isOffHand)
+                            p.getInventory().setItemInOffHand(replacement);
+                        else
+                            p.getInventory().setItemInMainHand(replacement);
+                    }
+                }.runTask(plugin);
+            }
+        }
+
         ManaKit kit = getPlayerKit(p);
         if (kit == null)
             return;
