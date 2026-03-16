@@ -58,6 +58,7 @@ public class EngineerSentry implements CustomMob {
         sentry.getEquipment().setItemInMainHand(bow);
 
         sentry.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, -1, 255));
+        sentry.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, -1, 0));
         sentry.getAttribute(Attribute.KNOCKBACK_RESISTANCE).setBaseValue(1);
         sentry.setPersistent(true);
 

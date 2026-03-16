@@ -200,27 +200,17 @@ public class CustomEggListener implements Listener {
             if (projectile.getShooter() instanceof Entity shooter)
                 entity = shooter;
 
+        PersistentDataContainer pdc = entity.getPersistentDataContainer();
+        double damage = pdc.getOrDefault(CUSTOM_DAMAGE, PersistentDataType.FLOAT, (float) e.getDamage());
+        e.setDamage(damage);
+
         Player owner = getOwner(entity);
         if (owner == null)
             return;
 
-        PersistentDataContainer pdc = entity.getPersistentDataContainer();
-        double damage = pdc.getOrDefault(CUSTOM_DAMAGE, PersistentDataType.FLOAT, (float) e.getDamage());
-
         Team ownerTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(owner.getName());
         if (entity instanceof Creeper creeper) {
-            if (e.getEntity() instanceof LivingEntity victim) {
-                e.setCancelled(true);
-                applyExplosionKnockback(victim, creeper.getLocation(), creeper.getExplosionRadius(),
-                        creeper.isPowered());
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    if (victim.isValid() && !victim.isDead())
-                        victim.damage(damage, DamageSource.builder(DamageType.EXPLOSION)
-                                .withDirectEntity(creeper)
-                                .withCausingEntity(owner)
-                                .build());
-                }, 1L);
-            } else if (e.getEntity() instanceof Creeper c) {
+            if (e.getEntity() instanceof Creeper c) {
                 if (getOwner(e.getEntity()) == null)
                     return;
                 Boolean chainable = c.getPersistentDataContainer().get(CREEPER_CHAIN,
@@ -231,6 +221,18 @@ public class CustomEggListener implements Listener {
                     c.setPowered(true);
                 e.setCancelled(true);
                 c.explode();
+            }
+            else if (e.getEntity() instanceof LivingEntity victim) {
+                e.setCancelled(true);
+                applyExplosionKnockback(victim, creeper.getLocation(), creeper.getExplosionRadius(),
+                        creeper.isPowered());
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (victim.isValid() && !victim.isDead())
+                        victim.damage(damage, DamageSource.builder(DamageType.EXPLOSION)
+                                .withDirectEntity(creeper)
+                                .withCausingEntity(owner)
+                                .build());
+                }, 1L);
             }
             return;
         }
@@ -468,31 +470,23 @@ public class CustomEggListener implements Listener {
 
     public void startGlobalAggroTask() {
         Bukkit.getScheduler().runTaskTimer(plugin, task -> {
-            Scoreboard scoreboard = SnapshotPvpPlugin.scoreboard;
-
             for (World world : Bukkit.getWorlds()) {
                 for (Mob mob : world.getEntitiesByClass(Mob.class)) {
-
                     if (!mob.isValid() || mob.isDead())
                         continue;
 
-                    Team mobTeam = scoreboard.getEntryTeam(mob.getUniqueId().toString());
+                    Team mobTeam = SnapshotPvpPlugin.getTeamE(mob);
                     if (mobTeam == null)
                         continue;
 
                     double range = 16;
                     LivingEntity closestEnemy = null;
                     double closestDistance = Double.MAX_VALUE;
-
-                    // We search for enemies every tick instead of skipping if target != null
-                    // This ensures mobs switch to CLOSER enemies if they appear.
                     for (Entity nearby : mob.getNearbyEntities(range, range, range)) {
-                        if (!(nearby instanceof LivingEntity target))
-                            continue;
-                        if (target.isDead() || target == mob)
+                        if (!(nearby instanceof LivingEntity target) || target.isDead() || target == mob)
                             continue;
 
-                        Team targetTeam = scoreboard.getEntryTeam(target.getUniqueId().toString());
+                        Team targetTeam = SnapshotPvpPlugin.getTeamG(target);
                         if (targetTeam == null || targetTeam.equals(mobTeam))
                             continue;
 
@@ -503,11 +497,16 @@ public class CustomEggListener implements Listener {
                         }
                     }
 
-                    if (closestEnemy != null
-                            && (mob.getTarget() == null || !mob.getTarget().equals(closestEnemy)))
-                        mob.setTarget(closestEnemy);
-                    else if (mob.getTarget() != null)
-                        mob.setTarget(null);
+                    LivingEntity currentTarget = mob.getTarget();
+                    if (closestEnemy != null) {
+                        if (currentTarget == null || !currentTarget.equals(closestEnemy))
+                            mob.setTarget(closestEnemy);
+                    } else if (currentTarget != null) {
+                        Team currentTargetTeam = SnapshotPvpPlugin.getTeamG(currentTarget);
+                        if (currentTarget.isDead() || !currentTarget.isValid()
+                                || (currentTargetTeam != null && currentTargetTeam.equals(mobTeam)))
+                            mob.setTarget(null);
+                    }
                 }
             }
         }, 0L, 10L);

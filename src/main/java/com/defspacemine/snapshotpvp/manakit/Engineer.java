@@ -12,7 +12,9 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
+import org.bukkit.Particle.DustOptions;
 import org.bukkit.Sound;
+import org.bukkit.damage.DamageType;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
@@ -21,6 +23,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Trident;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -36,9 +39,9 @@ import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 
 public class Engineer extends ManaKit {
     final NamespacedKey fuelCounter = ManaKitListener.MANA_KIT_DATA0;
-    final int bot = 16; // 16 attacks per bots
+    final int bot = 25; // 25 attacks per bots
     final NamespacedKey botChargeCounter = ManaKitListener.MANA_KIT_DATA1;
-    final int tpCooldown = 400;
+    final int tpCooldown = 200; // 10 seconds between teleport
     final NamespacedKey tpCooldownCounter = ManaKitListener.MANA_KIT_DATA2;
     final int tpRestockTimer = 200; // 10 seconds per teleporter item
     final NamespacedKey tpRestockCounter = ManaKitListener.MANA_KIT_DATA3;
@@ -99,9 +102,9 @@ public class Engineer extends ManaKit {
         int tpCooldownC = pdc.getOrDefault(tpCooldownCounter, PersistentDataType.INTEGER, 0);
         int tpRestockC = pdc.getOrDefault(tpRestockCounter, PersistentDataType.INTEGER, 0);
 
-        if (!p.isOnGround() && p.isSneaking() && fuelC > 0) {
+        if (!p.isOnGround() && p.isSneaking() && fuelC > 0 && !p.isFlying()) {
             Vector vel = p.getVelocity();
-            p.setVelocity(vel.add(new Vector(0, 0.25, 0)).setY(Math.min(0.4, vel.getY())));
+            p.setVelocity(vel.add(new Vector(0, 0.2, 0)));
 
             pdc.set(fuelCounter, PersistentDataType.INTEGER, fuelC - 1);
             p.getWorld().spawnParticle(Particle.FLAME, p.getLocation().subtract(0, 0.2, 0), 2, 0.1, 0, 0.1, 0.05, null);
@@ -130,7 +133,7 @@ public class Engineer extends ManaKit {
             SnapshotPvpPlugin.clearInv(inv, Material.BEACON);
             inv.addItem(teleporterItem);
             pdc.set(tpRestockCounter, PersistentDataType.INTEGER, 0);
-        } else
+        } else if (!inv.contains(Material.BEACON))
             pdc.set(tpRestockCounter, PersistentDataType.INTEGER, tpRestockC + 1 * (killstreak >= 2 ? 2 : 1));
 
         if (tpCooldownC < tpCooldown)
@@ -149,11 +152,16 @@ public class Engineer extends ManaKit {
             fuelColor = ChatColor.RED;
         String cdDisplay = tpCooldownC >= tpCooldown ? ChatColor.GREEN + "READY"
                 : ChatColor.RED + "" + tpCooldownC + "/" + tpCooldown;
-        p.sendActionBar(ChatColor.YELLOW + "Fuel: " + fuelColor + fuelC + "%" +
+        p.sendActionBar(ChatColor.YELLOW + "Jetpack: " + fuelColor + fuelC + "%" +
                 ChatColor.GRAY + " | " + ChatColor.DARK_GRAY + "Bots: " + ChatColor.WHITE + botChargeC + "/" + bot +
-                ChatColor.GRAY + " | " + ChatColor.AQUA + "TP: " + cdDisplay +
-                ChatColor.GRAY + " | " + ChatColor.GRAY + "TPNode: " + ChatColor.WHITE + tpRestockC + "/"
-                + tpRestockTimer +
+                ((getEntityFromPDC(pdc, teleA_UUID) != null && getEntityFromPDC(pdc, teleB_UUID) != null)
+                        ? ChatColor.GRAY + " | " + ChatColor.AQUA + "TP: " + cdDisplay
+                        : "")
+                +
+                (inv.contains(Material.BEACON) ? ""
+                        : ChatColor.GRAY + " | " + ChatColor.DARK_AQUA + "TPNode: " +
+                                ChatColor.WHITE + tpRestockC + "/" + tpRestockTimer)
+                +
                 ChatColor.GRAY + " | " + ChatColor.RED + "Killstreak: " + ChatColor.WHITE + killstreak + "/3");
     }
 
@@ -162,13 +170,13 @@ public class Engineer extends ManaKit {
 
         Entity entA = getEntityFromPDC(pdc, teleA_UUID);
         if (entA != null) {
-            Particle.DustOptions red = new Particle.DustOptions(ready ? Color.RED : Color.GRAY, 1.2f);
+            DustOptions red = new Particle.DustOptions(ready ? Color.RED : Color.GRAY, 1.2f);
             entA.getWorld().spawnParticle(Particle.DUST, entA.getLocation().add(0, 1.2, 0), 3, 0.1, 0.1, 0.1, 0, red);
         }
 
         Entity entB = getEntityFromPDC(pdc, teleB_UUID);
         if (entB != null) {
-            Particle.DustOptions blue = new Particle.DustOptions(ready ? Color.BLUE : Color.GRAY, 1.2f);
+            DustOptions blue = new Particle.DustOptions(ready ? Color.BLUE : Color.GRAY, 1.2f);
             entB.getWorld().spawnParticle(Particle.DUST, entB.getLocation().add(0, 1.2, 0), 3, 0.1, 0.1, 0.1, 0, blue);
         }
     }
@@ -230,54 +238,13 @@ public class Engineer extends ManaKit {
     }
 
     @Override
-    public void onInteract(Player p, PlayerInteractEvent e) {
-        if (e.getAction() != Action.RIGHT_CLICK_BLOCK)
-            return;
-        ItemStack item = e.getItem();
-        if (item == null || item.getType() != Material.BEACON)
-            return;
-
-        e.setCancelled(true);
-        placeTeleNode(p, e.getClickedBlock().getRelative(e.getBlockFace()).getLocation().add(0.5, 0, 0.5));
-        if (p.getGameMode() != GameMode.CREATIVE)
-            item.setAmount(item.getAmount() - 1);
-    }
-
-    public void placeTeleNode(Player p, Location loc) {
+    public void resetKit(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        boolean toggle = pdc.getOrDefault(teleToggleKey, PersistentDataType.BOOLEAN, false);
-        NamespacedKey targetKey = toggle ? teleB_UUID : teleA_UUID;
-
-        Entity old = getEntityFromPDC(pdc, targetKey);
-        if (old != null)
-            old.remove();
-
-        ArmorStand node = (ArmorStand) loc.getWorld().spawnEntity(loc.subtract(0, 0.5, 0), EntityType.ARMOR_STAND);
-        node.setInvisible(true);
-        node.setGravity(false);
-        node.setMarker(true);
-        node.setCustomName(ChatColor.AQUA + p.getName() + "'s Node " + (toggle ? "B" : "A"));
-        node.setCustomNameVisible(true);
-
-        pdc.set(targetKey, PersistentDataType.STRING, node.getUniqueId().toString());
-        pdc.set(teleToggleKey, PersistentDataType.BOOLEAN, !toggle);
+        pdc.set(fuelCounter, PersistentDataType.INTEGER, 50);
+        pdc.set(botChargeCounter, PersistentDataType.INTEGER, 0);
         pdc.set(tpCooldownCounter, PersistentDataType.INTEGER, 0);
-
-        p.playSound(loc, Sound.BLOCK_BEACON_ACTIVATE, 1f, 2f);
-        loc.getWorld().spawnParticle(Particle.WAX_ON, loc.add(0, 0.5, 0), 10, 0.2, 0.2, 0.2, 0.1, null);
-    }
-
-    @Override
-    public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
-        if (p.equals(CustomEggListener.getOwner(e.getEntity())))
-            return;
-        int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
-        PersistentDataContainer pdc = p.getPersistentDataContainer();
-        pdc.set(fuelCounter, PersistentDataType.INTEGER,
-                Math.min(100,
-                        pdc.getOrDefault(fuelCounter, PersistentDataType.INTEGER, 0) + 5 * (killstreak >= 2 ? 2 : 1)));
-        pdc.set(botChargeCounter, PersistentDataType.INTEGER,
-                pdc.getOrDefault(botChargeCounter, PersistentDataType.INTEGER, 0) + 1 * (killstreak >= 2 ? 2 : 1));
+        pdc.set(tpRestockCounter, PersistentDataType.INTEGER, 0);
+        pdc.set(teleToggleKey, PersistentDataType.BOOLEAN, false);
     }
 
     @Override
@@ -288,6 +255,31 @@ public class Engineer extends ManaKit {
         pdc.set(tpCooldownCounter, PersistentDataType.INTEGER, 0);
         pdc.set(tpRestockCounter, PersistentDataType.INTEGER, tpRestockTimer);
         pdc.set(teleToggleKey, PersistentDataType.BOOLEAN, false);
+    }
+
+    @Override
+    public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
+        if (p.equals(CustomEggListener.getOwner(e.getEntity())))
+            return;
+        int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+
+        pdc.set(botChargeCounter, PersistentDataType.INTEGER,
+                pdc.getOrDefault(botChargeCounter, PersistentDataType.INTEGER, 0) + 1 * (killstreak >= 2 ? 2 : 1));
+
+        DamageType d = e.getDamageSource().getDamageType();
+        if (d != DamageType.PLAYER_ATTACK && d != DamageType.TRIDENT)
+            return;
+        pdc.set(fuelCounter, PersistentDataType.INTEGER,
+                Math.min(100,
+                        pdc.getOrDefault(fuelCounter, PersistentDataType.INTEGER, 0) + 5 * (killstreak >= 2 ? 2 : 1)));
+    }
+
+    @Override
+    public void onKill(Player p, PlayerDeathEvent e) {
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        pdc.set(fuelCounter, PersistentDataType.INTEGER, 100);
+        pdc.set(botChargeCounter, PersistentDataType.INTEGER, bot);
     }
 
     @Override
@@ -316,6 +308,44 @@ public class Engineer extends ManaKit {
                     t.remove();
     }
 
+    @Override
+    public void onInteract(Player p, PlayerInteractEvent e) {
+        if (e.getAction() != Action.RIGHT_CLICK_BLOCK)
+            return;
+        ItemStack item = e.getItem();
+        if (item == null || item.getType() != Material.BEACON)
+            return;
+
+        e.setCancelled(true);
+        placeTeleNode(p, e.getClickedBlock().getRelative(e.getBlockFace()).getLocation().add(0.5, 0, 0.5));
+        if (p.getGameMode() != GameMode.CREATIVE)
+            item.setAmount(item.getAmount() - 1);
+    }
+
+    public void placeTeleNode(Player p, Location loc) {
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        boolean toggle = pdc.getOrDefault(teleToggleKey, PersistentDataType.BOOLEAN, false);
+        NamespacedKey targetKey = toggle ? teleB_UUID : teleA_UUID;
+
+        Entity old = getEntityFromPDC(pdc, targetKey);
+        if (old != null)
+            old.remove();
+
+        ArmorStand node = (ArmorStand) loc.getWorld().spawnEntity(loc.subtract(0, 0.5, 0), EntityType.ARMOR_STAND);
+        node.setInvisible(true);
+        node.setGravity(false);
+        node.setMarker(true);
+        node.setCustomName((toggle ? ChatColor.BLUE : ChatColor.RED) + p.getName() + "'s Node " + (toggle ? "B" : "A"));
+        node.setCustomNameVisible(true);
+
+        pdc.set(targetKey, PersistentDataType.STRING, node.getUniqueId().toString());
+        pdc.set(teleToggleKey, PersistentDataType.BOOLEAN, !toggle);
+        pdc.set(tpCooldownCounter, PersistentDataType.INTEGER, 0);
+
+        p.playSound(loc, Sound.BLOCK_BEACON_ACTIVATE, 1f, 2f);
+        loc.getWorld().spawnParticle(Particle.WAX_ON, loc.add(0, 0.5, 0), 10, 0.2, 0.2, 0.2, 0.1, null);
+    }
+
     private void cleanupNodes(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         Entity a = getEntityFromPDC(pdc, teleA_UUID);
@@ -325,15 +355,5 @@ public class Engineer extends ManaKit {
         Entity b = getEntityFromPDC(pdc, teleB_UUID);
         if (b != null)
             b.remove();
-    }
-
-    @Override
-    public void resetKit(Player p) {
-        PersistentDataContainer pdc = p.getPersistentDataContainer();
-        pdc.set(fuelCounter, PersistentDataType.INTEGER, 50);
-        pdc.set(botChargeCounter, PersistentDataType.INTEGER, 0);
-        pdc.set(tpCooldownCounter, PersistentDataType.INTEGER, 0);
-        pdc.set(tpRestockCounter, PersistentDataType.INTEGER, 0);
-        pdc.set(teleToggleKey, PersistentDataType.BOOLEAN, false);
     }
 }

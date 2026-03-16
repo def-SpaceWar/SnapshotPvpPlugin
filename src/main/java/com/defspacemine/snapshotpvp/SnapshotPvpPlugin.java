@@ -87,6 +87,10 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         return scoreboard.getEntryTeam(e.getUniqueId().toString());
     }
 
+    public static Team getTeamG(Entity e) {
+        return e instanceof Player p ? getTeam(p) : getTeamE(e);
+    }
+
     public static void addToTeam(Player p, Entity e) {
         Team team = getTeam(p);
         if (team == null)
@@ -128,6 +132,7 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
             return;
         }
 
+        new WeatherManager(this);
         server.getPluginManager().registerEvents(new AntiSwapExploit(this), this);
         server.getPluginManager().registerEvents(new CustomEggListener(this), this);
         server.getPluginManager().registerEvents(new EnchantmentListener(this), this);

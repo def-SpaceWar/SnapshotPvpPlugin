@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.damage.DeathMessageType;
@@ -98,6 +99,7 @@ public final class ManaKitListener implements Listener {
         registerKit(new Incendiary());
         registerKit(new Gambler());
         registerKit(new Engineer());
+        registerKit(new AtlantianPrince());
         manakitGameLoop();
     }
 
@@ -218,7 +220,7 @@ public final class ManaKitListener implements Listener {
         Player p = e.getPlayer();
         ItemStack consumedItem = e.getItem();
 
-        if (consumedItem.hasItemMeta()) {
+        if (consumedItem.hasItemMeta() && p.getGameMode() != GameMode.CREATIVE) {
             ItemMeta meta = consumedItem.getItemMeta();
             if (meta.getPersistentDataContainer().has(MANA_FOOD, PersistentDataType.BYTE)) {
 
@@ -232,6 +234,7 @@ public final class ManaKitListener implements Listener {
                             p.getInventory().setItemInOffHand(replacement);
                         else
                             p.getInventory().setItemInMainHand(replacement);
+                        p.updateInventory();
                     }
                 }.runTask(plugin);
             }

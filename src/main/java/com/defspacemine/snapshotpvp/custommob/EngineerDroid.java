@@ -45,6 +45,7 @@ public class EngineerDroid implements CustomMob {
 
         droid.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, -1, 4));
         droid.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, -1, 4));
+        droid.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, -1, 0));
         droid.setPersistent(true); 
 
         return droid;
