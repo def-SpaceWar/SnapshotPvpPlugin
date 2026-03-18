@@ -358,6 +358,7 @@ public class EnchantmentListener implements Listener {
 
             LightningStrike strike = world.strikeLightning(t.getLocation());
             strike.setCausingPlayer(p);
+            SnapshotPvpPlugin.addToTeam(p, strike);
 
             target.addPotionEffect(new PotionEffect(
                     PotionEffectType.GLOWING,

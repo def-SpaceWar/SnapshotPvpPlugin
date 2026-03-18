@@ -32,6 +32,8 @@ public class AtlantianPrince extends ManaKit {
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
+        p.setHealth(p.getHealth() + (p.getMaxHealth() - p.getHealth()) / 4);
+        p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 2));
         WeatherManager.instance.queueWeather(
                 p.getWorld(),
                 WeatherManager.WeatherType.RAIN,

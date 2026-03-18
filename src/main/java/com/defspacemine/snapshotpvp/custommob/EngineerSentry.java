@@ -15,6 +15,7 @@ import org.bukkit.potion.PotionEffectType;
 
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 import com.defspacemine.snapshotpvp.customegg.CustomMob;
+import com.defspacemine.snapshotpvp.manakit.Engineer;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -47,8 +48,8 @@ public class EngineerSentry implements CustomMob {
                 .color(NamedTextColor.GRAY)
                 .decoration(TextDecoration.BOLD, true)
                 .decoration(TextDecoration.ITALIC, false));
-        sentry.setMaxHealth(200);
-        sentry.setHealth(200);
+        sentry.setMaxHealth(Engineer.SENTRY_HEALTH);
+        sentry.setHealth(Engineer.SENTRY_HEALTH);
         sentry.setCustomNameVisible(true);
 
         sentry.getEquipment().setHelmet(new ItemStack(Material.IRON_BLOCK));

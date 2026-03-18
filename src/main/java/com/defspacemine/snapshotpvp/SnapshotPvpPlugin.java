@@ -29,6 +29,7 @@ import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
 import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 
@@ -159,6 +160,35 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
                                         ManaKitListener.instance.kit(ctx.getSource().getSender(), id);
                                         return Command.SINGLE_SUCCESS;
                                     }))
+                            .build());
+
+            commands.registrar().register(
+                    Commands.literal("weatherqueue")
+                            .requires(source -> source.getSender().hasPermission("admin.weather"))
+                            .then(Commands.literal("clear")
+                                    .executes(ctx -> {
+                                        Player p = (Player) ctx.getSource().getSender();
+                                        WeatherManager.instance.clearWeather(p.getWorld());
+                                        return Command.SINGLE_SUCCESS;
+                                    }))
+                            .then(Commands.literal("rain")
+                                    .then(Commands.argument("seconds", IntegerArgumentType.integer(1))
+                                            .executes(ctx -> {
+                                                Player p = (Player) ctx.getSource().getSender();
+                                                int seconds = IntegerArgumentType.getInteger(ctx, "seconds");
+                                                WeatherManager.instance.queueWeather(p.getWorld(),
+                                                        WeatherManager.WeatherType.RAIN, seconds * 20L);
+                                                return Command.SINGLE_SUCCESS;
+                                            })))
+                            .then(Commands.literal("storm")
+                                    .then(Commands.argument("seconds", IntegerArgumentType.integer(1))
+                                            .executes(ctx -> {
+                                                Player p = (Player) ctx.getSource().getSender();
+                                                int seconds = IntegerArgumentType.getInteger(ctx, "seconds");
+                                                WeatherManager.instance.queueWeather(p.getWorld(),
+                                                        WeatherManager.WeatherType.STORM, seconds * 20L);
+                                                return Command.SINGLE_SUCCESS;
+                                            })))
                             .build());
         });
     }

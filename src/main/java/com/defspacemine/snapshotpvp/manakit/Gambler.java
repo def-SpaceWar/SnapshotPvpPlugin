@@ -308,6 +308,7 @@ public class Gambler extends ManaKit {
         int currentMoney = pdc.get(moneyCounter, PersistentDataType.INTEGER);
         pdc.set(moneyCounter, PersistentDataType.INTEGER, Math.min(moneyMax, currentMoney + payout));
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestock);
+        pdc.set(cardCounter, PersistentDataType.INTEGER, card);
 
         p.sendMessage(message);
     }
@@ -407,7 +408,7 @@ public class Gambler extends ManaKit {
 
         for (int i = 0; i < mobsToSpawn; i++) {
             Zombie zombie = loc.getWorld().spawn(loc, Zombie.class);
-            zombie.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 400, 2));
+            zombie.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, card * 2, 2));
             SnapshotPvpPlugin.addToTeam(p, zombie);
             CustomEggListener.injectOwner(zombie, p);
 
@@ -440,13 +441,15 @@ public class Gambler extends ManaKit {
             zombie.getEquipment().setBootsDropChance(0f);
             zombie.getEquipment().setItemInMainHandDropChance(0f);
 
+            zombie.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, card * 2, 0));
+
             new BukkitRunnable() {
                 @Override
                 public void run() {
                     if (zombie != null && !zombie.isDead())
                         zombie.remove();
                 }
-            }.runTaskLater(SnapshotPvpPlugin.instance, 400);
+            }.runTaskLater(SnapshotPvpPlugin.instance, card * 2);
         }
     }
 

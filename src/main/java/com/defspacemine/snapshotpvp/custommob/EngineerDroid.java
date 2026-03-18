@@ -12,6 +12,7 @@ import org.bukkit.potion.PotionEffectType;
 
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 import com.defspacemine.snapshotpvp.customegg.CustomMob;
+import com.defspacemine.snapshotpvp.manakit.Engineer;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -33,8 +34,8 @@ public class EngineerDroid implements CustomMob {
                 .color(NamedTextColor.DARK_GRAY)
                 .decoration(TextDecoration.BOLD, true)
                 .decoration(TextDecoration.ITALIC, false));
-        droid.setMaxHealth(75);
-        droid.setHealth(75);
+        droid.setMaxHealth(Engineer.DROID_HEALTH);
+        droid.setHealth(Engineer.DROID_HEALTH);
         droid.setCustomNameVisible(true);
 
         droid.getEquipment().setHelmet(new ItemStack(Material.IRON_BLOCK));

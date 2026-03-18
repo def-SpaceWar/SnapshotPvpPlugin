@@ -38,8 +38,11 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 
 public class Engineer extends ManaKit {
+    public static final double DROID_HEALTH = 40;
+    public static final double SENTRY_HEALTH = 80;
+
     final NamespacedKey fuelCounter = ManaKitListener.MANA_KIT_DATA0;
-    final int bot = 25; // 25 attacks per bots
+    final int bot = 24; // 24 attacks per bots
     final NamespacedKey botChargeCounter = ManaKitListener.MANA_KIT_DATA1;
     final int tpCooldown = 200; // 10 seconds between teleport
     final NamespacedKey tpCooldownCounter = ManaKitListener.MANA_KIT_DATA2;
@@ -56,7 +59,7 @@ public class Engineer extends ManaKit {
     private final ItemStack teleporterItem;
 
     public Engineer() {
-        super("engineer", "Engineer", "[Utility Armada]", 0);
+        super("engineer", "Engineer", "[Utility Armada]", 3);
 
         trident = new ItemStack(Material.TRIDENT);
         ItemMeta meta = trident.getItemMeta();

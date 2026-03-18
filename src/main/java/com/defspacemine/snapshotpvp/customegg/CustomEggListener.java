@@ -221,8 +221,7 @@ public class CustomEggListener implements Listener {
                     c.setPowered(true);
                 e.setCancelled(true);
                 c.explode();
-            }
-            else if (e.getEntity() instanceof LivingEntity victim) {
+            } else if (e.getEntity() instanceof LivingEntity victim) {
                 e.setCancelled(true);
                 applyExplosionKnockback(victim, creeper.getLocation(), creeper.getExplosionRadius(),
                         creeper.isPowered());
@@ -415,8 +414,10 @@ public class CustomEggListener implements Listener {
                 World world = loc.getWorld();
 
                 LightningStrike e = world.strikeLightning(loc);
-                if (firework.getShooter() instanceof Player owner)
+                if (firework.getShooter() instanceof Player owner) {
                     e.setCausingPlayer(owner);
+                    SnapshotPvpPlugin.addToTeam(owner, e);
+                }
 
                 e.customName(Component.text("Blinding Light")
                         .color(NamedTextColor.GOLD)
