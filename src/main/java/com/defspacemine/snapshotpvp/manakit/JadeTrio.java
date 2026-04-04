@@ -20,15 +20,14 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class JadeTrio extends ManaKit {
     public JadeTrio() {
-        super("jade_trio", "Jade Trio", "[Melee Movement]", 3);
+        super("jade_trio", "Jade Trio", "[Melee Movement]", 4);
     }
 
     @Override
     public void giveKit(Player p) {
-        PersistentDataContainer pdc = p.getPersistentDataContainer();
         resetKit(p);
 
-        // give items
+		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -187, 4, -185);
     }
 
     @Override

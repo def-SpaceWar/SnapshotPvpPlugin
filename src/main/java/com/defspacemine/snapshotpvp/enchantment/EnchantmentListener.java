@@ -12,6 +12,7 @@ import org.bukkit.Particle;
 import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Creeper;
@@ -49,15 +50,19 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 public class EnchantmentListener implements Listener {
+    public static Enchantment CLEAVING;
+
     public static Enchantment EXPLOSIVE_HOOK;
     public static Enchantment TRIPLE_JUMP;
     public static Enchantment BREEZY_ASPECT;
     public static Enchantment LIGHTNING_ASPECT;
     public static Enchantment DOUBLE_JUMP;
-    public static Enchantment CURSE_HEAVY_HIT;
+    public static Enchantment HEAVY_HIT_CURSE;
     public static Enchantment BACKSTAB;
     public static Enchantment UPPERCUT;
     public static Enchantment DASHING;
+    public static Enchantment LIFE_FEAST;
+    public static Enchantment FREEZING_ASPECT;
 
     private final JavaPlugin plugin;
 
@@ -67,15 +72,19 @@ public class EnchantmentListener implements Listener {
     public EnchantmentListener(JavaPlugin plugin) {
         this.plugin = plugin;
 
+        CLEAVING = Registry.ENCHANTMENT.get(new NamespacedKey("minecraft", "cleaving"));
+
         EXPLOSIVE_HOOK = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "explosive_hook"));
         TRIPLE_JUMP = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "triple_jump"));
         BREEZY_ASPECT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "breezy_aspect"));
         LIGHTNING_ASPECT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "lightning_aspect"));
         DOUBLE_JUMP = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "double_jump"));
-        CURSE_HEAVY_HIT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "curse_heavy_hit"));
+        HEAVY_HIT_CURSE = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "heavy_hit_curse"));
         BACKSTAB = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "backstab"));
         UPPERCUT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "uppercut"));
         DASHING = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "dashing"));
+        LIFE_FEAST = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "life_feast"));
+        FREEZING_ASPECT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "freezing_aspect"));
     }
 
     @EventHandler
@@ -261,12 +270,25 @@ public class EnchantmentListener implements Listener {
             spawnLightningAttack(player, target, level);
         }
 
-        if (weapon.containsEnchantment(CURSE_HEAVY_HIT)) {
-            int level = weapon.getEnchantmentLevel(CURSE_HEAVY_HIT);
+        if (weapon.containsEnchantment(FREEZING_ASPECT)) {
+            int level = weapon.getEnchantmentLevel(FREEZING_ASPECT);
+            spawnFreezingAttack(player, target, level);
+        }
+
+        if (weapon.containsEnchantment(LIFE_FEAST)) {
+            int level = weapon.getEnchantmentLevel(LIFE_FEAST);
             player.addPotionEffect(
-                    new PotionEffect(PotionEffectType.SLOWNESS, (int) e.getFinalDamage() * 4 * level, 4));
+                    new PotionEffect(PotionEffectType.SATURATION, level * 20, 1));
             player.addPotionEffect(
-                    new PotionEffect(PotionEffectType.WEAKNESS, (int) e.getFinalDamage() * 2 * level, 0));
+                    new PotionEffect(PotionEffectType.REGENERATION, 20 * (int) Math.pow(2, level - 1), 3));
+        }
+
+        if (weapon.containsEnchantment(HEAVY_HIT_CURSE)) {
+            int level = weapon.getEnchantmentLevel(HEAVY_HIT_CURSE);
+            player.addPotionEffect(
+                    new PotionEffect(PotionEffectType.SLOWNESS, (int) e.getFinalDamage() * 4 * level, 5));
+            player.addPotionEffect(
+                    new PotionEffect(PotionEffectType.WEAKNESS, (int) e.getFinalDamage() * 2 * level, 1));
             player.addPotionEffect(
                     new PotionEffect(PotionEffectType.JUMP_BOOST, (int) e.getFinalDamage() * 2 * (level + 1), 255));
         }
@@ -345,10 +367,12 @@ public class EnchantmentListener implements Listener {
         World world = p.getWorld();
         Location spawnLoc = target.getLocation();
         double radius = 4 + 2 * level;
+        double damage = 1 + level;
 
         Team pTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(p.getName());
+
         for (Entity t : world.getNearbyEntities(target.getLocation(), radius, radius, radius)) {
-            if (target instanceof Player player)
+            if (t instanceof Player player)
                 if (player.equals(p) || player.getGameMode() != GameMode.ADVENTURE)
                     continue;
 
@@ -356,25 +380,57 @@ public class EnchantmentListener implements Listener {
             if (pTeam != null && pTeam.equals(tTeam))
                 continue;
 
-            LightningStrike strike = world.strikeLightning(t.getLocation());
-            strike.setCausingPlayer(p);
-            SnapshotPvpPlugin.addToTeam(p, strike);
-
-            target.addPotionEffect(new PotionEffect(
-                    PotionEffectType.GLOWING,
-                    600 * (level - 1),
-                    0,
-                    false,
-                    true,
-                    true));
-            target.addPotionEffect(new PotionEffect(
-                    PotionEffectType.WEAKNESS,
-                    100 * (level - 1),
-                    0,
-                    false,
-                    true,
-                    true));
+            damage += level;
         }
+
+        for (Entity t : world.getNearbyEntities(target.getLocation(), radius, radius, radius)) {
+            if (t instanceof Player player)
+                if (player.equals(p) || player.getGameMode() != GameMode.ADVENTURE)
+                    continue;
+
+            Team tTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(t.getName());
+            if (pTeam != null && pTeam.equals(tTeam))
+                continue;
+
+            SnapshotPvpPlugin.strikeLightning(t, p, damage);
+
+            if (t instanceof LivingEntity l && level > 1) {
+                l.addPotionEffect(new PotionEffect(
+                        PotionEffectType.GLOWING,
+                        600 * (level - 1),
+                        (level - 2),
+                        false,
+                        true,
+                        true));
+                l.addPotionEffect(new PotionEffect(
+                        PotionEffectType.WEAKNESS,
+                        100 * (level - 1),
+                        (level - 1),
+                        false,
+                        true,
+                        true));
+            }
+        }
+    }
+
+    private void spawnFreezingAttack(Player p, LivingEntity target, int level) {
+        int ticks = 140 + (level * 160);
+        target.setFreezeTicks(ticks);
+        target.damage(level, DamageSource.builder(DamageType.FREEZE)
+                      .withDirectEntity(p)
+                      .withCausingEntity(p)
+                      .build());
+
+        // Add Slowness to make it feel "frozen"
+        /*
+         * target.addPotionEffect(new PotionEffect(
+         * PotionEffectType.SLOWNESS,
+         * level * 40, // 2 seconds per level
+         * level - 1, // Slowness level
+         * false,
+         * true,
+         * true));
+         */
     }
 
     private void performBackstab(Player player, LivingEntity target, int level) {
@@ -414,7 +470,7 @@ public class EnchantmentListener implements Listener {
 
         Location lastValidLoc = from.clone();
 
-        double step = .25;
+        double step = .1;
         for (double d = step; d <= maxDistance; d += step) {
             Location checkPoint = from.clone().add(direction.clone().multiply(d));
             Material type = checkPoint.getBlock().getType();

@@ -8,8 +8,13 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Server;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.bukkit.damage.DamageSource;
+import org.bukkit.damage.DamageType;
+import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
@@ -50,6 +55,23 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
     public static Scoreboard scoreboard;
     public static Server server;
     public static Logger logger;
+
+    public static void strikeLightning(Entity e, Player causing) {
+        strikeLightning(e, causing, 5); 
+    }
+
+    public static void strikeLightning(Entity e, Player causing, double damage) {
+        Location loc = e.getLocation();
+        World world = loc.getWorld();
+        world.strikeLightningEffect(e.getLocation());
+        if (e instanceof Creeper c)
+            c.setPowered(true);
+        if (e instanceof LivingEntity l && !l.isDead())
+            l.damage(world.hasStorm() ? damage * 2 : damage, DamageSource.builder(DamageType.LIGHTNING_BOLT)
+                    .withDirectEntity(causing)
+                    .withCausingEntity(causing)
+                    .build());
+    }
 
     public static int getPlayerScore(Player p, String objective) {
         Objective o = scoreboard.getObjective(objective);
@@ -155,6 +177,13 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
                                 return Command.SINGLE_SUCCESS;
                             })
                             .then(Commands.argument("id", StringArgumentType.string())
+                                    .suggests((ctx, builder) -> {
+                                        String remaining = builder.getRemaining().toLowerCase();
+                                        ManaKitListener.instance.manakitRegistry.keySet().stream()
+                                                .filter(kitId -> kitId.toLowerCase().startsWith(remaining))
+                                                .forEach(builder::suggest);
+                                        return builder.buildFuture();
+                                    })
                                     .executes((CommandContext<CommandSourceStack> ctx) -> {
                                         String id = StringArgumentType.getString(ctx, "id");
                                         ManaKitListener.instance.kit(ctx.getSource().getSender(), id);

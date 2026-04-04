@@ -1,6 +1,7 @@
 package com.defspacemine.snapshotpvp.manakit;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
@@ -9,8 +10,13 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ArmorMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.SpawnEggMeta;
+import org.bukkit.inventory.meta.trim.ArmorTrim;
+import org.bukkit.inventory.meta.trim.TrimMaterial;
+import org.bukkit.inventory.meta.trim.TrimPattern;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -18,6 +24,7 @@ import org.bukkit.potion.PotionEffectType;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
+import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
 
 public class FireInTheHole extends ManaKit {
     public static final double SMALL_BOMB_HEALTH = 10;
@@ -106,10 +113,9 @@ public class FireInTheHole extends ManaKit {
 
     @Override
     public void giveKit(Player p) {
-        PersistentDataContainer pdc = p.getPersistentDataContainer();
         resetKit(p);
 
-        // give items
+		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -184, 1, -185);
     }
 
     @Override
@@ -158,7 +164,7 @@ public class FireInTheHole extends ManaKit {
             inv.addItem(CustomEggListener.injectOwner(bomb2, p));
             inv.addItem(CustomEggListener.injectOwner(bomb3, p));
 
-            pdc.set(bombersRestockCounter, PersistentDataType.INTEGER, 0);
+            pdc.set(bombersRestockCounter, PersistentDataType.INTEGER, bombersRestockC - bombersRestock);
         }
 
         if (nukeRestockC >= nukeRestock) {
@@ -192,10 +198,11 @@ public class FireInTheHole extends ManaKit {
 
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
-        if (e.getEntity() instanceof Player) {
-            PersistentDataContainer pdc = p.getPersistentDataContainer();
-            pdc.set(bombersRestockCounter, PersistentDataType.INTEGER,
-                    pdc.get(bombersRestockCounter, PersistentDataType.INTEGER) + 1);
-        }
+        if (p.equals(CustomEggListener.getOwner(e.getEntity())))
+            return;
+
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        pdc.set(bombersRestockCounter, PersistentDataType.INTEGER,
+                pdc.get(bombersRestockCounter, PersistentDataType.INTEGER) + 1);
     }
 }

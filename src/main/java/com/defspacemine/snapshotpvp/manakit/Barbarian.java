@@ -22,9 +22,9 @@ import org.bukkit.scoreboard.Team;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Barbarian extends ManaKit {
-    final int bloodlust = 15; // 15 attacks given above 5 hearts gives regeneration
+    final int bloodlust = 10; // 10 attacks given above 5 hearts gives regeneration
     final NamespacedKey bloodlustCounter = ManaKitListener.MANA_KIT_DATA0;
-    final int secondWind = 15; // 15 hits taken below 5 hearts gives absorption
+    final int secondWind = 10; // 10 hits taken below 5 hearts gives absorption
     final NamespacedKey secondWindCounter = ManaKitListener.MANA_KIT_DATA1;
 
     public Barbarian() {
@@ -33,10 +33,9 @@ public class Barbarian extends ManaKit {
 
     @Override
     public void giveKit(Player p) {
-        PersistentDataContainer pdc = p.getPersistentDataContainer();
         resetKit(p);
 
-        // give items
+		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -188, 4, -185);
     }
 
     @Override

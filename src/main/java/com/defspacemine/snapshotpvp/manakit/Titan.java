@@ -83,10 +83,9 @@ public class Titan extends ManaKit {
 
     @Override
     public void giveKit(Player p) {
-        PersistentDataContainer pdc = p.getPersistentDataContainer();
         resetKit(p);
 
-        // give items
+		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -183, 7, -185);
     }
 
     @Override
@@ -116,22 +115,22 @@ public class Titan extends ManaKit {
             case 0:
                 color = ChatColor.GRAY.toString();
                 dustColor = Color.BLACK;
-                p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 5));
+                p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 2));
                 break;
             case 1:
                 color = ChatColor.GREEN.toString();
                 dustColor = Color.GREEN;
-                p.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 100, 3));
+                p.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 100, 0));
                 break;
             case 2:
                 color = ChatColor.YELLOW.toString();
                 dustColor = Color.YELLOW;
-                p.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 100, 3));
+                p.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 100, 1));
                 break;
             case 3:
                 color = ChatColor.GOLD.toString();
                 dustColor = Color.ORANGE;
-                p.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 100, 3));
+                p.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 100, 2));
                 break;
             case 4:
                 color = ChatColor.RED.toString();
@@ -141,7 +140,7 @@ public class Titan extends ManaKit {
             case 5:
                 color = ChatColor.WHITE.toString() + ChatColor.BOLD.toString();
                 dustColor = Color.AQUA;
-                p.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 100, 3));
+                p.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 100, 4));
                 break;
         }
 
@@ -153,7 +152,7 @@ public class Titan extends ManaKit {
                 ChatColor.GRAY + "  |  " + displayMessage;
         p.sendActionBar(displayMessage);
 
-        pdc.set(furyCounter, PersistentDataType.INTEGER, Math.max(furyC - stage - 1, 0));
+        pdc.set(furyCounter, PersistentDataType.INTEGER, Math.max(furyC - stage - 1, stage > 0 ? 200 : 0));
         if (killstreak >= 1)
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 0));
     }
@@ -178,8 +177,8 @@ public class Titan extends ManaKit {
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         int furyC = pdc.get(furyCounter, PersistentDataType.INTEGER);
         int stage = getStage(furyC);
-        pdc.set(furyCounter, PersistentDataType.INTEGER,
-                (int)((p.getFireTicks() > 0 ? 1.5 : 1) * (furyC + ((killstreak > 1) ? 160 : 80))));
+        pdc.set(furyCounter, PersistentDataType.INTEGER, furyC +
+                (int) ((p.getFireTicks() > 0 ? 1.5 : 1) * (killstreak > 1 ? 200 : 100)));
         if (stage < 5)
             return;
         e.setDamage(e.getDamage() + (furyC / 500) - 5);
@@ -189,9 +188,9 @@ public class Titan extends ManaKit {
     public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
-        pdc.set(furyCounter, PersistentDataType.INTEGER, (int)((p.getFireTicks() > 0 ? 1.5 : 1) * (
-                pdc.get(furyCounter, PersistentDataType.INTEGER)
-                        + (int) (e.getDamage() * 4 + 20) * (((killstreak > 1) ? 2 : 1)))));
+        pdc.set(furyCounter, PersistentDataType.INTEGER,
+                (int) ((p.getFireTicks() > 0 ? 1.5 : 1) * (pdc.get(furyCounter, PersistentDataType.INTEGER)
+                        + (int) (e.getDamage() * 5 + 25) * (killstreak > 1 ? 2 : 1))));
     }
 
     @Override

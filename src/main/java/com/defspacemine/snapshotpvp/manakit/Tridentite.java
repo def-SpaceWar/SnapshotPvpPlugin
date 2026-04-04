@@ -36,10 +36,9 @@ public class Tridentite extends ManaKit {
 
     @Override
     public void giveKit(Player p) {
-        PersistentDataContainer pdc = p.getPersistentDataContainer();
         resetKit(p);
 
-        // give items
+		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -189, 1, -185);
     }
 
     @Override

@@ -42,7 +42,7 @@ public class Engineer extends ManaKit {
     public static final double SENTRY_HEALTH = 80;
 
     final NamespacedKey fuelCounter = ManaKitListener.MANA_KIT_DATA0;
-    final int bot = 24; // 24 attacks per bots
+    final int bot = 15; // 15 attacks per bots
     final NamespacedKey botChargeCounter = ManaKitListener.MANA_KIT_DATA1;
     final int tpCooldown = 200; // 10 seconds between teleport
     final NamespacedKey tpCooldownCounter = ManaKitListener.MANA_KIT_DATA2;
@@ -68,7 +68,7 @@ public class Engineer extends ManaKit {
         meta.setUnbreakable(true);
         trident.setItemMeta(meta);
 
-        droid = new ItemStack(Material.WITHER_SKELETON_SPAWN_EGG);
+        droid = new ItemStack(Material.WITHER_SKELETON_SPAWN_EGG, 1);
         ItemMeta dMeta = droid.getItemMeta();
         dMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
         dMeta.setDisplayName(ChatColor.DARK_GRAY + "Droid");
@@ -76,7 +76,7 @@ public class Engineer extends ManaKit {
                 "engineer_droid");
         droid.setItemMeta(dMeta);
 
-        sentry = new ItemStack(Material.SKELETON_SPAWN_EGG);
+        sentry = new ItemStack(Material.SKELETON_SPAWN_EGG, 1);
         ItemMeta sMeta = sentry.getItemMeta();
         sMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
         sMeta.setDisplayName(ChatColor.GRAY + "Sentry");
@@ -89,6 +89,13 @@ public class Engineer extends ManaKit {
         tMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
         tMeta.setDisplayName(ChatColor.AQUA + "Teleporter Node");
         teleporterItem.setItemMeta(tMeta);
+    }
+
+    @Override
+    public void giveKit(Player p) {
+        resetKit(p);
+
+		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -188, 7, -185);
     }
 
     @Override
@@ -262,8 +269,6 @@ public class Engineer extends ManaKit {
 
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
-        if (p.equals(CustomEggListener.getOwner(e.getEntity())))
-            return;
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         PersistentDataContainer pdc = p.getPersistentDataContainer();
 

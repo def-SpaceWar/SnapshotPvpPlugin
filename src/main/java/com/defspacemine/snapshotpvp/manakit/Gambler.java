@@ -89,10 +89,9 @@ public class Gambler extends ManaKit {
 
     @Override
     public void giveKit(Player p) {
-        PersistentDataContainer pdc = p.getPersistentDataContainer();
         resetKit(p);
 
-        // give items
+		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -187, 7, -185);
     }
 
     @Override
@@ -219,7 +218,7 @@ public class Gambler extends ManaKit {
         int comboC = pdc.get(comboCounter, PersistentDataType.INTEGER);
         int moneyC = pdc.get(moneyCounter, PersistentDataType.INTEGER);
 
-        int gain = (int) ((20 * Math.pow(1.15, comboC + luckLevel))
+        int gain = (int) ((20 * Math.pow(1.5, comboC + luckLevel))
                 + (Math.random() * (3 + luckLevel) + 1));
         pdc.set(moneyCounter, PersistentDataType.INTEGER, Math.min(moneyMax, moneyC + gain));
         pdc.set(comboCounter, PersistentDataType.INTEGER, comboC + 1);
@@ -272,7 +271,7 @@ public class Gambler extends ManaKit {
             p.sendMessage(ChatColor.DARK_RED + "Combo Broken!");
         }
 
-        int loss = (int) (moneyC * 0.05);
+        int loss = (int) (moneyC * 0.025);
         pdc.set(moneyCounter, PersistentDataType.INTEGER, Math.max(0, moneyC - loss));
     }
 
@@ -290,7 +289,7 @@ public class Gambler extends ManaKit {
 
         if (roll >= 95) {
             payout = 100_000;
-            message = ChatColor.GOLD + "" + ChatColor.BOLD + " JACKPOT! +$100,000";
+            message = ChatColor.GOLD + "" + ChatColor.BOLD + " BONANZA! +$100,000";
             p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 100, 1));
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 200, 1));
         } else if (roll >= 70) {
@@ -344,7 +343,7 @@ public class Gambler extends ManaKit {
                 new BukkitRunnable() {
                     @Override
                     public void run() {
-                        triggerTeleport(p, hitLoc, luck);
+                        triggerTeleport(p, hitLoc, luck, true);
                         triggerZombies(p, hitLoc, luck, true);
                     }
                 }.runTaskLater(SnapshotPvpPlugin.instance, 5);
@@ -355,10 +354,9 @@ public class Gambler extends ManaKit {
             int roll = (int) (Math.random() * 3);
             switch (roll) {
                 case 0 -> triggerExplosion(p, hitLoc, luck);
-                case 1 -> triggerTeleport(p, hitLoc, luck);
+                case 1 -> triggerTeleport(p, hitLoc, luck, false);
                 case 2 -> triggerZombies(p, hitLoc, luck, false);
             }
-
         }
     }
 
@@ -371,10 +369,17 @@ public class Gambler extends ManaKit {
         tnt.setSource(p);
     }
 
-    private void triggerTeleport(Player p, Location loc, int luck) {
+    private void triggerTeleport(Player p, Location loc, int luck, boolean isJackpot) {
         Location oldLoc = p.getLocation().clone();
         p.teleport(loc.setDirection(oldLoc.getDirection().normalize()));
         p.playSound(p.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
+
+        if (isJackpot) {
+            p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 3));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 3));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 100, 3));
+            return;
+        }
 
         int roll = (int) (Math.random() * 3);
         switch (roll) {
@@ -402,9 +407,9 @@ public class Gambler extends ManaKit {
                         Material.NETHERITE_BOOTS, Material.NETHERITE_SWORD }
         };
 
-        int luckBonus = luck + (isJackpot ? 2 : 0);
+        int luckBonus = luck + (isJackpot ? 4 : 0);
         int rollBase = (int) (Math.random() * 5); // 0 to 4
-        int mobsToSpawn = Math.min(6, rollBase + luckBonus);
+        int mobsToSpawn = Math.max(Math.min(6, rollBase + luckBonus), 1);
 
         for (int i = 0; i < mobsToSpawn; i++) {
             Zombie zombie = loc.getWorld().spawn(loc, Zombie.class);

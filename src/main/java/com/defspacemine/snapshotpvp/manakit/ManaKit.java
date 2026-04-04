@@ -2,6 +2,7 @@ package com.defspacemine.snapshotpvp.manakit;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -69,6 +70,9 @@ public abstract class ManaKit {
     }
 
     public void onProjectileHit(Player p, ProjectileHitEvent e) {
+    }
+
+    public void onShootBow(Player p, EntityShootBowEvent e) {
     }
 
     // add more later

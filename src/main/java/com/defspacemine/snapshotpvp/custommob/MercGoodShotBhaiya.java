@@ -32,7 +32,7 @@ public class MercGoodShotBhaiya implements CustomMob {
         creeper.setCustomNameVisible(true);
         creeper.setMaxFuseTicks(0);
         creeper.setExplosionRadius(Mercenary.GOOD_SHOT_BHAIYA_RADIUS);
-        creeper.explode();
+        creeper.ignite();
 
         return creeper;
     }

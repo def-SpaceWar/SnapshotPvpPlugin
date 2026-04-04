@@ -35,7 +35,7 @@ public class JapaneseGoblin extends ManaKit {
     final static int KUNAI_TICKS = 40;
     final static int KUNAI_RADIUS = 4;
 
-    final int kunaiRestock = 10; // 10 player hits for kunai
+    final int kunaiRestock = 6; // 6 player hits for kunai
     final NamespacedKey kunaiRestockCounter = ManaKitListener.MANA_KIT_DATA0;
 
     private ItemStack kunai;
@@ -54,10 +54,9 @@ public class JapaneseGoblin extends ManaKit {
 
     @Override
     public void giveKit(Player p) {
-        PersistentDataContainer pdc = p.getPersistentDataContainer();
         resetKit(p);
 
-        // give items
+		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -182, 7, -185);
     }
 
     @Override

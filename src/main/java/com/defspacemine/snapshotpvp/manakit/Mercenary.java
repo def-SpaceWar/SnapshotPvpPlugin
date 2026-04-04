@@ -25,10 +25,10 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 public class Mercenary extends ManaKit {
-    public static final int LAUNCHER_TICKS = 5;
+    public static final int LAUNCHER_TICKS = 15;
     public static final int LAUNCHER_RADIUS = -2;
-    public static final int AUTO_BOMB_TICKS = 15;
-    public static final int AUTO_BOMB_RADIUS = 3;
+    public static final int AUTO_BOMB_TICKS = 20;
+    public static final int AUTO_BOMB_RADIUS = 4;
     public static final int GOOD_SHOT_BHAIYA_RADIUS = -64;
 
     final int mercRestock = 300; // bomb restock every 15 seconds, they auto reset
@@ -91,10 +91,9 @@ public class Mercenary extends ManaKit {
 
     @Override
     public void giveKit(Player p) {
-        PersistentDataContainer pdc = p.getPersistentDataContainer();
         resetKit(p);
 
-        // give items
+		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -183, 4, -185);
     }
 
     @Override
@@ -129,7 +128,7 @@ public class Mercenary extends ManaKit {
         if (mercRestockC >= mercRestock) {
             SnapshotPvpPlugin.clearInv(inv, Material.CREEPER_SPAWN_EGG);
             SnapshotPvpPlugin.clearInv(inv, Material.ENDER_PEARL);
-            inv.addItem(CustomEggListener.injectOwner(launchers, p));
+            inv.addItem(launchers);
             inv.addItem(CustomEggListener.injectOwner(autoBombs, p));
             inv.addItem(enderpearl);
             pdc.set(mercRestockCounter, PersistentDataType.INTEGER, 0);
@@ -155,6 +154,6 @@ public class Mercenary extends ManaKit {
     public void onKill(Player p, PlayerDeathEvent e) {
         PlayerInventory inv = p.getInventory();
         SnapshotPvpPlugin.clearInv(inv, Material.OCELOT_SPAWN_EGG);
-        inv.addItem(CustomEggListener.injectOwner(goodShotBhaiyas, p));
+        inv.addItem(goodShotBhaiyas);
     }
 }

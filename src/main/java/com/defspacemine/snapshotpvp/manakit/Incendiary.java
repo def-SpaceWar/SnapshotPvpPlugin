@@ -46,10 +46,9 @@ public class Incendiary extends ManaKit {
 
     @Override
     public void giveKit(Player p) {
-        PersistentDataContainer pdc = p.getPersistentDataContainer();
         resetKit(p);
 
-        // give items
+		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -186, 4, -185);
     }
 
     @Override
@@ -233,7 +232,7 @@ public class Incendiary extends ManaKit {
                 if (pTeam != null && pTeam.equals(entityTeam))
                     continue;
 
-                entity.setFireTicks(40 + ramp * 15);
+                entity.setFireTicks(40 + ramp);
                 if (entity instanceof LivingEntity living)
                     living.damage(damage, DamageSource.builder(DamageType.IN_FIRE)
                             .withDirectEntity(player)

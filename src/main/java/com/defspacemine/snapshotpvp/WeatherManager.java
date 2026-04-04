@@ -21,8 +21,8 @@ public class WeatherManager {
     public static WeatherManager instance;
 
     public enum WeatherType {
-        RAIN(1, ChatColor.BLUE + "Rain", BarColor.BLUE),
-        STORM(2, ChatColor.DARK_AQUA + "a Storm", BarColor.BLUE);
+        RAIN(1, ChatColor.BLUE + "Rainy", BarColor.BLUE),
+        STORM(2, ChatColor.DARK_AQUA + "Stormy", BarColor.PURPLE);
 
         public final int priority;
         public final String displayName;
@@ -86,7 +86,6 @@ public class WeatherManager {
             }
         }
 
-        lastDuration.put(uuid, activeDuration);
         WeatherType previousType = lastWeather.get(uuid);
         long previousDuration = lastDuration.getOrDefault(uuid, 0L);
         boolean durationIncreased = activeType != null && activeDuration > (previousDuration + 1);
@@ -104,9 +103,10 @@ public class WeatherManager {
         } else if (durationIncreased) {
             String timeStr = formatTime(activeDuration);
             world.sendMessage(Component.text(ChatColor.AQUA + "The " + activeType.displayName +
-                    ChatColor.AQUA + " has been extended! " + ChatColor.YELLOW + "Remaining: " + timeStr));
+                    ChatColor.AQUA + " weather has been extended! " + ChatColor.YELLOW + "Remaining: " + timeStr));
         }
 
+        lastDuration.put(uuid, activeDuration);
         updateBossBar(world, activeType, activeDuration);
         applyWorldPhysics(world, activeType);
     }
@@ -152,6 +152,7 @@ public class WeatherManager {
 
         bar.setTitle(type.displayName + ChatColor.WHITE + " (" + formatTime(duration) + ")");
         bar.setStyle(type == WeatherType.STORM ? BarStyle.SEGMENTED_6 : BarStyle.SOLID);
+        bar.setColor(type.barColor);
 
         double max = maxDuration.getOrDefault(uuid, 1L);
         double progress = Math.min(1.0, Math.max(0.0, (double) duration / max));

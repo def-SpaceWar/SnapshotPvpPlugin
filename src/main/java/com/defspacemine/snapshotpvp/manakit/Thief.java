@@ -3,6 +3,7 @@ package com.defspacemine.snapshotpvp.manakit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
@@ -23,7 +24,9 @@ import org.bukkit.scoreboard.Team;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Thief extends ManaKit {
-    final int ammoRestock = 10; // 10 attacks for 3 ammo (it resets itself)
+    final double CLOSE_RADIUS = 2;
+
+    final int ammoRestock = 8; // 8 attacks for 3 ammo (it resets itself)
     final NamespacedKey ammoRestockCounter = ManaKitListener.MANA_KIT_DATA0;
     final int smokeRestock = 5; // 5 hits below 6 hearts gives smoke bomb
     final int smokeBombRadius = 8;
@@ -63,10 +66,9 @@ public class Thief extends ManaKit {
 
     @Override
     public void giveKit(Player p) {
-        PersistentDataContainer pdc = p.getPersistentDataContainer();
         resetKit(p);
 
-        // give items
+		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -187, 1, -185);
     }
 
     @Override
@@ -138,6 +140,11 @@ public class Thief extends ManaKit {
             p.getInventory().addItem(enderPearl);
             pdc.set(pearlRestockCounter, PersistentDataType.INTEGER, 0);
         }
+
+        Location loc = p.getLocation();
+        for (Player _p : p.getWorld().getNearbyPlayers(loc, CLOSE_RADIUS))
+            if (!_p.equals(p))
+                p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 1));
     }
 
     @Override

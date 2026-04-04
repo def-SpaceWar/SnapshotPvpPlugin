@@ -16,6 +16,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Blaze;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
@@ -27,6 +28,7 @@ import org.bukkit.entity.Mob;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.TippedArrow;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -50,6 +52,7 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import com.defspacemine.snapshotpvp.WeatherManager;
 import com.defspacemine.snapshotpvp.custommob.*;
 import com.defspacemine.snapshotpvp.manakit.ICBM;
 import com.defspacemine.snapshotpvp.manakit.LightPaladin;
@@ -189,17 +192,14 @@ public class CustomEggListener implements Listener {
     public void onEntityDamage(EntityDamageByEntityEvent e) {
         {
             Entity causing = e.getDamageSource().getCausingEntity();
-            if (causing instanceof LightningStrike strike)
-                causing = strike.getCausingEntity();
             if (causing instanceof Player)
                 return;
         }
 
-        Entity entity = e.getDamager();
-        if (entity instanceof Projectile projectile)
-            if (projectile.getShooter() instanceof Entity shooter)
-                entity = shooter;
-
+        DamageSource dmgSrc = e.getDamageSource();
+        Entity entity = dmgSrc.getCausingEntity();
+        if (entity == null)
+            entity = e.getDamager();
         PersistentDataContainer pdc = entity.getPersistentDataContainer();
         double damage = pdc.getOrDefault(CUSTOM_DAMAGE, PersistentDataType.FLOAT, (float) e.getDamage());
         e.setDamage(damage);
@@ -210,18 +210,7 @@ public class CustomEggListener implements Listener {
 
         Team ownerTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(owner.getName());
         if (entity instanceof Creeper creeper) {
-            if (e.getEntity() instanceof Creeper c) {
-                if (getOwner(e.getEntity()) == null)
-                    return;
-                Boolean chainable = c.getPersistentDataContainer().get(CREEPER_CHAIN,
-                        PersistentDataType.BOOLEAN);
-                if (chainable == null || !chainable)
-                    return;
-                if (creeper.isPowered())
-                    c.setPowered(true);
-                e.setCancelled(true);
-                c.explode();
-            } else if (e.getEntity() instanceof LivingEntity victim) {
+            if (e.getEntity() instanceof LivingEntity victim) {
                 e.setCancelled(true);
                 applyExplosionKnockback(victim, creeper.getLocation(), creeper.getExplosionRadius(),
                         creeper.isPowered());
@@ -238,19 +227,38 @@ public class CustomEggListener implements Listener {
 
         if (e.getEntity() instanceof LivingEntity victim) {
             e.setCancelled(true);
-            DamageSource dmgSrc = e.getDamageSource();
-            Entity d = dmgSrc.getDirectEntity();
-            if (d == null)
-                d = owner;
-            final Entity direct = d;
+
+            final Entity direct = entity;
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (victim.isValid() && !victim.isDead())
                     victim.damage(damage, DamageSource.builder(dmgSrc.getDamageType())
                             .withDirectEntity(direct)
                             .withCausingEntity(owner)
                             .build());
+                if (direct instanceof Arrow arrow)
+                    arrow.remove();
+                if (direct instanceof TippedArrow arrow)
+                    arrow.remove();
             }, 1L);
         }
+    }
+
+    @EventHandler
+    public void onCreeperChain(EntityDamageByEntityEvent e) {
+        if (!(e.getDamageSource().getCausingEntity() instanceof Creeper creeper))
+            return;
+        if (!(e.getEntity() instanceof Creeper c))
+            return;
+        if (getOwner(c) == null)
+            return;
+        Boolean chainable = c.getPersistentDataContainer().get(CREEPER_CHAIN,
+                PersistentDataType.BOOLEAN);
+        if (chainable == null || !chainable)
+            return;
+        if (creeper.isPowered())
+            c.setPowered(true);
+        e.setCancelled(true);
+        c.explode();
     }
 
     private void applyExplosionKnockback(Entity entity, Location explosion, float radius, boolean isPowered) {
@@ -366,8 +374,11 @@ public class CustomEggListener implements Listener {
                 PersistentDataType.INTEGER,
                 1);
         Vector dir = firework.getVelocity();
+        Player owner = (Player) firework.getShooter();
 
         new BukkitRunnable() {
+            double radius = ICBM.RED_TERROR_RADIUS;
+
             @Override
             public void run() {
                 if (firework.isDead() || !firework.isValid()) {
@@ -380,18 +391,17 @@ public class CustomEggListener implements Listener {
                 World world = loc.getWorld();
 
                 Creeper creeper = (Creeper) world.spawnEntity(loc, EntityType.CREEPER);
-
-                if (firework.getShooter() instanceof Player owner)
-                    injectOwner(creeper, owner);
+                injectOwner(creeper, owner);
 
                 creeper.customName(Component.text("Red Terror")
                         .color(NamedTextColor.RED)
                         .decorate(TextDecoration.BOLD));
                 creeper.setFuseTicks(0);
-                creeper.setExplosionRadius(ICBM.RED_TERROR_RADIUS);
+                creeper.setExplosionRadius((int) radius);
                 creeper.explode();
 
                 firework.setVelocity(dir);
+                radius += ICBM.RED_TERROR_RADIUS_GROWTH;
             }
         }.runTaskTimer(plugin, 0L, 1L);
     }
@@ -401,6 +411,17 @@ public class CustomEggListener implements Listener {
                 BLINDING_LIGHT,
                 PersistentDataType.INTEGER,
                 1);
+        Player owner = (Player) firework.getShooter();
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                WeatherManager.instance.queueWeather(
+                        owner.getWorld(),
+                        WeatherManager.WeatherType.STORM,
+                        200L);
+            }
+        }.runTaskLater(plugin, 40L);
 
         new BukkitRunnable() {
             @Override
@@ -412,61 +433,49 @@ public class CustomEggListener implements Listener {
 
                 Location loc = firework.getLocation();
                 World world = loc.getWorld();
-
-                LightningStrike e = world.strikeLightning(loc);
-                if (firework.getShooter() instanceof Player owner) {
-                    e.setCausingPlayer(owner);
-                    SnapshotPvpPlugin.addToTeam(owner, e);
-                }
-
-                e.customName(Component.text("Blinding Light")
-                        .color(NamedTextColor.GOLD)
-                        .decorate(TextDecoration.BOLD));
+                world.strikeLightningEffect(loc);
 
                 if (!(firework.getShooter() instanceof Player p))
                     return;
                 Team pTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(p.getName());
 
-                for (Player target : world.getNearbyPlayers(loc, LightPaladin.BLINDING_LIGHT_RADIUS)) {
-                    if (target.equals(p) || target.getGameMode() != GameMode.ADVENTURE)
+                for (Entity target : world.getNearbyEntities(loc, LightPaladin.BLINDING_LIGHT_RADIUS,
+                        LightPaladin.BLINDING_LIGHT_RADIUS, LightPaladin.BLINDING_LIGHT_RADIUS)) {
+                    if (target.equals(p) || target instanceof LightningStrike)
                         continue;
 
-                    Team targetTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(target.getName());
+                    Team targetTeam = SnapshotPvpPlugin.getTeamG(target);
                     if (pTeam != null && pTeam.equals(targetTeam))
                         continue;
 
-                    LightningStrike s = world.strikeLightning(target.getLocation());
-                    if (firework.getShooter() instanceof Player owner) {
-                        s.setCausingPlayer(owner);
-                        target.damage(1, DamageSource.builder(DamageType.MAGIC)
-                                .withDirectEntity(owner)
-                                .withCausingEntity(owner).build());
-                    }
+                    SnapshotPvpPlugin.strikeLightning(target, owner);
 
-                    target.addPotionEffect(new PotionEffect(
-                            PotionEffectType.GLOWING,
-                            100,
-                            0,
-                            false,
-                            true,
-                            true));
-                    target.addPotionEffect(new PotionEffect(
-                            PotionEffectType.BLINDNESS,
-                            100,
-                            0,
-                            false,
-                            true,
-                            true));
-                    target.addPotionEffect(new PotionEffect(
-                            PotionEffectType.LEVITATION,
-                            20,
-                            6,
-                            false,
-                            true,
-                            true));
+                    if (target instanceof LivingEntity e) {
+                        e.addPotionEffect(new PotionEffect(
+                                PotionEffectType.GLOWING,
+                                100,
+                                0,
+                                false,
+                                true,
+                                true));
+                        e.addPotionEffect(new PotionEffect(
+                                PotionEffectType.BLINDNESS,
+                                100,
+                                0,
+                                false,
+                                true,
+                                true));
+                        e.addPotionEffect(new PotionEffect(
+                                PotionEffectType.LEVITATION,
+                                20,
+                                6,
+                                false,
+                                true,
+                                true));
+                    }
                 }
             }
-        }.runTaskTimer(plugin, 0L, 1L);
+        }.runTaskTimer(plugin, 0L, 2L);
     }
 
     public void startGlobalAggroTask() {

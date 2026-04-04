@@ -19,6 +19,13 @@ public class AtlantianPrince extends ManaKit {
     }
 
     @Override
+    public void giveKit(Player p) {
+        resetKit(p);
+
+		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -189, 7, -185);
+    }
+
+    @Override
     public void onCombatTick(Player p) {
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
 
