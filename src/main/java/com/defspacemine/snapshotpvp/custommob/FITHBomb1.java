@@ -24,7 +24,6 @@ public class FITHBomb1 implements CustomMob {
     public LivingEntity spawn(Location loc, PersistentDataContainer pdc) {
         Creeper creeper = (Creeper) loc.getWorld().spawnEntity(loc, EntityType.CREEPER);
         PersistentDataContainer cPdc = creeper.getPersistentDataContainer();
-        cPdc.set(CustomEggListener.CREEPER_CHAIN, PersistentDataType.BOOLEAN, true);
 
         String owner = pdc.get(CustomEggListener.OWNER, PersistentDataType.STRING);
         if (owner != null) {

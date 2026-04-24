@@ -28,7 +28,7 @@ public class Frog extends ManaKit {
     public Frog() {
         super("frog", "Frog", "[Melee Assassin]", 3);
 
-        windCharges = new ItemStack(Material.WIND_CHARGE, 4);
+        windCharges = new ItemStack(Material.WIND_CHARGE, 3);
         windCharges.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
     }
 
@@ -36,7 +36,7 @@ public class Frog extends ManaKit {
     public void giveKit(Player p) {
         resetKit(p);
 
-		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -184, 7, -185);
+        ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -184, 7, -185);
     }
 
     @Override

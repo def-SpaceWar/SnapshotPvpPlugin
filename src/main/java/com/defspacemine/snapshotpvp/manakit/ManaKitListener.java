@@ -458,6 +458,9 @@ public final class ManaKitListener implements Listener {
                     List<Player> playersInWorld = world.getPlayers();
 
                     for (Player viewer : playersInWorld) {
+                        if (viewer == null || !viewer.isOnline())
+                            continue;
+
                         if (viewer.getScoreboardTags().contains("fighting"))
                             updateWorldScoreboard(viewer, playersInWorld);
                         else if (viewer.getScoreboard() != Bukkit.getScoreboardManager().getMainScoreboard())
@@ -479,6 +482,9 @@ public final class ManaKitListener implements Listener {
         }
 
         for (Team mainTeam : mainBoard.getTeams()) {
+            if (mainTeam.getName() == null)
+                continue;
+
             Team localTeam = board.getTeam(mainTeam.getName());
             if (localTeam == null) {
                 localTeam = board.registerNewTeam(mainTeam.getName());
@@ -490,11 +496,27 @@ public final class ManaKitListener implements Listener {
             localTeam.setCanSeeFriendlyInvisibles(mainTeam.canSeeFriendlyInvisibles());
 
             for (String entry : mainTeam.getEntries()) {
-                if (!localTeam.hasEntry(entry)) {
-                    localTeam.addEntry(entry);
-                }
+                Entity entity = SnapshotPvpPlugin.getEntityFromEntry(entry);
+                if (!localTeam.hasEntry(entry) &&
+                        entity != null)
+                    if (viewer.getWorld().equals(entity.getWorld()))
+                        localTeam.addEntry(entry);
+                    else
+                        localTeam.removeEntry(entry);
+
             }
         }
+
+        Objective healthObj = board.getObjective("health");
+        if (healthObj == null) {
+            healthObj = board.registerNewObjective("health", Criteria.DUMMY,
+                    Component.text("❤").color(NamedTextColor.RED));
+            healthObj.setDisplaySlot(DisplaySlot.PLAYER_LIST);
+            healthObj.setDisplaySlot(DisplaySlot.BELOW_NAME);
+        }
+
+        for (Player p : trackedPlayers)
+            healthObj.getScore(p).setScore((int) (p.getHealth() + p.getAbsorptionAmount()));
 
         Objective obj = board.getObjective("combat_list");
         if (obj == null) {
@@ -505,9 +527,12 @@ public final class ManaKitListener implements Listener {
         }
 
         for (String entry : board.getEntries())
-            board.resetScores(entry);
+            obj.getScore(entry).resetScore();
 
         List<Player> sortedPlayers = new ArrayList<>(trackedPlayers);
+        sortedPlayers.removeIf((p) -> {
+            return !p.getScoreboardTags().contains("fighting");
+        });
         sortedPlayers.sort((p1, p2) -> {
             int ks1 = SnapshotPvpPlugin.getPlayerScore(p1, "dummyKillstreak");
             int ks2 = SnapshotPvpPlugin.getPlayerScore(p2, "dummyKillstreak");
@@ -528,13 +553,17 @@ public final class ManaKitListener implements Listener {
         for (Player p : sortedPlayers) {
             int ks = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
             int hp = (int) p.getHealth();
+            int absorp = (int) p.getAbsorptionAmount();
             Team team = SnapshotPvpPlugin.getTeam(p);
             ChatColor nameColor = (team != null) ? ChatColor.valueOf(team.getColor().name()) : ChatColor.WHITE;
 
             String prefix = team == null ? "" : team.getPrefix();
-            String ksEntry = nameColor + prefix + p.getName() + ChatColor.DARK_GRAY + ": " + ChatColor.GOLD + ks + "🔥"
-                    + ChatColor.GRAY + " | " + ChatColor.GREEN + hp + "❤";
-            setHiddenScore(obj, ksEntry, position--);
+            String hpText = "" + ChatColor.GREEN + hp + "❤";
+            if (absorp > 0)
+                hpText += " " + ChatColor.YELLOW + absorp + "❤";
+            String entry = nameColor + prefix + p.getName() + ChatColor.DARK_GRAY + ": " + ChatColor.GOLD + ks + "🔥"
+                    + ChatColor.GRAY + " | " + hpText;
+            setHiddenScore(obj, entry, position--);
         }
 
         setHiddenScore(obj, " ", position--);
@@ -542,10 +571,10 @@ public final class ManaKitListener implements Listener {
     }
 
     private void setHiddenScore(Objective obj, String text, int value) {
+        if (obj == null || text == null)
+            return;
         Score score = obj.getScore(text);
         score.setScore(value);
-        score.numberFormat(net.kyori.adventure.inventory.Book.builder().build() instanceof Object
-                ? NumberFormat.blank()
-                : null);
+        score.numberFormat(NumberFormat.blank());
     }
 }

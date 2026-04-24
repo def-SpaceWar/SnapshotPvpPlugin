@@ -30,7 +30,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 public class LightPaladin extends ManaKit {
     public static final float BLINDING_LIGHT_RADIUS = 5;
 
-    final int holyShieldRestock = 50; // 50 attacks given or taken
+    final int holyShieldRestock = 35; // 35 attacks given or taken
     final NamespacedKey holyShieldRestockCounter = ManaKitListener.MANA_KIT_DATA0;
 
     private ItemStack holyShield;
@@ -145,10 +145,6 @@ public class LightPaladin extends ManaKit {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(holyShieldRestockCounter, PersistentDataType.INTEGER,
                 pdc.get(holyShieldRestockCounter, PersistentDataType.INTEGER) + 1);
-        if (p.getHealth() <= 0)
-            return;
-        if (e.getDamageSource().getDamageType() != DamageType.PLAYER_ATTACK) return;
-        p.setHealth(Math.min(p.getHealth() + 1, p.getMaxHealth()));
     }
 
     @Override

@@ -298,14 +298,14 @@ public class Pharmacist extends ManaKit {
             meta.setColor(Color.fromRGB(0x000000));
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.WITHER,
-                    3200,
+                    2400,
                     3,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.POISON,
-                    3200,
+                    2400,
                     3,
                     false,
                     true,
@@ -313,7 +313,7 @@ public class Pharmacist extends ManaKit {
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.INSTANT_DAMAGE,
                     1,
-                    3,
+                    2,
                     false,
                     true,
                     true), true);
@@ -328,14 +328,14 @@ public class Pharmacist extends ManaKit {
             meta.setColor(Color.fromRGB(0xDD0000));
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.WITHER,
-                    800,
+                    400,
                     2,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.WEAKNESS,
-                    800,
+                    400,
                     1,
                     false,
                     true,
@@ -343,7 +343,7 @@ public class Pharmacist extends ManaKit {
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.INSTANT_DAMAGE,
                     1,
-                    2,
+                    1,
                     false,
                     true,
                     true), true);
@@ -443,7 +443,7 @@ public class Pharmacist extends ManaKit {
     public void giveKit(Player p) {
         resetKit(p);
 
-		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -185, 4, -185);
+        ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -185, 4, -185);
     }
 
     @Override
@@ -503,6 +503,8 @@ public class Pharmacist extends ManaKit {
 
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
+        if (!(e.getEntity() instanceof Player))
+            return;
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(potionStockCounter, PersistentDataType.INTEGER,

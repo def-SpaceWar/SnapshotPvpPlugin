@@ -262,7 +262,7 @@ public class EnchantmentListener implements Listener {
 
         if (weapon.containsEnchantment(BREEZY_ASPECT)) {
             int level = weapon.getEnchantmentLevel(BREEZY_ASPECT);
-            spawnBreezeBurst(player, target, level);
+            spawnBreezeBurst(player, level);
         }
 
         if (weapon.containsEnchantment(LIGHTNING_ASPECT)) {
@@ -341,7 +341,7 @@ public class EnchantmentListener implements Listener {
         }
     }
 
-    private void spawnBreezeBurst(Player player, LivingEntity target, int level) {
+    private void spawnBreezeBurst(Player player, int level) {
         Location spawnLoc = player.getEyeLocation();
         Vector baseDir = spawnLoc.getDirection().normalize();
 
@@ -369,47 +369,35 @@ public class EnchantmentListener implements Listener {
         double radius = 4 + 2 * level;
         double damage = 1 + level;
 
-        Team pTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(p.getName());
+        Team pTeam = SnapshotPvpPlugin.getTeam(p);
 
         for (Entity t : world.getNearbyEntities(target.getLocation(), radius, radius, radius)) {
             if (t instanceof Player player)
                 if (player.equals(p) || player.getGameMode() != GameMode.ADVENTURE)
                     continue;
 
-            Team tTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(t.getName());
-            if (pTeam != null && pTeam.equals(tTeam))
-                continue;
-
-            damage += level;
-        }
-
-        for (Entity t : world.getNearbyEntities(target.getLocation(), radius, radius, radius)) {
-            if (t instanceof Player player)
-                if (player.equals(p) || player.getGameMode() != GameMode.ADVENTURE)
-                    continue;
-
-            Team tTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(t.getName());
+            Team tTeam = SnapshotPvpPlugin.getTeamG(t);
             if (pTeam != null && pTeam.equals(tTeam))
                 continue;
 
             SnapshotPvpPlugin.strikeLightning(t, p, damage);
 
-            if (t instanceof LivingEntity l && level > 1) {
-                l.addPotionEffect(new PotionEffect(
-                        PotionEffectType.GLOWING,
-                        600 * (level - 1),
-                        (level - 2),
-                        false,
-                        true,
-                        true));
-                l.addPotionEffect(new PotionEffect(
-                        PotionEffectType.WEAKNESS,
-                        100 * (level - 1),
-                        (level - 1),
-                        false,
-                        true,
-                        true));
-            }
+            // if (t instanceof LivingEntity l && level > 1) {
+            // l.addPotionEffect(new PotionEffect(
+            // PotionEffectType.GLOWING,
+            // 600 * (level - 1),
+            // (level - 2),
+            // false,
+            // true,
+            // true));
+            // l.addPotionEffect(new PotionEffect(
+            // PotionEffectType.WEAKNESS,
+            // 100 * (level - 1),
+            // (level - 1),
+            // false,
+            // true,
+            // true));
+            // }
         }
     }
 
@@ -417,20 +405,9 @@ public class EnchantmentListener implements Listener {
         int ticks = 140 + (level * 160);
         target.setFreezeTicks(ticks);
         target.damage(level, DamageSource.builder(DamageType.FREEZE)
-                      .withDirectEntity(p)
-                      .withCausingEntity(p)
-                      .build());
-
-        // Add Slowness to make it feel "frozen"
-        /*
-         * target.addPotionEffect(new PotionEffect(
-         * PotionEffectType.SLOWNESS,
-         * level * 40, // 2 seconds per level
-         * level - 1, // Slowness level
-         * false,
-         * true,
-         * true));
-         */
+                .withDirectEntity(p)
+                .withCausingEntity(p)
+                .build());
     }
 
     private void performBackstab(Player player, LivingEntity target, int level) {

@@ -11,14 +11,22 @@ import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.Team;
+import org.bukkit.util.Vector;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
@@ -26,6 +34,12 @@ public class Titan extends ManaKit {
     private static final NamespacedKey FURY_SPEED = new NamespacedKey("defspacemine", "titan_speed");
     private static final NamespacedKey FURY_ATTACK_SPEED = new NamespacedKey("defspacemine", "titan_attack_speed");
     final NamespacedKey furyCounter = ManaKitListener.MANA_KIT_DATA0;
+
+    private final double SMASH_RANGE = 12.0;
+    private final double SMASH_ANGLE = 90.0;
+    private final double SMASH_DAMAGE = 8.0;
+    private final int SMASH_TICKS = 40;
+    private final int SMASH_COOLDOWN = 160;
 
     private int getStage(int fury) {
         if (fury < 200)
@@ -85,7 +99,7 @@ public class Titan extends ManaKit {
     public void giveKit(Player p) {
         resetKit(p);
 
-		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -183, 7, -185);
+        ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -183, 7, -185);
     }
 
     @Override
@@ -152,7 +166,8 @@ public class Titan extends ManaKit {
                 ChatColor.GRAY + "  |  " + displayMessage;
         p.sendActionBar(displayMessage);
 
-        pdc.set(furyCounter, PersistentDataType.INTEGER, Math.max(furyC - stage - 1, stage > 0 ? 200 : 0));
+        pdc.set(furyCounter, PersistentDataType.INTEGER, Math.max(furyC - stage - 1, 0));
+
         if (killstreak >= 1)
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 0));
     }
@@ -178,7 +193,7 @@ public class Titan extends ManaKit {
         int furyC = pdc.get(furyCounter, PersistentDataType.INTEGER);
         int stage = getStage(furyC);
         pdc.set(furyCounter, PersistentDataType.INTEGER, furyC +
-                (int) ((p.getFireTicks() > 0 ? 1.5 : 1) * (killstreak > 1 ? 200 : 100)));
+                (int) ((p.getFireTicks() > 0 ? 1.5 : 1) * (killstreak > 1 ? 160 : 80)));
         if (stage < 5)
             return;
         e.setDamage(e.getDamage() + (furyC / 500) - 5);
@@ -190,7 +205,7 @@ public class Titan extends ManaKit {
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         pdc.set(furyCounter, PersistentDataType.INTEGER,
                 (int) ((p.getFireTicks() > 0 ? 1.5 : 1) * (pdc.get(furyCounter, PersistentDataType.INTEGER)
-                        + (int) (e.getDamage() * 5 + 25) * (killstreak > 1 ? 2 : 1))));
+                        + (int) (e.getDamage() * 4 + 40) * (killstreak > 1 ? 2 : 1))));
     }
 
     @Override
@@ -200,5 +215,137 @@ public class Titan extends ManaKit {
         p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 100, 0));
         p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, -1, getStage(furyC)));
         pdc.set(furyCounter, PersistentDataType.INTEGER, 0);
+    }
+
+    @Override
+    public void onInteract(Player p, PlayerInteractEvent e) {
+        if (!e.getAction().isRightClick())
+            return;
+        if (e.getItem() == null || e.getItem().getType() != Material.STONE_AXE)
+            return;
+        if (p.hasCooldown(Material.STONE_AXE))
+            return;
+
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        Integer currentFury = pdc.get(furyCounter, PersistentDataType.INTEGER);
+        if (currentFury == null)
+            currentFury = 0;
+        int currentStage = getStage(currentFury);
+        double multiplier = (1 + currentStage / 2);
+
+        DustOptions dust = new DustOptions(switch (currentStage) {
+            case 0 -> Color.BLACK;
+            case 1 -> Color.GREEN;
+            case 2 -> Color.YELLOW;
+            case 3 -> Color.ORANGE;
+            case 4 -> Color.RED;
+            case 5 -> Color.AQUA;
+            default -> Color.WHITE;
+        }, 1.5f);
+
+        int newFury = currentFury / 2;
+        pdc.set(furyCounter, PersistentDataType.INTEGER, newFury);
+        p.setCooldown(Material.STONE_AXE, (int) (SMASH_COOLDOWN / multiplier));
+
+        final double speed = SMASH_RANGE / SMASH_TICKS * multiplier;
+        final double ticks = SMASH_TICKS / multiplier;
+        final double angle = SMASH_ANGLE / multiplier;
+        final double damage = SMASH_DAMAGE * Math.sqrt(multiplier);
+
+        final Location startLoc = p.getLocation();
+        final org.bukkit.util.Vector direction = startLoc.getDirection().setY(0).normalize();
+        final World world = p.getWorld();
+        final java.util.Set<java.util.UUID> hitEntities = new java.util.HashSet<>();
+        world.playSound(startLoc, org.bukkit.Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.0f, 0.5f);
+
+        Team pTeam = SnapshotPvpPlugin.getTeam(p);
+
+        new BukkitRunnable() {
+            int currentTick = 0;
+
+            @Override
+            public void run() {
+                if (currentTick > ticks) {
+                    this.cancel();
+                    return;
+                }
+
+                double currentDist = currentTick * speed;
+
+                if (currentDist > 0.5) {
+                    for (double angleOffset = -angle / 2; angleOffset <= angle / 2; angleOffset += 5) {
+                        Vector particleDir = direction.clone()
+                                .rotateAroundY(Math.toRadians(angleOffset));
+                        Location particleLoc = startLoc.clone().add(particleDir.multiply(currentDist)).add(0, .1, 0);
+
+                        Block blockUnder = particleLoc.clone().subtract(0, 0.5, 0).getBlock();
+                        Material blockMat = blockUnder.getType();
+
+                        if (blockMat.isAir() || !blockMat.isSolid())
+                            blockMat = Material.DIRT;
+                        BlockData blockData = blockMat.createBlockData();
+
+                        world.spawnParticle(Particle.BLOCK, particleLoc, 2, 0.1, 0.1, 0.1, 0.05, blockData);
+
+                        for (int i = 0; i < 2; i++) {
+                            double ranX = (Math.random() - 0.5) * 0.2;
+                            double ranZ = (Math.random() - 0.5) * 0.2;
+                            double upwardForce = 4 + (Math.random() * 5);
+
+                            world.spawnParticle(
+                                    Particle.BLOCK,
+                                    particleLoc.clone().add(0, 0.2, 0),
+                                    0,
+                                    ranX,
+                                    upwardForce,
+                                    ranZ,
+                                    1,
+                                    blockData);
+                        }
+
+                        world.spawnParticle(Particle.DUST, particleLoc, currentStage + 1, .2, .2, .2, currentStage + 1,
+                                dust);
+                    }
+                }
+
+                for (Entity entity : world.getNearbyEntities(startLoc, SMASH_RANGE, SMASH_RANGE,
+                        SMASH_RANGE)) {
+                    if (!(entity instanceof LivingEntity target))
+                        continue;
+                    if (target.equals(p) || pTeam.equals(SnapshotPvpPlugin.getTeamG(target)))
+                        continue;
+                    if (hitEntities.contains(target.getUniqueId()))
+                        continue;
+
+                    Location targetLoc = target.getLocation();
+
+                    double yDiff = targetLoc.getY() - startLoc.getY();
+                    if (yDiff > 2.0 || yDiff < -2.0)
+                        continue;
+
+                    double distToTarget = startLoc.distance(targetLoc);
+                    if (distToTarget <= currentDist) {
+                        Vector targetDir = targetLoc.toVector().subtract(startLoc.toVector()).setY(0)
+                                .normalize();
+                        double ang = direction.angle(targetDir);
+
+                        if (ang <= Math.toRadians(angle / 2)) {
+                            hitEntities.add(target.getUniqueId());
+
+                            target.addPotionEffect(
+                                    new PotionEffect(PotionEffectType.JUMP_BOOST, 80 + (currentStage * 20), 255));
+                            target.addPotionEffect(
+                                    new PotionEffect(PotionEffectType.SLOWNESS, 80 + (currentStage * 20), 5));
+
+                            target.damage(damage, p);
+
+                            world.playSound(targetLoc, org.bukkit.Sound.BLOCK_ANVIL_PLACE, 0.5f, 0.8f);
+                        }
+                    }
+                }
+
+                currentTick++;
+            }
+        }.runTaskTimer(SnapshotPvpPlugin.instance, 0L, 1L);
     }
 }

@@ -24,7 +24,7 @@ import org.bukkit.scoreboard.Team;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Thief extends ManaKit {
-    final double CLOSE_RADIUS = 2;
+    final double CLOSE_RADIUS = 1;
 
     final int ammoRestock = 8; // 8 attacks for 3 ammo (it resets itself)
     final NamespacedKey ammoRestockCounter = ManaKitListener.MANA_KIT_DATA0;
@@ -144,7 +144,7 @@ public class Thief extends ManaKit {
         Location loc = p.getLocation();
         for (Player _p : p.getWorld().getNearbyPlayers(loc, CLOSE_RADIUS))
             if (!_p.equals(p))
-                p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 1));
+                p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 5, 1));
     }
 
     @Override

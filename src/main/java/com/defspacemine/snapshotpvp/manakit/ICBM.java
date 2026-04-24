@@ -32,9 +32,9 @@ public class ICBM extends ManaKit {
     public static final double RED_TERROR_RADIUS_GROWTH = .2;
     final double DMG_PER_DISTANCE = 30;
 
-    final int ammoRestock = 240; // 20 firework rockets every 20 seconds
+    final int ammoRestock = 240; // firework rockets every 12 seconds
     final NamespacedKey ammoRestockCounter = ManaKitListener.MANA_KIT_DATA0;
-    final int terrorism = 2; // 2 kills for 5 red terrors
+    final int terrorism = 2; // 2 kills for 2 red terrors
     final NamespacedKey terrorismCounter = ManaKitListener.MANA_KIT_DATA1;
 
     private ItemStack avgMissiles;
@@ -66,7 +66,7 @@ public class ICBM extends ManaKit {
         }
 
         {
-            antimatterMissiles = new ItemStack(Material.FIREWORK_ROCKET, 1);
+            antimatterMissiles = new ItemStack(Material.FIREWORK_ROCKET, 2);
             FireworkMeta meta = (FireworkMeta) antimatterMissiles.getItemMeta();
             meta.displayName(Component.text("Antimatter Missiles")
                     .color(NamedTextColor.BLACK)

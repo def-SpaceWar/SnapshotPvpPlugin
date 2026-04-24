@@ -59,7 +59,7 @@ public class Cultist extends ManaKit {
     public void giveKit(Player p) {
         resetKit(p);
 
-		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -184, 4, -185);
+        ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -184, 4, -185);
     }
 
     private void initRitualItems() {
@@ -108,6 +108,8 @@ public class Cultist extends ManaKit {
 
         p.sendActionBar(nextRitualStatus + ChatColor.GRAY + " | " +
                 ChatColor.RED + "Killstreak: " + ChatColor.WHITE + killstreak + "/2");
+        p.removePotionEffect(PotionEffectType.WITHER);
+        p.removePotionEffect(PotionEffectType.POISON);
 
         if (killstreak == 1)
             p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 40, 0, false, false));
@@ -242,10 +244,10 @@ public class Cultist extends ManaKit {
 
     private void applyDoomBuffs(Player p) {
         p.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH, 1, 4));
-        p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 800, 2));
-        p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 800, 2));
-        p.addPotionEffect(new PotionEffect(PotionEffectType.HEALTH_BOOST, 800, 9));
-        p.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 800, 0));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 400, 2));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 400, 2));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.HEALTH_BOOST, 400, 9));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 400, 0));
     }
 
     @Override

@@ -24,7 +24,7 @@ import org.bukkit.potion.PotionEffectType;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Berserk extends ManaKit {
-    final int enrage = 2000; // 26.67 attacks or getting hit 80 times!
+    final int enrage = 60; // 20 attacks or getting hit 60 times!
     final NamespacedKey enrageCounter = ManaKitListener.MANA_KIT_DATA0;
 
     private ItemStack ragePotion;
@@ -47,14 +47,14 @@ public class Berserk extends ManaKit {
         meta.addCustomEffect(new PotionEffect(
                 PotionEffectType.RESISTANCE,
                 500,
-                0,
+                1,
                 false,
                 true,
                 true), true);
         meta.addCustomEffect(new PotionEffect(
                 PotionEffectType.STRENGTH,
                 500,
-                0,
+                1,
                 false,
                 true,
                 true), true);
@@ -120,21 +120,21 @@ public class Berserk extends ManaKit {
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(enrageCounter, PersistentDataType.INTEGER,
-                pdc.get(enrageCounter, PersistentDataType.INTEGER) + 75);
+                pdc.get(enrageCounter, PersistentDataType.INTEGER) + 3);
     }
 
     @Override
     public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(enrageCounter, PersistentDataType.INTEGER,
-                pdc.get(enrageCounter, PersistentDataType.INTEGER) + 25);
+                pdc.get(enrageCounter, PersistentDataType.INTEGER) + 1);
     }
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(enrageCounter, PersistentDataType.INTEGER,
-                pdc.get(enrageCounter, PersistentDataType.INTEGER) + 500);
+                pdc.get(enrageCounter, PersistentDataType.INTEGER) + 30);
         p.setHealth(Math.max(p.getHealth() + 12, p.getMaxHealth()));
     }
 }

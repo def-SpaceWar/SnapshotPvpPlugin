@@ -69,7 +69,6 @@ public class CustomEggListener implements Listener {
     public final static NamespacedKey OWNER = new NamespacedKey("defspacemine", "owner");
     public final static NamespacedKey CUSTOM_DAMAGE = new NamespacedKey("defspacemine", "custom_damage");
 
-    public final static NamespacedKey CREEPER_CHAIN = new NamespacedKey("defspacemine", "creeper_chain");
     public final static NamespacedKey RED_TERROR = new NamespacedKey("defspacemine", "red_terror");
     public final static NamespacedKey BLINDING_LIGHT = new NamespacedKey("defspacemine", "blinding_light");
 
@@ -228,6 +227,12 @@ public class CustomEggListener implements Listener {
         if (e.getEntity() instanceof LivingEntity victim) {
             e.setCancelled(true);
 
+            Entity damager = e.getDamager();
+            if (damager instanceof Arrow arrow)
+                arrow.remove();
+            if (damager instanceof TippedArrow arrow)
+                arrow.remove();
+
             final Entity direct = entity;
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (victim.isValid() && !victim.isDead())
@@ -235,30 +240,8 @@ public class CustomEggListener implements Listener {
                             .withDirectEntity(direct)
                             .withCausingEntity(owner)
                             .build());
-                if (direct instanceof Arrow arrow)
-                    arrow.remove();
-                if (direct instanceof TippedArrow arrow)
-                    arrow.remove();
             }, 1L);
         }
-    }
-
-    @EventHandler
-    public void onCreeperChain(EntityDamageByEntityEvent e) {
-        if (!(e.getDamageSource().getCausingEntity() instanceof Creeper creeper))
-            return;
-        if (!(e.getEntity() instanceof Creeper c))
-            return;
-        if (getOwner(c) == null)
-            return;
-        Boolean chainable = c.getPersistentDataContainer().get(CREEPER_CHAIN,
-                PersistentDataType.BOOLEAN);
-        if (chainable == null || !chainable)
-            return;
-        if (creeper.isPowered())
-            c.setPowered(true);
-        e.setCancelled(true);
-        c.explode();
     }
 
     private void applyExplosionKnockback(Entity entity, Location explosion, float radius, boolean isPowered) {

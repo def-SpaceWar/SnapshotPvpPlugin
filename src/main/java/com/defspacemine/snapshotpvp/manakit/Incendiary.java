@@ -48,7 +48,7 @@ public class Incendiary extends ManaKit {
     public void giveKit(Player p) {
         resetKit(p);
 
-		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -186, 4, -185);
+        ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -186, 4, -185);
     }
 
     @Override
@@ -67,9 +67,10 @@ public class Incendiary extends ManaKit {
         ItemStack item = p.getInventory().getItemInMainHand();
         if (!isFlamethrower(item) || !p.isHandRaised()) {
             pdc.set(rampKey, PersistentDataType.INTEGER, Math.max(0,
-       			pdc.getOrDefault(rampKey, PersistentDataType.INTEGER, 0) - 1));
+                    pdc.getOrDefault(rampKey, PersistentDataType.INTEGER, 0) - 1));
             cool(p);
-        } else fireTick(p);
+        } else
+            fireTick(p);
 
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         int flamethrowerC = pdc.get(flamethrowerCounter, PersistentDataType.INTEGER);
@@ -153,7 +154,8 @@ public class Incendiary extends ManaKit {
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-		pdc.set(heatKey, PersistentDataType.INTEGER, 0);
+        pdc.set(heatKey, PersistentDataType.INTEGER, 0);
+        pdc.set(overheatKey, PersistentDataType.BOOLEAN, false);
     }
 
     @Override
@@ -216,7 +218,7 @@ public class Incendiary extends ManaKit {
 
             double r = i / 2 + 1;
             Location point = start.clone().add(direction.clone().multiply(i));
-            world.spawnParticle(Particle.FLAME, point, (int)r, 0.2 * r, 0.2 * r, 0.2 * r, 0.02);
+            world.spawnParticle(Particle.FLAME, point, (int) r, 0.2 * r, 0.2 * r, 0.2 * r, 0.02);
             flamethrowerC -= 1;
 
             for (Entity entity : world.getNearbyEntities(point, r, r, r)) {
@@ -260,14 +262,11 @@ public class Incendiary extends ManaKit {
         int heat = pdc.getOrDefault(heatKey, PersistentDataType.INTEGER, 0);
         boolean overheated = pdc.getOrDefault(overheatKey, PersistentDataType.BOOLEAN, false);
 
-        if (heat <= 0)
-            return;
-
-        heat -= COOL_RATE;
         if (heat <= 0) {
             pdc.set(heatKey, PersistentDataType.INTEGER, 0);
             pdc.set(overheatKey, PersistentDataType.BOOLEAN, false);
         } else {
+            heat -= COOL_RATE;
             pdc.set(heatKey, PersistentDataType.INTEGER, heat);
         }
     }

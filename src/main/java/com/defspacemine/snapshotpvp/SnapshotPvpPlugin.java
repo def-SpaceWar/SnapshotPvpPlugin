@@ -1,5 +1,6 @@
 package com.defspacemine.snapshotpvp;
 
+import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
@@ -57,7 +58,7 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
     public static Logger logger;
 
     public static void strikeLightning(Entity e, Player causing) {
-        strikeLightning(e, causing, 5); 
+        strikeLightning(e, causing, 5);
     }
 
     public static void strikeLightning(Entity e, Player causing, double damage) {
@@ -100,6 +101,19 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         }
         score.setScore(prev + value);
         return true;
+    }
+
+    public static Entity getEntityFromEntry(String entry) {
+        Player player = Bukkit.getPlayer(entry);
+        if (player != null)
+            return player;
+
+        try {
+            UUID uuid = UUID.fromString(entry);
+            return Bukkit.getEntity(uuid);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     public static Team getTeam(Player p) {
