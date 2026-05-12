@@ -52,7 +52,6 @@ public class Frog extends ManaKit {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         int chargeRestockC = pdc.get(chargeRestockCounter, PersistentDataType.INTEGER);
 
-        p.removePotionEffect(PotionEffectType.SLOWNESS);
         p.sendActionBar(ChatColor.BLUE + "Wind Charges: " +
                 ChatColor.WHITE + chargeRestockC + "/" + chargeRestock +
                 ChatColor.GRAY + "  |  " +

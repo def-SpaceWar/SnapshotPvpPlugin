@@ -39,6 +39,7 @@ public class Titan extends ManaKit {
     private final double SMASH_ANGLE = 90.0;
     private final double SMASH_DAMAGE = 8.0;
     private final int SMASH_TICKS = 40;
+    private final int SMASH_DURATION = 80;
     private final int SMASH_COOLDOWN = 160;
 
     private int getStage(int fury) {
@@ -74,8 +75,8 @@ public class Titan extends ManaKit {
         if (stage <= 0)
             return;
 
-        double speedBonus = 0.02 * stage;
-        double attackSpeedBonus = 0.5 * stage;
+        double speedBonus = 0.015 * stage;
+        double attackSpeedBonus = 0.75 * stage;
 
         AttributeModifier speedMod = new AttributeModifier(
                 FURY_SPEED,
@@ -92,7 +93,7 @@ public class Titan extends ManaKit {
     }
 
     public Titan() {
-        super("titan", "Titan", "[Melee Damage Tank]", 2);
+        super("titan", "Titan", "[Melee Movement Tank]", 2);
     }
 
     @Override
@@ -118,7 +119,7 @@ public class Titan extends ManaKit {
         setFuryAttributes(p, stage, furyC);
 
         String displayMessage = ChatColor.RED + "Killstreak: " +
-                ChatColor.WHITE + killstreak + "/2";
+                ChatColor.WHITE + killstreak + "/3";
 
         String color = ChatColor.WHITE.toString();
         Location loc = p.getLocation().add(0, 1, 0);
@@ -129,7 +130,6 @@ public class Titan extends ManaKit {
             case 0:
                 color = ChatColor.GRAY.toString();
                 dustColor = Color.BLACK;
-                p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 2));
                 break;
             case 1:
                 color = ChatColor.GREEN.toString();
@@ -170,6 +170,8 @@ public class Titan extends ManaKit {
 
         if (killstreak >= 1)
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 0));
+        if (killstreak >= 3)
+            p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 0));
     }
 
     @Override
@@ -203,9 +205,9 @@ public class Titan extends ManaKit {
     public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
-        pdc.set(furyCounter, PersistentDataType.INTEGER,
-                (int) ((p.getFireTicks() > 0 ? 1.5 : 1) * (pdc.get(furyCounter, PersistentDataType.INTEGER)
-                        + (int) (e.getDamage() * 4 + 40) * (killstreak > 1 ? 2 : 1))));
+        pdc.set(furyCounter, PersistentDataType.INTEGER, pdc.get(furyCounter, PersistentDataType.INTEGER) +
+                (int) ((p.getFireTicks() > 0 ? 1.5 : 1) * (int) (e.getDamage() * 8)
+                        * (killstreak > 1 ? 2 : 1)));
     }
 
     @Override
@@ -223,7 +225,7 @@ public class Titan extends ManaKit {
             return;
         if (e.getItem() == null || e.getItem().getType() != Material.STONE_AXE)
             return;
-        if (p.hasCooldown(Material.STONE_AXE))
+        if (p.hasCooldown(Material.STONE_AXE) || !p.isOnGround())
             return;
 
         PersistentDataContainer pdc = p.getPersistentDataContainer();
@@ -250,7 +252,7 @@ public class Titan extends ManaKit {
         final double speed = SMASH_RANGE / SMASH_TICKS * multiplier;
         final double ticks = SMASH_TICKS / multiplier;
         final double angle = SMASH_ANGLE / multiplier;
-        final double damage = SMASH_DAMAGE * Math.sqrt(multiplier);
+        final double damage = SMASH_DAMAGE * multiplier;
 
         final Location startLoc = p.getLocation();
         final org.bukkit.util.Vector direction = startLoc.getDirection().setY(0).normalize();
@@ -265,10 +267,14 @@ public class Titan extends ManaKit {
 
             @Override
             public void run() {
-                if (currentTick > ticks) {
+                if (currentTick > ticks || !p.isOnline() || p.isDead()) {
                     this.cancel();
                     return;
                 }
+
+                p.teleport(startLoc);
+                p.setVelocity(new Vector(0, 0, 0));
+                p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 5, 1));
 
                 double currentDist = currentTick * speed;
 
@@ -290,20 +296,19 @@ public class Titan extends ManaKit {
                         for (int i = 0; i < 2; i++) {
                             double ranX = (Math.random() - 0.5) * 0.2;
                             double ranZ = (Math.random() - 0.5) * 0.2;
-                            double upwardForce = 4 + (Math.random() * 5);
 
                             world.spawnParticle(
                                     Particle.BLOCK,
                                     particleLoc.clone().add(0, 0.2, 0),
-                                    0,
+                                    1,
                                     ranX,
-                                    upwardForce,
+                                    currentDist / SMASH_RANGE,
                                     ranZ,
                                     1,
                                     blockData);
                         }
 
-                        world.spawnParticle(Particle.DUST, particleLoc, currentStage + 1, .2, .2, .2, currentStage + 1,
+                        world.spawnParticle(Particle.DUST, particleLoc, 1, .2, .2, .2, currentStage + 1,
                                 dust);
                     }
                 }
@@ -331,14 +336,13 @@ public class Titan extends ManaKit {
 
                         if (ang <= Math.toRadians(angle / 2)) {
                             hitEntities.add(target.getUniqueId());
-
                             target.addPotionEffect(
-                                    new PotionEffect(PotionEffectType.JUMP_BOOST, 80 + (currentStage * 20), 255));
+                                    new PotionEffect(PotionEffectType.JUMP_BOOST, (int) (SMASH_DURATION * multiplier),
+                                            255));
                             target.addPotionEffect(
-                                    new PotionEffect(PotionEffectType.SLOWNESS, 80 + (currentStage * 20), 5));
-
+                                    new PotionEffect(PotionEffectType.SLOWNESS, (int) (SMASH_DURATION * multiplier),
+                                            5));
                             target.damage(damage, p);
-
                             world.playSound(targetLoc, org.bukkit.Sound.BLOCK_ANVIL_PLACE, 0.5f, 0.8f);
                         }
                     }

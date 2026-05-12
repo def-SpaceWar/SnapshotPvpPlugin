@@ -5,6 +5,7 @@ import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -55,6 +56,7 @@ public class FireInTheHole extends ManaKit {
     final NamespacedKey nukeRestockCounter = ManaKitListener.MANA_KIT_DATA2;
 
     private ItemStack arrows;
+    private ItemStack enderpearl;
     private ItemStack bomb1;
     private ItemStack bomb2;
     private ItemStack bomb3;
@@ -68,6 +70,13 @@ public class FireInTheHole extends ManaKit {
             ItemMeta meta = arrows.getItemMeta();
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
             arrows.setItemMeta(meta);
+        }
+
+        {
+            enderpearl = new ItemStack(Material.ENDER_PEARL, 1);
+            ItemMeta meta = enderpearl.getItemMeta();
+            meta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
+            enderpearl.setItemMeta(meta);
         }
 
         {
@@ -115,14 +124,16 @@ public class FireInTheHole extends ManaKit {
     public void giveKit(Player p) {
         resetKit(p);
 
-		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -184, 1, -185);
+        ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -184, 1, -185);
     }
 
     @Override
     public void resetKit(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(ManaKitListener.MANA_KIT, PersistentDataType.STRING, this.id);
+        pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         pdc.set(bombersRestockCounter, PersistentDataType.INTEGER, 0);
+        pdc.set(nukeRestockCounter, PersistentDataType.INTEGER, 0);
     }
 
     @Override
@@ -155,7 +166,9 @@ public class FireInTheHole extends ManaKit {
         PlayerInventory inv = p.getInventory();
         if (arrowRestockC >= arrowRestock) {
             SnapshotPvpPlugin.clearInv(inv, Material.SPECTRAL_ARROW);
+            SnapshotPvpPlugin.clearInv(inv, Material.ENDER_PEARL);
             inv.addItem(arrows);
+            inv.addItem(enderpearl);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
 
@@ -184,6 +197,7 @@ public class FireInTheHole extends ManaKit {
     public void onLeaveCombat(Player p) {
         PlayerInventory inv = p.getInventory();
         SnapshotPvpPlugin.clearInv(inv, Material.SPECTRAL_ARROW);
+        SnapshotPvpPlugin.clearInv(inv, Material.ENDER_PEARL);
         SnapshotPvpPlugin.clearInv(inv, Material.CREEPER_SPAWN_EGG);
         resetKit(p);
     }
