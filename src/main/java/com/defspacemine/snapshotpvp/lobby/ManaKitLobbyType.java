@@ -36,7 +36,7 @@ public class ManaKitLobbyType extends LobbyType {
             return world.getPlayers();
         }
 
-        public void destroy() {
+        public void onDestroy() {
             SnapshotPvpPlugin.server.sendMessage(Component.text("No more lobby. ;( " + world.getName()));
         }
     }

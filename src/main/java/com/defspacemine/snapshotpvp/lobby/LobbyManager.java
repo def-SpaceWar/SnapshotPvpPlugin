@@ -30,17 +30,24 @@ public class LobbyManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                activeLobbies.removeIf((active) -> active.getPlayers().size() == 0);
+                activeLobbies.removeIf(active -> {
+                    boolean remove = active.getPlayers().size() == 0;
+                    if (remove)
+                        active.onDestroy();
+                    return remove;
+                });
 
-                for (World w : Bukkit.getWorlds()) {
-                    String wName = w.getName();
+                for (World world : Bukkit.getWorlds()) {
+                    if (world.getPlayerCount() == 0)
+                        continue;
+                    String wName = world.getName();
                     loop: for (LobbyType lobbyType : registeredLobbies) {
                         if (!wName.startsWith(lobbyType.getPrefix()))
-                            return;
+                            continue;
                         for (LobbyType.LobbyInstance active : activeLobbies)
-                            if (active.getWorld().equals(w))
+                            if (active.getWorld().equals(world))
                                 continue loop;
-                        activeLobbies.add(lobbyType.make(w));
+                        activeLobbies.add(lobbyType.make(world));
                     }
                 }
             }

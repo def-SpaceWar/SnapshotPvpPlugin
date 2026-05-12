@@ -12,6 +12,6 @@ public abstract class LobbyType {
     public abstract class LobbyInstance {
         public abstract World getWorld();
         public abstract List<Player> getPlayers();
-        public abstract void destroy();
+        public abstract void onDestroy();
     }
 }
