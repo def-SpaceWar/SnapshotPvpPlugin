@@ -17,28 +17,30 @@ public class LobbyManager {
 
     private final JavaPlugin plugin;
     private List<LobbyType> registeredLobbies;
-    private Map<String, LobbyType.LobbyInstance> activeLobbies;
+    private List<LobbyType.LobbyInstance> activeLobbies;
 
     public LobbyManager(JavaPlugin plugin) {
         instance = this;
         this.plugin = plugin;
         registeredLobbies = new ArrayList<>();
-        activeLobbies = new HashMap<>();
+        activeLobbies = new ArrayList<>();
 
         registeredLobbies.add(new ManaKitLobbyType());
 
         new BukkitRunnable() {
             @Override
             public void run() {
+                activeLobbies.removeIf((active) -> active.getPlayers().size() == 0);
+
                 for (World w : Bukkit.getWorlds()) {
                     String wName = w.getName();
                     loop: for (LobbyType lobbyType : registeredLobbies) {
                         if (!wName.startsWith(lobbyType.getPrefix()))
                             return;
-                        for (String active : activeLobbies.keySet())
-                            if (active.equals(wName))
+                        for (LobbyType.LobbyInstance active : activeLobbies)
+                            if (active.getWorld().equals(w))
                                 continue loop;
-                        activeLobbies.put(wName, lobbyType.make(w));
+                        activeLobbies.add(lobbyType.make(w));
                     }
                 }
             }
