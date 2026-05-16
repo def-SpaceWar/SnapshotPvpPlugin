@@ -12,12 +12,14 @@ import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import com.defspacemine.snapshotpvp.lobby.LobbyType.LobbyInstance;
+
 public class LobbyManager {
     public static LobbyManager instance;
 
     private final JavaPlugin plugin;
     private List<LobbyType> registeredLobbies;
-    private List<LobbyType.LobbyInstance> activeLobbies;
+    private List<LobbyInstance> activeLobbies;
 
     public LobbyManager(JavaPlugin plugin) {
         instance = this;
@@ -42,9 +44,9 @@ public class LobbyManager {
                         continue;
                     String wName = world.getName();
                     loop: for (LobbyType lobbyType : registeredLobbies) {
-                        if (!wName.startsWith(lobbyType.getPrefix()))
+                        if (!wName.startsWith(lobbyType.getPrefix()) || wName.endsWith("map"))
                             continue;
-                        for (LobbyType.LobbyInstance active : activeLobbies)
+                        for (LobbyInstance active : activeLobbies)
                             if (active.getWorld().equals(world))
                                 continue loop;
                         activeLobbies.add(lobbyType.make(world));

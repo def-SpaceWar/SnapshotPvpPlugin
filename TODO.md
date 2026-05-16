@@ -1,4 +1,4 @@
 # TODO
 
-1. lightning aspect/lightning strikes are more effective during a storm (5 -> 10 damage)
+1. LOBBY SYSTEM (huge work in progress, will put more steps here to achieving it later)
 2. code lifesteal

@@ -1,5 +1,5 @@
-#!/bin/sh
+#!/bin/bash
 
 rm -rf ./build/libs/*.jar
-./gradlew build
+./gradlew build $@
 mv ./build/libs/*.jar /home/aryan/Desktop/SnapshotPvp/plugins/SnapshotPvpPlugin.jar

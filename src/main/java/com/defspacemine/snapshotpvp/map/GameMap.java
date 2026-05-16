@@ -3,9 +3,15 @@ package com.defspacemine.snapshotpvp.map;
 import org.bukkit.World;
 
 import com.defspacemine.snapshotpvp.gamemode.Gamemode;
-import com.defspacemine.snapshotpvp.lobby.Lobby;
+import com.defspacemine.snapshotpvp.lobby.LobbyType.LobbyInstance;
 
 public abstract class GameMap {
-    public abstract void configure(Lobby lobby);
-    public abstract void update(World world, Gamemode gamemode);
+    protected LobbyInstance lobby;
+    protected World world;
+    protected Gamemode gamemode; // set through `configure`
+
+    public abstract void configure();
+    public abstract void onCreate();
+    public abstract void onTick();
+    public abstract void onDestroy();
 }

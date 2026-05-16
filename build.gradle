@@ -67,10 +67,15 @@ repositories {
     }
 
     mavenCentral()
+    maven { url "https://repo.papermc.io/repository/maven-public/" }
+    maven { url "https://maven.enginehub.org/repo/" }
 }
 
 dependencies {
     compileOnly 'io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT'
+    implementation(platform("com.intellectualsites.bom:bom-newest:1.56")) // Ref: https://github.com/IntellectualSites/bom 
+    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core")
+    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit")
     compileOnly "de.tr7zw:item-nbt-api-plugin:2.15.5"
     //compileOnly 'com.github.spotbugs:spotbugs-annotations:4.9.1'
     implementation 'io.papermc:paperlib:1.0.8'
