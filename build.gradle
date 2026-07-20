@@ -38,8 +38,8 @@ if (shortVersion == null || shortVersion == "") {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 repositories {
@@ -72,16 +72,16 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT'
-    implementation(platform("com.intellectualsites.bom:bom-newest:1.56")) // Ref: https://github.com/IntellectualSites/bom 
+    compileOnly 'io.papermc.paper:paper-api:26.2.build.+'
+
+    implementation(platform("com.intellectualsites.bom:bom-newest:1.56")) // Ref: https://github.com/IntellectualSites/bom
     compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core")
     compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit")
-    compileOnly "de.tr7zw:item-nbt-api-plugin:2.15.5"
     //compileOnly 'com.github.spotbugs:spotbugs-annotations:4.9.1'
     implementation 'io.papermc:paperlib:1.0.8'
     //spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.13.0'
     //testCompileOnly 'com.github.spotbugs:spotbugs-annotations:4.9.1'
-    //testImplementation 'io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT'
+    //testImplementation 'io.papermc.paper:paper-api:26.2-R0.1-SNAPSHOT'
     //testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     //testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.4'
 }

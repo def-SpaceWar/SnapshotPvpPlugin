@@ -1,7 +1,7 @@
 main: com.defspacemine.snapshotpvp.SnapshotPvpPlugin
 name: SnapshotPvpPlugin
 version: "${VERSION}"
-api-version: "1.21.11"
+api-version: "26.2"
 author: defSpaceMine
 description: The SnapshotPvp Plugin!
 
@@ -11,7 +11,7 @@ description: The SnapshotPvp Plugin!
 #    default: op
 #  perm.player:
 #    description: "All Players"
-#    default: 
+#    default:
 #
 #commands:
 #  hub:
@@ -19,7 +19,7 @@ description: The SnapshotPvp Plugin!
 #    usage: /hub
 #    permission: perm.player
 #    permission-message: You don't have permission to go to the hub!
-#  
+#
 #  kit:
 #    description: Select a kit
 #    usage: /kit [kit] or /kit to list all kits

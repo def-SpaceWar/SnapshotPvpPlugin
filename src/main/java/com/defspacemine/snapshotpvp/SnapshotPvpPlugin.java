@@ -1,8 +1,22 @@
 package com.defspacemine.snapshotpvp;
 
+import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
+import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
+import com.defspacemine.snapshotpvp.lobby.LobbyManager;
+import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import io.papermc.lib.PaperLib;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.command.brigadier.Commands;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import java.util.UUID;
 import java.util.logging.Logger;
-
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -31,28 +45,12 @@ import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
-import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
-import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
-import com.defspacemine.snapshotpvp.lobby.LobbyManager;
-import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
-import com.mojang.brigadier.Command;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.context.CommandContext;
-
-import de.tr7zw.nbtapi.NBT;
-import io.papermc.lib.PaperLib;
-import io.papermc.paper.command.brigadier.CommandSourceStack;
-import io.papermc.paper.command.brigadier.Commands;
-import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
-
 public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
+
     public static SnapshotPvpPlugin instance;
 
-    public static final NamespacedKey BLOCK_KNOCKBACK_REDUCTION = new NamespacedKey("combatium", "knockback_reduction");
+    public static final NamespacedKey BLOCK_KNOCKBACK_REDUCTION =
+        new NamespacedKey("combatium", "knockback_reduction");
 
     public static Scoreboard scoreboard;
     public static Server server;
@@ -62,52 +60,60 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         strikeLightning(e, causing, 5);
     }
 
-    public static void strikeLightning(Entity e, Player causing, double damage) {
+    public static void strikeLightning(
+        Entity e,
+        Player causing,
+        double damage
+    ) {
         Location loc = e.getLocation();
         World world = loc.getWorld();
         world.strikeLightningEffect(e.getLocation());
-        if (e instanceof Creeper c)
-            c.setPowered(true);
-        if (e instanceof LivingEntity l && !l.isDead())
-            l.damage(world.hasStorm() ? damage * 2 : damage, DamageSource.builder(DamageType.LIGHTNING_BOLT)
-                    .withDirectEntity(causing)
-                    .withCausingEntity(causing)
-                    .build());
+        if (e instanceof Creeper c) c.setPowered(true);
+        if (e instanceof LivingEntity l && !l.isDead()) l.damage(
+            world.hasStorm() ? damage * 2 : damage,
+            DamageSource.builder(DamageType.LIGHTNING_BOLT)
+                .withDirectEntity(causing)
+                .withCausingEntity(causing)
+                .build()
+        );
     }
 
     public static int getPlayerScore(Player p, String objective) {
         Objective o = scoreboard.getObjective(objective);
-        if (o == null)
-            return 0;
+        if (o == null) return 0;
         return o.getScore(p).getScore();
     }
 
-    public static boolean setPlayerScore(Player p, String objective, int value) {
+    public static boolean setPlayerScore(
+        Player p,
+        String objective,
+        int value
+    ) {
         Objective o = scoreboard.getObjective(objective);
-        if (o == null)
-            return false;
+        if (o == null) return false;
         o.getScore(p).setScore(value);
         return true;
     }
 
-    public static boolean addPlayerScore(Player p, String objective, int value) {
+    public static boolean addPlayerScore(
+        Player p,
+        String objective,
+        int value
+    ) {
         Objective o = scoreboard.getObjective(objective);
-        if (o == null)
-            return false;
+        if (o == null) return false;
         Score score = o.getScore(p);
         int prev = 0;
         try {
             prev = score.getScore();
-        } catch (Error e) {
-        }
+        } catch (Error e) {}
         score.setScore(prev + value);
         return true;
     }
 
     public static Entity getEntityFromEntry(String entry) {
         Player player = Bukkit.getPlayer(entry);
-        if (player != null)
-            return player;
+        if (player != null) return player;
 
         try {
             UUID uuid = UUID.fromString(entry);
@@ -131,21 +137,19 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
 
     public static void addToTeam(Player p, Entity e) {
         Team team = getTeam(p);
-        if (team == null)
-            return;
+        if (team == null) return;
         team.addEntity(e);
     }
 
     public static TextColor getTeamColor(Entity e) {
         Team team = scoreboard.getEntryTeam(e.getName());
-        return (team != null) ? team.color() : NamedTextColor.WHITE;
+        return team != null ? team.color() : NamedTextColor.WHITE;
     }
 
     public static void clearInv(PlayerInventory inv, Material type) {
         inv.remove(type);
         ItemStack offhand = inv.getItemInOffHand();
-        if (offhand.getType() == type)
-            inv.setItemInOffHand(null);
+        if (offhand.getType() == type) inv.setItemInOffHand(null);
     }
 
     public static void clearInv(PlayerInventory inv, ItemStack type) {
@@ -162,86 +166,152 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         server = getServer();
         server.getPluginManager().registerEvents(this, this);
         logger = getLogger();
-        SnapshotPvpPlugin.scoreboard = server.getScoreboardManager().getMainScoreboard();
-
-        if (!NBT.preloadApi()) {
-            logger.warning("NBT-API wasn't initialized properly, disabling the plugin");
-            server.getPluginManager().disablePlugin(this);
-            return;
-        }
+        SnapshotPvpPlugin.scoreboard = server
+            .getScoreboardManager()
+            .getMainScoreboard();
 
         new WeatherManager(this);
-        server.getPluginManager().registerEvents(new AntiSwapExploit(this), this);
-        server.getPluginManager().registerEvents(new CustomEggListener(this), this);
-        server.getPluginManager().registerEvents(new EnchantmentListener(this), this);
-        server.getPluginManager().registerEvents(new ManaKitListener(this), this);
+        server
+            .getPluginManager()
+            .registerEvents(new AntiSwapExploit(this), this);
+        server
+            .getPluginManager()
+            .registerEvents(new CustomEggListener(this), this);
+        server
+            .getPluginManager()
+            .registerEvents(new EnchantmentListener(this), this);
+        server
+            .getPluginManager()
+            .registerEvents(new ManaKitListener(this), this);
         new LobbyManager(this);
 
         // move this to manakit lobby eventually
-        getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, commands -> {
-            commands.registrar()
-                    .register(Commands.literal("hub")
-                            .executes((CommandContext<CommandSourceStack> ctx) -> {
-                                hub(ctx.getSource().getSender());
-                                return Command.SINGLE_SUCCESS;
-                            })
-                            .build());
+        getLifecycleManager().registerEventHandler(
+            LifecycleEvents.COMMANDS,
+            commands -> {
+                commands.registrar().register(
+                    Commands.literal("hub")
+                        .executes((CommandContext<CommandSourceStack> ctx) -> {
+                            hub(ctx.getSource().getSender());
+                            return Command.SINGLE_SUCCESS;
+                        })
+                        .build()
+                );
 
-            commands.registrar().register(
+                commands.registrar().register(
                     Commands.literal("kit")
-                            .executes((CommandContext<CommandSourceStack> ctx) -> {
-                                ManaKitListener.instance.kit(ctx.getSource().getSender(), null);
+                        .executes((CommandContext<CommandSourceStack> ctx) -> {
+                            ManaKitListener.instance.kit(
+                                ctx.getSource().getSender(),
+                                null
+                            );
+                            return Command.SINGLE_SUCCESS;
+                        })
+                        .then(
+                            Commands.argument("id", StringArgumentType.string())
+                                .suggests((ctx, builder) -> {
+                                    String remaining = builder
+                                        .getRemaining()
+                                        .toLowerCase();
+                                    ManaKitListener.instance.manakitRegistry
+                                        .keySet()
+                                        .stream()
+                                        .filter(kitId ->
+                                            kitId
+                                                .toLowerCase()
+                                                .startsWith(remaining)
+                                        )
+                                        .forEach(builder::suggest);
+                                    return builder.buildFuture();
+                                })
+                                .executes(
+                                    (
+                                        CommandContext<CommandSourceStack> ctx
+                                    ) -> {
+                                        String id =
+                                            StringArgumentType.getString(
+                                                ctx,
+                                                "id"
+                                            );
+                                        ManaKitListener.instance.kit(
+                                            ctx.getSource().getSender(),
+                                            id
+                                        );
+                                        return Command.SINGLE_SUCCESS;
+                                    }
+                                )
+                        )
+                        .build()
+                );
+
+                commands.registrar().register(
+                    Commands.literal("weatherqueue")
+                        .requires(source ->
+                            source.getSender().hasPermission("admin.weather")
+                        )
+                        .then(
+                            Commands.literal("clear").executes(ctx -> {
+                                Player p = (Player) ctx.getSource().getSender();
+                                WeatherManager.instance.clearWeather(
+                                    p.getWorld()
+                                );
                                 return Command.SINGLE_SUCCESS;
                             })
-                            .then(Commands.argument("id", StringArgumentType.string())
-                                    .suggests((ctx, builder) -> {
-                                        String remaining = builder.getRemaining().toLowerCase();
-                                        ManaKitListener.instance.manakitRegistry.keySet().stream()
-                                                .filter(kitId -> kitId.toLowerCase().startsWith(remaining))
-                                                .forEach(builder::suggest);
-                                        return builder.buildFuture();
-                                    })
-                                    .executes((CommandContext<CommandSourceStack> ctx) -> {
-                                        String id = StringArgumentType.getString(ctx, "id");
-                                        ManaKitListener.instance.kit(ctx.getSource().getSender(), id);
-                                        return Command.SINGLE_SUCCESS;
-                                    }))
-                            .build());
-
-            commands.registrar().register(
-                    Commands.literal("weatherqueue")
-                            .requires(source -> source.getSender().hasPermission("admin.weather"))
-                            .then(Commands.literal("clear")
-                                    .executes(ctx -> {
-                                        Player p = (Player) ctx.getSource().getSender();
-                                        WeatherManager.instance.clearWeather(p.getWorld());
-                                        return Command.SINGLE_SUCCESS;
-                                    }))
-                            .then(Commands.literal("rain")
-                                    .then(Commands.argument("seconds", IntegerArgumentType.integer(1))
-                                            .executes(ctx -> {
-                                                Player p = (Player) ctx.getSource().getSender();
-                                                int seconds = IntegerArgumentType.getInteger(ctx, "seconds");
-                                                WeatherManager.instance.queueWeather(p.getWorld(),
-                                                        WeatherManager.WeatherType.RAIN, seconds * 20L);
-                                                return Command.SINGLE_SUCCESS;
-                                            })))
-                            .then(Commands.literal("storm")
-                                    .then(Commands.argument("seconds", IntegerArgumentType.integer(1))
-                                            .executes(ctx -> {
-                                                Player p = (Player) ctx.getSource().getSender();
-                                                int seconds = IntegerArgumentType.getInteger(ctx, "seconds");
-                                                WeatherManager.instance.queueWeather(p.getWorld(),
-                                                        WeatherManager.WeatherType.STORM, seconds * 20L);
-                                                return Command.SINGLE_SUCCESS;
-                                            })))
-                            .build());
-        });
+                        )
+                        .then(
+                            Commands.literal("rain").then(
+                                Commands.argument(
+                                    "seconds",
+                                    IntegerArgumentType.integer(1)
+                                ).executes(ctx -> {
+                                    Player p = (Player) ctx
+                                        .getSource()
+                                        .getSender();
+                                    int seconds =
+                                        IntegerArgumentType.getInteger(
+                                            ctx,
+                                            "seconds"
+                                        );
+                                    WeatherManager.instance.queueWeather(
+                                        p.getWorld(),
+                                        WeatherManager.WeatherType.RAIN,
+                                        seconds * 20L
+                                    );
+                                    return Command.SINGLE_SUCCESS;
+                                })
+                            )
+                        )
+                        .then(
+                            Commands.literal("storm").then(
+                                Commands.argument(
+                                    "seconds",
+                                    IntegerArgumentType.integer(1)
+                                ).executes(ctx -> {
+                                    Player p = (Player) ctx
+                                        .getSource()
+                                        .getSender();
+                                    int seconds =
+                                        IntegerArgumentType.getInteger(
+                                            ctx,
+                                            "seconds"
+                                        );
+                                    WeatherManager.instance.queueWeather(
+                                        p.getWorld(),
+                                        WeatherManager.WeatherType.STORM,
+                                        seconds * 20L
+                                    );
+                                    return Command.SINGLE_SUCCESS;
+                                })
+                            )
+                        )
+                        .build()
+                );
+            }
+        );
     }
 
     public void hub(CommandSender sender) {
-        if (!(sender instanceof Player))
-            return;
+        if (!(sender instanceof Player)) return;
 
         Player player = (Player) sender;
         if (player.getScoreboardTags().contains("fighting")) {
@@ -251,10 +321,16 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
 
         player.clearActivePotionEffects();
 
-        player.teleport(new Location(
+        player.teleport(
+            new Location(
                 Bukkit.getWorld("goopshotpeshvp"),
-                -299.5, 2, -292.5,
-                180, 0));
+                -299.5,
+                2,
+                -292.5,
+                180,
+                0
+            )
+        );
     }
 
     @EventHandler
@@ -271,7 +347,6 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onExplosion(EntityExplodeEvent e) {
-        if (e.getEntity() instanceof TNTPrimed tnt)
-            e.blockList().clear();
+        if (e.getEntity() instanceof TNTPrimed tnt) e.blockList().clear();
     }
 }
