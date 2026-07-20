@@ -7,10 +7,6 @@ description: The SnapshotPvp Plugin!
 
 dependencies:
   server:
-    NBTAPI:
-      load: BEFORE
-      required: true
-      join-classpath: true
     FastAsyncWorldEdit:
       load: BEFORE
       required: true
