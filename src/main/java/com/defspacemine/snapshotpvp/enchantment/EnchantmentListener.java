@@ -373,7 +373,7 @@ public class EnchantmentListener implements Listener {
 
         for (Entity t : world.getNearbyEntities(target.getLocation(), radius, radius, radius)) {
             if (t instanceof Player player)
-                if (player.equals(p) || player.getGameMode() != GameMode.ADVENTURE)
+                if (player.equals(p) || (player.getGameMode() != GameMode.SURVIVAL && player.getGameMode() != GameMode.ADVENTURE))
                     continue;
 
             Team tTeam = SnapshotPvpPlugin.getTeamG(t);
@@ -381,23 +381,6 @@ public class EnchantmentListener implements Listener {
                 continue;
 
             SnapshotPvpPlugin.strikeLightning(t, p, damage);
-
-            // if (t instanceof LivingEntity l && level > 1) {
-            // l.addPotionEffect(new PotionEffect(
-            // PotionEffectType.GLOWING,
-            // 600 * (level - 1),
-            // (level - 2),
-            // false,
-            // true,
-            // true));
-            // l.addPotionEffect(new PotionEffect(
-            // PotionEffectType.WEAKNESS,
-            // 100 * (level - 1),
-            // (level - 1),
-            // false,
-            // true,
-            // true));
-            // }
         }
     }
 

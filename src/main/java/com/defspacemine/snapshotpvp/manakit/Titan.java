@@ -21,6 +21,11 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ArmorMeta;
+import org.bukkit.inventory.meta.trim.ArmorTrim;
+import org.bukkit.inventory.meta.trim.TrimMaterial;
+import org.bukkit.inventory.meta.trim.TrimPattern;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -105,6 +110,23 @@ public class Titan extends ManaKit {
         attackSpeedAttr.addModifier(attackSpeedMod);
     }
 
+    private void setChestplateTrim(Player p, TrimMaterial material) {
+        ItemStack chestplate = p.getInventory().getChestplate();
+        if (chestplate == null || chestplate.getType().isAir()) return;
+
+        if (chestplate.getItemMeta() instanceof ArmorMeta armorMeta) {
+            ArmorTrim currentTrim = armorMeta.getTrim();
+
+            if (
+                currentTrim != null &&
+                currentTrim.getMaterial().equals(material)
+            ) return;
+
+            armorMeta.setTrim(new ArmorTrim(material, TrimPattern.SILENCE));
+            chestplate.setItemMeta(armorMeta);
+        }
+    }
+
     public Titan() {
         super("titan", "Titan", "[Melee Movement Tank]", 2);
     }
@@ -148,15 +170,18 @@ public class Titan extends ManaKit {
         Location loc = p.getLocation().add(0, 1, 0);
         World world = p.getWorld();
         Color dustColor = Color.WHITE;
+        TrimMaterial trimMaterial = TrimMaterial.QUARTZ;
 
         switch (stage) {
             case 0:
                 color = ChatColor.GRAY.toString();
                 dustColor = Color.BLACK;
+                trimMaterial = TrimMaterial.NETHERITE;
                 break;
             case 1:
                 color = ChatColor.GREEN.toString();
                 dustColor = Color.GREEN;
+                trimMaterial = TrimMaterial.EMERALD;
                 p.addPotionEffect(
                     new PotionEffect(PotionEffectType.HUNGER, 100, 0)
                 );
@@ -164,6 +189,7 @@ public class Titan extends ManaKit {
             case 2:
                 color = ChatColor.YELLOW.toString();
                 dustColor = Color.YELLOW;
+                trimMaterial = TrimMaterial.GOLD;
                 p.addPotionEffect(
                     new PotionEffect(PotionEffectType.HUNGER, 100, 0)
                 );
@@ -171,6 +197,7 @@ public class Titan extends ManaKit {
             case 3:
                 color = ChatColor.GOLD.toString();
                 dustColor = Color.ORANGE;
+                trimMaterial = TrimMaterial.RESIN;
                 p.addPotionEffect(
                     new PotionEffect(PotionEffectType.HUNGER, 100, 1)
                 );
@@ -178,6 +205,7 @@ public class Titan extends ManaKit {
             case 4:
                 color = ChatColor.RED.toString();
                 dustColor = Color.RED;
+                trimMaterial = TrimMaterial.REDSTONE;
                 p.addPotionEffect(
                     new PotionEffect(PotionEffectType.HUNGER, 100, 1)
                 );
@@ -185,6 +213,7 @@ public class Titan extends ManaKit {
             case 5:
                 color = ChatColor.WHITE.toString() + ChatColor.BOLD.toString();
                 dustColor = Color.AQUA;
+                trimMaterial = TrimMaterial.DIAMOND;
                 p.addPotionEffect(
                     new PotionEffect(PotionEffectType.HUNGER, 100, 2)
                 );
@@ -214,6 +243,8 @@ public class Titan extends ManaKit {
             displayMessage;
         p.sendActionBar(displayMessage);
 
+        setChestplateTrim(p, trimMaterial);
+
         pdc.set(
             furyCounter,
             PersistentDataType.INTEGER,
@@ -232,6 +263,7 @@ public class Titan extends ManaKit {
     public void onLeaveCombat(Player p) {
         setFuryAttributes(p, 0, 0);
         resetKit(p);
+        setChestplateTrim(p, TrimMaterial.NETHERITE);
     }
 
     @Override
@@ -244,7 +276,7 @@ public class Titan extends ManaKit {
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
         if (
             p.getInventory().getItem(EquipmentSlot.HAND).getType() !=
-            Material.STONE_AXE
+            Material.STONE_PICKAXE
         ) return;
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
@@ -291,15 +323,16 @@ public class Titan extends ManaKit {
     public void onInteract(Player p, PlayerInteractEvent e) {
         if (!e.getAction().isRightClick()) return;
         if (
-            e.getItem() == null || e.getItem().getType() != Material.STONE_AXE
+            e.getItem() == null ||
+            e.getItem().getType() != Material.STONE_PICKAXE
         ) return;
-        if (p.hasCooldown(Material.STONE_AXE) || !p.isOnGround()) return;
+        if (p.hasCooldown(Material.STONE_PICKAXE) || !p.isOnGround()) return;
 
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         Integer currentFury = pdc.get(furyCounter, PersistentDataType.INTEGER);
         if (currentFury == null) currentFury = 0;
         int currentStage = getStage(currentFury);
-        double multiplier = 1 + currentStage / 2;
+        double multiplier = 1 + currentStage / 2.0;
 
         DustOptions dust = new DustOptions(
             switch (currentStage) {
@@ -316,7 +349,10 @@ public class Titan extends ManaKit {
 
         int newFury = currentFury / 2;
         pdc.set(furyCounter, PersistentDataType.INTEGER, newFury);
-        p.setCooldown(Material.STONE_AXE, (int) (SMASH_COOLDOWN / multiplier));
+        p.setCooldown(
+            Material.STONE_PICKAXE,
+            (int) (SMASH_COOLDOWN / multiplier)
+        );
 
         final double speed = (SMASH_RANGE / SMASH_TICKS) * multiplier;
         final double ticks = SMASH_TICKS / multiplier;

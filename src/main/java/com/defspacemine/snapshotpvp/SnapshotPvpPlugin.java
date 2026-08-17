@@ -1,24 +1,11 @@
 package com.defspacemine.snapshotpvp;
 
-import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
-import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
-import com.defspacemine.snapshotpvp.lobby.LobbyManager;
-import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
-import com.mojang.brigadier.Command;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.context.CommandContext;
-import io.papermc.lib.PaperLib;
-import io.papermc.paper.command.brigadier.CommandSourceStack;
-import io.papermc.paper.command.brigadier.Commands;
-import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import java.util.UUID;
 import java.util.logging.Logger;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameRules;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -44,6 +31,23 @@ import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
+
+import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
+import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
+import com.defspacemine.snapshotpvp.lobby.LobbyManager;
+import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+
+import io.papermc.lib.PaperLib;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.command.brigadier.Commands;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 
 public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
 
@@ -347,6 +351,8 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onExplosion(EntityExplodeEvent e) {
-        if (e.getEntity() instanceof TNTPrimed tnt) e.blockList().clear();
+        if (e.getEntity() instanceof TNTPrimed tnt) {
+            if (tnt.getWorld().getGameRuleValue(GameRules.MOB_GRIEFING) == false) e.blockList().clear();
+        }
     }
 }

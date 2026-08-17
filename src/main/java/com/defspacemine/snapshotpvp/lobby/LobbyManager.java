@@ -1,20 +1,19 @@
 package com.defspacemine.snapshotpvp.lobby;
 
+import com.defspacemine.snapshotpvp.lobby.LobbyType.LobbyInstance;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
-
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import com.defspacemine.snapshotpvp.lobby.LobbyType.LobbyInstance;
-
 public class LobbyManager {
+
     public static LobbyManager instance;
 
     private final JavaPlugin plugin;
@@ -34,21 +33,21 @@ public class LobbyManager {
             public void run() {
                 activeLobbies.removeIf(active -> {
                     boolean remove = active.getPlayers().size() == 0;
-                    if (remove)
-                        active.onDestroy();
+                    if (remove) active.onDestroy();
+                    else active.onTick();
                     return remove;
                 });
 
                 for (World world : Bukkit.getWorlds()) {
-                    if (world.getPlayerCount() == 0)
-                        continue;
+                    if (world.getPlayerCount() == 0) continue;
                     String wName = world.getName();
                     loop: for (LobbyType lobbyType : registeredLobbies) {
-                        if (!wName.startsWith(lobbyType.getPrefix()) || wName.endsWith("map"))
-                            continue;
+                        if (
+                            !wName.startsWith(lobbyType.getPrefix()) ||
+                            wName.endsWith("map")
+                        ) continue;
                         for (LobbyInstance active : activeLobbies)
-                            if (active.getWorld().equals(world))
-                                continue loop;
+                            if (active.getWorld().equals(world)) continue loop;
                         activeLobbies.add(lobbyType.make(world));
                     }
                 }

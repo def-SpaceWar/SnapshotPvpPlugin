@@ -1,9 +1,17 @@
 package com.defspacemine.snapshotpvp.manakit;
 
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Particle;
+import org.bukkit.World;
 import org.bukkit.damage.DamageType;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -20,18 +28,16 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
-
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
-
 public class LightPaladin extends ManaKit {
+
     public static final float BLINDING_LIGHT_RADIUS = 5;
+    public static final float HEAL_AMOUNT = .3f;
+    public static final float HEAL_RADIUS = 5;
+    public static final float HEAL_RADIUS_SQUARED = HEAL_RADIUS * HEAL_RADIUS;
 
     final int holyShieldRestock = 35; // 35 attacks given or taken
-    final NamespacedKey holyShieldRestockCounter = ManaKitListener.MANA_KIT_DATA0;
+    final NamespacedKey holyShieldRestockCounter =
+        ManaKitListener.MANA_KIT_DATA0;
 
     private ItemStack holyShield;
     private ItemStack blindingLight;
@@ -42,16 +48,24 @@ public class LightPaladin extends ManaKit {
         {
             blindingLight = new ItemStack(Material.CROSSBOW, 1);
             CrossbowMeta meta = (CrossbowMeta) blindingLight.getItemMeta();
-            meta.displayName(Component.text("Blinding Light")
+            meta.displayName(
+                Component.text("Blinding Light")
                     .color(NamedTextColor.YELLOW)
                     .decoration(TextDecoration.BOLD, true)
-                    .decoration(TextDecoration.ITALIC, false));
+                    .decoration(TextDecoration.ITALIC, false)
+            );
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
             ((Damageable) meta).setDamage(462);
             ItemStack rocket = new ItemStack(Material.FIREWORK_ROCKET, 1);
             FireworkMeta fwMeta = (FireworkMeta) rocket.getItemMeta();
             fwMeta.setPower(1);
-            fwMeta.getPersistentDataContainer().set(CustomEggListener.BLINDING_LIGHT, PersistentDataType.INTEGER, 1);
+            fwMeta
+                .getPersistentDataContainer()
+                .set(
+                    CustomEggListener.BLINDING_LIGHT,
+                    PersistentDataType.INTEGER,
+                    1
+                );
             rocket.setItemMeta(fwMeta);
             meta.addChargedProjectile(rocket);
             blindingLight.setItemMeta(meta);
@@ -60,19 +74,25 @@ public class LightPaladin extends ManaKit {
         {
             holyShield = new ItemStack(Material.SPLASH_POTION);
             PotionMeta meta = (PotionMeta) holyShield.getItemMeta();
-            meta.displayName(Component.text("Holy Shield")
+            meta.displayName(
+                Component.text("Holy Shield")
                     .color(NamedTextColor.YELLOW)
                     .decoration(TextDecoration.BOLD, true)
-                    .decoration(TextDecoration.ITALIC, false));
+                    .decoration(TextDecoration.ITALIC, false)
+            );
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
             meta.setColor(Color.fromRGB(16776960));
-            meta.addCustomEffect(new PotionEffect(
+            meta.addCustomEffect(
+                new PotionEffect(
                     PotionEffectType.ABSORPTION,
                     -1,
                     4,
                     true,
                     true,
-                    true), true);
+                    true
+                ),
+                true
+            );
             holyShield.setItemMeta(meta);
         }
     }
@@ -81,7 +101,13 @@ public class LightPaladin extends ManaKit {
     public void giveKit(Player p) {
         resetKit(p);
 
-		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -182, 4, -185);
+        ManaKitListener.giveItemsFromShulker(
+            p,
+            "goopshotpeshvp",
+            -182,
+            4,
+            -185
+        );
     }
 
     @Override
@@ -95,19 +121,37 @@ public class LightPaladin extends ManaKit {
     public void onCombatTick(Player p) {
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        int holyShieldRestockC = pdc.get(holyShieldRestockCounter, PersistentDataType.INTEGER);
+        int holyShieldRestockC = pdc.get(
+            holyShieldRestockCounter,
+            PersistentDataType.INTEGER
+        );
 
         p.sendActionBar(
-                ChatColor.GOLD + "Holy Shield: " +
-                        ChatColor.WHITE + holyShieldRestockC + "/" + holyShieldRestock +
-                        ChatColor.GRAY + "  |  " +
-                        ChatColor.RED + "Killstreak: " +
-                        ChatColor.WHITE + killstreak + "/2");
+            ChatColor.GOLD +
+                "Holy Shield: " +
+                ChatColor.WHITE +
+                holyShieldRestockC +
+                "/" +
+                holyShieldRestock +
+                ChatColor.GRAY +
+                "  |  " +
+                ChatColor.RED +
+                "Killstreak: " +
+                ChatColor.WHITE +
+                killstreak +
+                "/2"
+        );
 
-        if (killstreak == 1 && !p.hasPotionEffect(PotionEffectType.REGENERATION))
-            p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, -1, 0));
-        if (killstreak >= 2 && !p.hasPotionEffect(PotionEffectType.REGENERATION))
-            p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, -1, 1));
+        if (
+            killstreak == 1 && !p.hasPotionEffect(PotionEffectType.REGENERATION)
+        ) p.addPotionEffect(
+            new PotionEffect(PotionEffectType.REGENERATION, -1, 0)
+        );
+        if (
+            killstreak >= 2 && !p.hasPotionEffect(PotionEffectType.REGENERATION)
+        ) p.addPotionEffect(
+            new PotionEffect(PotionEffectType.REGENERATION, -1, 1)
+        );
 
         PlayerInventory inv = p.getInventory();
         if (holyShieldRestockC >= holyShieldRestock) {
@@ -118,9 +162,12 @@ public class LightPaladin extends ManaKit {
     }
 
     public void onKill(Player p, PlayerDeathEvent e) {
-        PotionEffect potionEffect = p.getPotionEffect(PotionEffectType.REGENERATION);
-        if (potionEffect != null && potionEffect.getAmplifier() < 1)
-            p.removePotionEffect(PotionEffectType.REGENERATION);
+        PotionEffect potionEffect = p.getPotionEffect(
+            PotionEffectType.REGENERATION
+        );
+        if (
+            potionEffect != null && potionEffect.getAmplifier() < 1
+        ) p.removePotionEffect(PotionEffectType.REGENERATION);
         SnapshotPvpPlugin.clearInv(p.getInventory(), Material.CROSSBOW);
         p.getInventory().addItem(blindingLight);
     }
@@ -143,14 +190,55 @@ public class LightPaladin extends ManaKit {
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        pdc.set(holyShieldRestockCounter, PersistentDataType.INTEGER,
-                pdc.get(holyShieldRestockCounter, PersistentDataType.INTEGER) + 1);
+        pdc.set(
+            holyShieldRestockCounter,
+            PersistentDataType.INTEGER,
+            pdc.get(holyShieldRestockCounter, PersistentDataType.INTEGER) + 1
+        );
+
+        Location loc = p.getLocation();
+        healParticles(p.getWorld(), loc);
+        if (!p.isDead()) p.heal(HEAL_AMOUNT);
+        for (Player other : p.getWorld().getPlayers())
+            if (
+                !other.isDead() &&
+                other != p &&
+                loc.distanceSquared(other.getLocation()) <
+                    HEAL_RADIUS_SQUARED &&
+                SnapshotPvpPlugin.getTeam(p).equals(
+                    SnapshotPvpPlugin.getTeam(other)
+                )
+            ) other.heal(HEAL_AMOUNT);
     }
 
     @Override
     public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        pdc.set(holyShieldRestockCounter, PersistentDataType.INTEGER,
-                pdc.get(holyShieldRestockCounter, PersistentDataType.INTEGER) + 1);
+        pdc.set(
+            holyShieldRestockCounter,
+            PersistentDataType.INTEGER,
+            pdc.get(holyShieldRestockCounter, PersistentDataType.INTEGER) + 1
+        );
+    }
+
+    private void healParticles(World world, Location center) {
+        for (double i = 0; i < 360; i += 5) {
+            double angle = Math.toRadians(i);
+            world.spawnParticle(
+                Particle.HAPPY_VILLAGER,
+                center
+                    .clone()
+                    .add(
+                        HEAL_RADIUS * Math.cos(angle),
+                        0,
+                        HEAL_RADIUS * Math.sin(angle)
+                    ),
+                1,
+                0,
+                0,
+                0,
+                0
+            );
+        }
     }
 }

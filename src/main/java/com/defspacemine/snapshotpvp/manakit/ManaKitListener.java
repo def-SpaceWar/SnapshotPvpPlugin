@@ -118,6 +118,8 @@ public final class ManaKitListener implements Listener {
         registerKit(new Gambler());
         registerKit(new Engineer());
         registerKit(new AtlantianPrince());
+        registerKit(new CactusChampion());
+        registerKit(new Voodoo());
 
         manakitGameLoop();
         startGlobalScoreboardTask();

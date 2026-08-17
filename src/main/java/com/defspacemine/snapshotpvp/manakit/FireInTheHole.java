@@ -1,5 +1,8 @@
 package com.defspacemine.snapshotpvp.manakit;
 
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
+import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Material;
@@ -23,25 +26,22 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
-import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
-
 public class FireInTheHole extends ManaKit {
+
     public static final double SMALL_BOMB_HEALTH = 15;
     public static final double SMALL_BOMB_SCALE = .75;
     public static final int SMALL_BOMB_TICKS = 30;
-    public static final int SMALL_BOMB_RADIUS = 4;
+    public static final int SMALL_BOMB_RADIUS = 6;
 
     public static final double MEDIUM_BOMB_HEALTH = 20;
     public static final double MEDIUM_BOMB_SCALE = 1;
     public static final int MEDIUM_BOMB_TICKS = 45;
-    public static final int MEDIUM_BOMB_RADIUS = 6;
+    public static final int MEDIUM_BOMB_RADIUS = 8;
 
     public static final double LARGE_BOMB_HEALTH = 25;
     public static final double LARGE_BOMB_SCALE = 1.25;
     public static final int LARGE_BOMB_TICKS = 60;
-    public static final int LARGE_BOMB_RADIUS = 8;
+    public static final int LARGE_BOMB_RADIUS = 10;
 
     public static final double NUKE_HEALTH = 40;
     public static final double NUKE_SCALE = 1.5;
@@ -85,7 +85,11 @@ public class FireInTheHole extends ManaKit {
             meta.setItemName("Small Bomb");
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
-            pdc.set(CustomEggListener.CUSTOM_EGG, PersistentDataType.STRING, "fith_bomb1");
+            pdc.set(
+                CustomEggListener.CUSTOM_EGG,
+                PersistentDataType.STRING,
+                "fith_bomb1"
+            );
             bomb1.setItemMeta(meta);
         }
 
@@ -95,7 +99,11 @@ public class FireInTheHole extends ManaKit {
             meta.setItemName("Medium Bomb");
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
-            pdc.set(CustomEggListener.CUSTOM_EGG, PersistentDataType.STRING, "fith_bomb2");
+            pdc.set(
+                CustomEggListener.CUSTOM_EGG,
+                PersistentDataType.STRING,
+                "fith_bomb2"
+            );
             bomb2.setItemMeta(meta);
         }
 
@@ -105,7 +113,11 @@ public class FireInTheHole extends ManaKit {
             meta.setItemName("Large Bomb");
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
-            pdc.set(CustomEggListener.CUSTOM_EGG, PersistentDataType.STRING, "fith_bomb3");
+            pdc.set(
+                CustomEggListener.CUSTOM_EGG,
+                PersistentDataType.STRING,
+                "fith_bomb3"
+            );
             bomb3.setItemMeta(meta);
         }
 
@@ -115,7 +127,11 @@ public class FireInTheHole extends ManaKit {
             meta.setItemName("Nuke");
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
-            pdc.set(CustomEggListener.CUSTOM_EGG, PersistentDataType.STRING, "fith_nuke");
+            pdc.set(
+                CustomEggListener.CUSTOM_EGG,
+                PersistentDataType.STRING,
+                "fith_nuke"
+            );
             nuke.setItemMeta(meta);
         }
     }
@@ -124,7 +140,13 @@ public class FireInTheHole extends ManaKit {
     public void giveKit(Player p) {
         resetKit(p);
 
-        ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -184, 1, -185);
+        ManaKitListener.giveItemsFromShulker(
+            p,
+            "goopshotpeshvp",
+            -184,
+            1,
+            -185
+        );
     }
 
     @Override
@@ -140,28 +162,63 @@ public class FireInTheHole extends ManaKit {
     public void onCombatTick(Player p) {
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        int arrowRestockC = pdc.get(arrowRestockCounter, PersistentDataType.INTEGER);
-        int bombersRestockC = pdc.get(bombersRestockCounter, PersistentDataType.INTEGER);
-        int nukeRestockC = pdc.get(nukeRestockCounter, PersistentDataType.INTEGER);
+        int arrowRestockC = pdc.get(
+            arrowRestockCounter,
+            PersistentDataType.INTEGER
+        );
+        int bombersRestockC = pdc.get(
+            bombersRestockCounter,
+            PersistentDataType.INTEGER
+        );
+        int nukeRestockC = pdc.get(
+            nukeRestockCounter,
+            PersistentDataType.INTEGER
+        );
 
-        p.sendActionBar(ChatColor.YELLOW + "Arrow Restock: " +
-                ChatColor.WHITE + arrowRestockC + "/" + arrowRestock +
-                ChatColor.GRAY + "  |  " +
-                ChatColor.GREEN + "Bomber's Restock: " +
-                ChatColor.WHITE + bombersRestockC + "/" + bombersRestock +
-                ChatColor.GRAY + "  |  " +
-                ChatColor.BLUE + "Nuke: " +
-                ChatColor.WHITE + nukeRestockC + "/" + nukeRestock +
-                ChatColor.GRAY + "  |  " +
-                ChatColor.RED + "Killstreak: " +
-                ChatColor.WHITE + killstreak + "/2");
+        p.sendActionBar(
+            ChatColor.YELLOW +
+                "Arrow Restock: " +
+                ChatColor.WHITE +
+                arrowRestockC +
+                "/" +
+                arrowRestock +
+                ChatColor.GRAY +
+                "  |  " +
+                ChatColor.GREEN +
+                "Bomber's Restock: " +
+                ChatColor.WHITE +
+                bombersRestockC +
+                "/" +
+                bombersRestock +
+                ChatColor.GRAY +
+                "  |  " +
+                ChatColor.BLUE +
+                "Nuke: " +
+                ChatColor.WHITE +
+                nukeRestockC +
+                "/" +
+                nukeRestock +
+                ChatColor.GRAY +
+                "  |  " +
+                ChatColor.RED +
+                "Killstreak: " +
+                ChatColor.WHITE +
+                killstreak +
+                "/2"
+        );
 
-        if (killstreak >= 1)
-            p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 1));
-        if (killstreak >= 2)
-            p.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 100, 1));
+        if (killstreak >= 1) p.addPotionEffect(
+            new PotionEffect(PotionEffectType.SPEED, 100, 1)
+        );
+        if (killstreak >= 2) p.addPotionEffect(
+            new PotionEffect(PotionEffectType.JUMP_BOOST, 100, 1)
+        );
 
-        pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestockC + 1);
+        pdc.set(
+            arrowRestockCounter,
+            PersistentDataType.INTEGER,
+            arrowRestockC + 1
+        );
 
         PlayerInventory inv = p.getInventory();
         if (arrowRestockC >= arrowRestock) {
@@ -177,20 +234,35 @@ public class FireInTheHole extends ManaKit {
             inv.addItem(CustomEggListener.injectOwner(bomb2, p));
             inv.addItem(CustomEggListener.injectOwner(bomb3, p));
 
-            pdc.set(bombersRestockCounter, PersistentDataType.INTEGER, bombersRestockC - bombersRestock);
+            pdc.set(
+                bombersRestockCounter,
+                PersistentDataType.INTEGER,
+                bombersRestockC - bombersRestock
+            );
         }
 
         if (nukeRestockC >= nukeRestock) {
             p.getInventory().addItem(CustomEggListener.injectOwner(nuke, p));
-            pdc.set(nukeRestockCounter, PersistentDataType.INTEGER, nukeRestockC - nukeRestock);
+            pdc.set(
+                nukeRestockCounter,
+                PersistentDataType.INTEGER,
+                nukeRestockC - nukeRestock
+            );
         }
     }
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        int nukeRestockC = pdc.get(nukeRestockCounter, PersistentDataType.INTEGER);
-        pdc.set(nukeRestockCounter, PersistentDataType.INTEGER, nukeRestockC + 1);
+        int nukeRestockC = pdc.get(
+            nukeRestockCounter,
+            PersistentDataType.INTEGER
+        );
+        pdc.set(
+            nukeRestockCounter,
+            PersistentDataType.INTEGER,
+            nukeRestockC + 1
+        );
     }
 
     @Override
@@ -206,17 +278,23 @@ public class FireInTheHole extends ManaKit {
     public void onEnterCombat(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestock);
-        pdc.set(bombersRestockCounter, PersistentDataType.INTEGER, bombersRestock);
+        pdc.set(
+            bombersRestockCounter,
+            PersistentDataType.INTEGER,
+            bombersRestock
+        );
         pdc.set(nukeRestockCounter, PersistentDataType.INTEGER, 0);
     }
 
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
-        if (p.equals(CustomEggListener.getOwner(e.getEntity())))
-            return;
+        if (p.equals(CustomEggListener.getOwner(e.getEntity()))) return;
 
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        pdc.set(bombersRestockCounter, PersistentDataType.INTEGER,
-                pdc.get(bombersRestockCounter, PersistentDataType.INTEGER) + 1);
+        pdc.set(
+            bombersRestockCounter,
+            PersistentDataType.INTEGER,
+            pdc.get(bombersRestockCounter, PersistentDataType.INTEGER) + 1
+        );
     }
 }

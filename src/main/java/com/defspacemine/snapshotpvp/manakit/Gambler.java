@@ -325,9 +325,9 @@ public class Gambler extends ManaKit {
             if (currentBet != null && !currentBet.equals("undefined")
                     && currentBet.equals(victim.getUniqueId().toString()))
                 return;
-            e.setCancelled(true);
             pdc.set(activeBet, PersistentDataType.STRING, victim.getUniqueId().toString());
-            arrow.remove();
+            // e.setCancelled(true);
+            // arrow.remove();
         } else if (e.getEntity() instanceof Snowball ball) {
             Location hitLoc = e.getHitEntity() != null ? e.getHitEntity().getLocation() : e.getEntity().getLocation();
             int luck = p.hasPotionEffect(PotionEffectType.LUCK)

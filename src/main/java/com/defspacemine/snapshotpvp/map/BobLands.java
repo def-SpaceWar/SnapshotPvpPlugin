@@ -1,15 +1,15 @@
 package com.defspacemine.snapshotpvp.map;
 
+import com.defspacemine.snapshotpvp.lobby.LobbyType.LobbyInstance;
+import com.sk89q.worldedit.math.BlockVector3;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
-import com.defspacemine.snapshotpvp.lobby.LobbyType.LobbyInstance;
-import com.sk89q.worldedit.math.BlockVector3;
+public class BobLands extends RegenerativeGameMap {
 
-public class BobLands extends GameMap {
-    public static BlockVector3 worldMin = BlockVector3.at(-61, 40, -61);
-    public static BlockVector3 worldMax = BlockVector3.at(61, 100, 61);
-    public static BlockVector3 worldLoc = worldMin;
+    public static final BlockVector3 WORLD_MIN = BlockVector3.at(-61, 40, -61);
+    public static final BlockVector3 WORLD_MAX = BlockVector3.at(61, 100, 61);
+    public static BlockVector3 worldLoc = WORLD_MIN;
 
     public static World getSourceWorld() {
         return Bukkit.getWorld("bob_lands");
@@ -20,18 +20,36 @@ public class BobLands extends GameMap {
         this.world = world;
     }
 
+    @Override
     public void configure() {
+        // Setup gamemode settings or rules
     }
 
+    @Override
     public void onCreate() {
-        GameMapUtil.cloneMap(getSourceWorld(), worldMin, worldMax, world, worldLoc); 
+        super.onCreate();
+
+        World source = getSourceWorld();
+        if (source != null) GameMapUtil.cloneMap(
+            source,
+            WORLD_MIN,
+            WORLD_MAX,
+            world,
+            worldLoc
+        );
+
+        setFluidFlowMinY(45);
     }
 
+    @Override
     public void onTick() {
-        // slowly regenerate map and other stuff
+        super.onTick();
     }
 
+    @Override
     public void onDestroy() {
-        GameMapUtil.removeMap(worldMin, worldMax, world, worldLoc); 
+        super.onDestroy();
+
+        GameMapUtil.removeMap(WORLD_MIN, WORLD_MAX, world, worldLoc);
     }
 }
