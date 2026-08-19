@@ -150,6 +150,13 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         return team != null ? team.color() : NamedTextColor.WHITE;
     }
 
+    public static boolean isSameTeam(Entity e1, Entity e2) {
+        if (e1.equals(e2)) return true;
+        Team t1 = SnapshotPvpPlugin.getTeamG(e1);
+        Team t2 = SnapshotPvpPlugin.getTeamG(e2);
+        return t1 != null && t1.equals(t2);
+    }
+
     public static void clearInv(PlayerInventory inv, Material type) {
         inv.remove(type);
         ItemStack offhand = inv.getItemInOffHand();

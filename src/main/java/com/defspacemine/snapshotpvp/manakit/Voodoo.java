@@ -3,6 +3,9 @@ package com.defspacemine.snapshotpvp.manakit;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import java.util.UUID;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -16,6 +19,7 @@ import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
@@ -30,29 +34,31 @@ import org.bukkit.util.Vector;
 
 public class Voodoo extends ManaKit {
 
-    private final double DOLL_HP = 40.0;
-    private final int HITS_REQUIRED = 3; // Hits needed before the soul can be bound
+    private final double DOLL_HP = 30.0;
+    private final double DOLL_DAMAGE_FACTOR = .5;
+    private final double SELF_DAMAGE_FACTOR = .33;
+    private final int HITS_REQUIRED = 3;
 
     private final NamespacedKey linkedTargetUUID =
         ManaKitListener.MANA_KIT_DATASTR0;
-    private final NamespacedKey dollEntityUUID =
-        ManaKitListener.MANA_KIT_DATASTR1;
+    private final NamespacedKey dollUUIDKey = ManaKitListener.MANA_KIT_DATASTR1;
     private final NamespacedKey potentialTargetUUID =
         ManaKitListener.MANA_KIT_DATASTR2;
-
     private final NamespacedKey potentialHitCount =
         ManaKitListener.MANA_KIT_DATA0;
     private final NamespacedKey isSelfBoundKey =
         ManaKitListener.MANA_KIT_DATABOOL0;
 
+    private final NamespacedKey dollOwnerKey =
+        ManaKitListener.MANA_KIT_DATASTR0;
+
     public Voodoo() {
-        super("voodoo", "Voodoo", "[Melee Damage]", 0);
+        super("voodoo", "Voodoo", "[Melee Damage]", 2);
     }
 
     @Override
     public void giveKit(Player p) {
         resetKit(p);
-
         ManaKitListener.giveItemsFromShulker(
             p,
             "goopshotpeshvp",
@@ -67,14 +73,13 @@ public class Voodoo extends ManaKit {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(ManaKitListener.MANA_KIT, PersistentDataType.STRING, this.id);
 
-        pdc.set(linkedTargetUUID, PersistentDataType.STRING, "");
-        pdc.set(dollEntityUUID, PersistentDataType.STRING, "");
-        pdc.set(potentialTargetUUID, PersistentDataType.STRING, "");
+        removeExistingDoll(p);
 
+        pdc.set(linkedTargetUUID, PersistentDataType.STRING, "");
+        pdc.set(dollUUIDKey, PersistentDataType.STRING, "");
+        pdc.set(potentialTargetUUID, PersistentDataType.STRING, "");
         pdc.set(potentialHitCount, PersistentDataType.INTEGER, 0);
         pdc.set(isSelfBoundKey, PersistentDataType.BOOLEAN, false);
-
-        removeExistingDoll(p);
     }
 
     @Override
@@ -84,8 +89,8 @@ public class Voodoo extends ManaKit {
 
         Player linkedTarget = getPlayerFromPDC(pdc, linkedTargetUUID);
         Player potentialTarget = getPlayerFromPDC(pdc, potentialTargetUUID);
+        Mannequin doll = getDoll(p);
 
-        Entity doll = getEntityFromPDC(pdc, dollEntityUUID);
         boolean selfBound = pdc.getOrDefault(
             isSelfBoundKey,
             PersistentDataType.BOOLEAN,
@@ -97,72 +102,84 @@ public class Voodoo extends ManaKit {
             0
         );
 
-        StringBuilder actionBar = new StringBuilder();
+        TextComponent.Builder actionBar = Component.text();
+        boolean hasPreviousSection = false;
 
         if (linkedTarget != null && linkedTarget.isOnline()) {
+            Component targetName = Component.text(linkedTarget.getName()).color(
+                SnapshotPvpPlugin.getTeamColor(linkedTarget)
+            );
+
             if (doll != null && doll.isValid()) {
                 actionBar
-                    .append(ChatColor.DARK_PURPLE)
-                    .append("Linked: ")
-                    .append(SnapshotPvpPlugin.getTeamColor(linkedTarget))
-                    .append(linkedTarget.getName())
-                    .append(ChatColor.LIGHT_PURPLE)
-                    .append(" [Doll]");
+                    .append(
+                        Component.text("Linked: ", NamedTextColor.DARK_PURPLE)
+                    )
+                    .append(targetName)
+                    .append(
+                        Component.text(" [Doll]", NamedTextColor.LIGHT_PURPLE)
+                    );
+                hasPreviousSection = true;
             } else if (selfBound) {
                 actionBar
-                    .append(ChatColor.DARK_PURPLE)
-                    .append("Linked: ")
-                    .append(SnapshotPvpPlugin.getTeamColor(linkedTarget))
-                    .append(linkedTarget.getName())
-                    .append(ChatColor.DARK_PURPLE)
-                    .append(" [Self]");
+                    .append(
+                        Component.text("Linked: ", NamedTextColor.DARK_PURPLE)
+                    )
+                    .append(targetName)
+                    .append(
+                        Component.text(" [Self]", NamedTextColor.DARK_PURPLE)
+                    );
+                hasPreviousSection = true;
             }
         }
 
         if (potentialTarget != null && potentialTarget.isOnline()) {
-            if (actionBar.length() > 0) {
-                actionBar.append(ChatColor.GRAY).append("  |  ");
+            if (hasPreviousSection) {
+                actionBar.append(Component.text("  |  ", NamedTextColor.GRAY));
             }
+
+            actionBar.append(Component.text("Target: ", NamedTextColor.GOLD));
             if (hits < HITS_REQUIRED) {
-                actionBar
-                    .append(ChatColor.GOLD)
-                    .append("Target: ")
-                    .append(ChatColor.YELLOW)
-                    .append(potentialTarget.getName())
-                    .append(" (")
-                    .append(hits)
-                    .append("/")
-                    .append(HITS_REQUIRED)
-                    .append(")");
+                actionBar.append(
+                    Component.text(
+                        potentialTarget.getName() +
+                            " (" +
+                            hits +
+                            "/" +
+                            HITS_REQUIRED +
+                            ")",
+                        NamedTextColor.YELLOW
+                    )
+                );
             } else {
-                actionBar
-                    .append(ChatColor.GOLD)
-                    .append("Target: ")
-                    .append(ChatColor.GREEN)
-                    .append(potentialTarget.getName())
-                    .append(" [Ready to Bind]");
+                actionBar.append(
+                    Component.text(
+                        potentialTarget.getName() + " [Ready to Bind]",
+                        NamedTextColor.GREEN
+                    )
+                );
             }
+            hasPreviousSection = true;
         }
 
-        // 3. Killstreak Status
-        if (actionBar.length() > 0) {
-            actionBar.append(ChatColor.GRAY).append("  |  ");
+        if (hasPreviousSection) {
+            actionBar.append(Component.text("  |  ", NamedTextColor.GRAY));
         }
+
         actionBar
-            .append(ChatColor.RED)
-            .append("Killstreak: ")
-            .append(ChatColor.WHITE)
-            .append(killstreak)
-            .append("/2");
+            .append(Component.text("Killstreak: ", NamedTextColor.RED))
+            .append(Component.text(killstreak + "/2", NamedTextColor.WHITE));
 
-        p.sendActionBar(actionBar.toString());
+        p.sendActionBar(actionBar.build());
 
-        if (killstreak >= 1) p.addPotionEffect(
-            new PotionEffect(PotionEffectType.STRENGTH, 100, 0)
-        );
-        if (killstreak >= 2) p.addPotionEffect(
-            new PotionEffect(PotionEffectType.HASTE, 100, 0)
-        );
+        if (killstreak >= 1) {
+            p.addPotionEffect(
+                new PotionEffect(PotionEffectType.STRENGTH, 100, 0)
+            );
+        }
+        if (killstreak >= 2) {
+            p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 100, 0));
+        }
 
         if (
             doll != null &&
@@ -186,69 +203,32 @@ public class Voodoo extends ManaKit {
 
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
-        Entity targetEntity = e.getEntity();
-        PersistentDataContainer pdc = p.getPersistentDataContainer();
-        Entity doll = getEntityFromPDC(pdc, dollEntityUUID);
+        Entity victim = e.getEntity();
+        PersistentDataContainer victimPDC = victim.getPersistentDataContainer();
 
-        if (doll != null && doll.equals(targetEntity)) {
-            Player linkedTarget = getPlayerFromPDC(pdc, linkedTargetUUID);
-
-            if (
-                linkedTarget != null &&
-                linkedTarget.isOnline() &&
-                linkedTarget.getGameMode() != GameMode.CREATIVE &&
-                linkedTarget.getGameMode() != GameMode.SPECTATOR
-            ) {
-                double damage = e.getDamage();
-
-                DamageSource damageSource = DamageSource.builder(
-                    DamageType.INDIRECT_MAGIC
-                )
-                    .withCausingEntity(p)
-                    .withDirectEntity(p)
-                    .build();
-
-                linkedTarget.damage(damage, damageSource);
-
-                linkedTarget
-                    .getWorld()
-                    .playSound(
-                        linkedTarget.getLocation(),
-                        Sound.ENTITY_STRAY_HURT,
-                        1.0f,
-                        0.5f
-                    );
-                linkedTarget
-                    .getWorld()
-                    .spawnParticle(
-                        Particle.DAMAGE_INDICATOR,
-                        linkedTarget.getLocation().add(0, 1, 0),
-                        (int) (damage * 2),
-                        0.2,
-                        0.5,
-                        0.2,
-                        0.1
-                    );
-
-                if (Math.random() < 0.15) {
-                    linkedTarget.addPotionEffect(
-                        new PotionEffect(PotionEffectType.SLOWNESS, 40, 1)
-                    );
-                }
-            }
-
-            doll.getWorld().spawnParticle(
-                Particle.SOUL_FIRE_FLAME,
-                doll.getLocation().add(0, 1, 0),
-                10,
-                0.2,
-                0.4,
-                0.2,
-                0.05
+        if (victimPDC.has(dollOwnerKey, PersistentDataType.STRING)) {
+            String ownerUUIDStr = victimPDC.get(
+                dollOwnerKey,
+                PersistentDataType.STRING
             );
-        } else if (
-            targetEntity instanceof Player hitPlayer && !hitPlayer.equals(p)
-        ) {
+            if (
+                ownerUUIDStr != null &&
+                ownerUUIDStr.equals(p.getUniqueId().toString())
+            ) {
+                Player linkedTarget = getPlayerFromPDC(
+                    p.getPersistentDataContainer(),
+                    linkedTargetUUID
+                );
+                if (linkedTarget != null) {
+                    double damage = Math.max(e.getDamage(), 1.0);
+                    transferDollDamage(p, linkedTarget, victim, damage);
+                }
+                return;
+            }
+        }
+
+        if (victim instanceof Player hitPlayer && !hitPlayer.equals(p) && e.getDamageSource().getDamageType() != DamageType.INDIRECT_MAGIC) {
+            PersistentDataContainer pdc = p.getPersistentDataContainer();
             String currentPotentialUUID = pdc.getOrDefault(
                 potentialTargetUUID,
                 PersistentDataType.STRING,
@@ -265,7 +245,6 @@ public class Voodoo extends ManaKit {
                 : 0;
 
             hits++;
-
             pdc.set(
                 potentialTargetUUID,
                 PersistentDataType.STRING,
@@ -276,9 +255,49 @@ public class Voodoo extends ManaKit {
     }
 
     @Override
+    public void onDamageInWorld(
+        Player p,
+        Player attacker,
+        Entity victim,
+        EntityDamageByEntityEvent e
+    ) {
+        PersistentDataContainer victimPDC = victim.getPersistentDataContainer();
+
+        if (victimPDC.has(dollOwnerKey, PersistentDataType.STRING)) {
+            String ownerUUIDStr = victimPDC.get(
+                dollOwnerKey,
+                PersistentDataType.STRING
+            );
+            if (
+                ownerUUIDStr != null &&
+                ownerUUIDStr.equals(p.getUniqueId().toString())
+            ) {
+                if (
+                    attacker != null &&
+                    !attacker.equals(p) &&
+                    SnapshotPvpPlugin.isSameTeam(p, attacker)
+                ) {
+                    Player linkedTarget = getPlayerFromPDC(
+                        p.getPersistentDataContainer(),
+                        linkedTargetUUID
+                    );
+                    if (linkedTarget != null) {
+                        double damage = Math.max(e.getDamage(), 1.0);
+                        transferDollDamage(
+                            attacker,
+                            linkedTarget,
+                            victim,
+                            damage
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
     public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-
         boolean selfBound = pdc.getOrDefault(
             isSelfBoundKey,
             PersistentDataType.BOOLEAN,
@@ -296,8 +315,6 @@ public class Voodoo extends ManaKit {
             double damage = e.getDamage();
             if (damage <= 0) return;
 
-            e.setCancelled(true);
-
             DamageSource damageSource = DamageSource.builder(
                 DamageType.INDIRECT_MAGIC
             )
@@ -305,7 +322,8 @@ public class Voodoo extends ManaKit {
                 .withDirectEntity(p)
                 .build();
 
-            linkedTarget.damage(damage, damageSource);
+            linkedTarget.setNoDamageTicks(0);
+            linkedTarget.damage(damage * SELF_DAMAGE_FACTOR, damageSource);
 
             linkedTarget
                 .getWorld()
@@ -320,7 +338,7 @@ public class Voodoo extends ManaKit {
                 .spawnParticle(
                     Particle.DAMAGE_INDICATOR,
                     linkedTarget.getLocation().add(0, 1, 0),
-                    (int) (damage * 2),
+                    (int) Math.max(1, damage * 2),
                     0.2,
                     0.5,
                     0.2,
@@ -330,6 +348,66 @@ public class Voodoo extends ManaKit {
             p.getWorld().spawnParticle(
                 Particle.SOUL_FIRE_FLAME,
                 p.getLocation().add(0, 1, 0),
+                10,
+                0.2,
+                0.4,
+                0.2,
+                0.05
+            );
+        }
+    }
+
+    private void transferDollDamage(
+        Player attacker,
+        Player linkedTarget,
+        Entity doll,
+        double damage
+    ) {
+        if (doll instanceof LivingEntity livingDoll) {
+            livingDoll.setNoDamageTicks(0);
+        }
+
+        if (
+            linkedTarget != null &&
+            linkedTarget.isOnline() &&
+            linkedTarget.getGameMode() != GameMode.CREATIVE &&
+            linkedTarget.getGameMode() != GameMode.SPECTATOR
+        ) {
+            DamageSource damageSource = DamageSource.builder(
+                DamageType.INDIRECT_MAGIC
+            )
+                .withCausingEntity(attacker)
+                .withDirectEntity(attacker)
+                .build();
+
+            linkedTarget.setNoDamageTicks(0);
+            linkedTarget.damage(damage * DOLL_DAMAGE_FACTOR, damageSource);
+
+            linkedTarget
+                .getWorld()
+                .playSound(
+                    linkedTarget.getLocation(),
+                    Sound.ENTITY_STRAY_HURT,
+                    1.0f,
+                    0.5f
+                );
+            linkedTarget
+                .getWorld()
+                .spawnParticle(
+                    Particle.DAMAGE_INDICATOR,
+                    linkedTarget.getLocation().add(0, 1, 0),
+                    (int) Math.max(1, damage * 2),
+                    0.2,
+                    0.5,
+                    0.2,
+                    0.1
+                );
+        }
+
+        if (doll != null) {
+            doll.getWorld().spawnParticle(
+                Particle.SOUL_FIRE_FLAME,
+                doll.getLocation().add(0, 1, 0),
                 10,
                 0.2,
                 0.4,
@@ -350,7 +428,6 @@ public class Voodoo extends ManaKit {
 
         boolean isPoppy = item.getType() == Material.POPPY;
         boolean isWitherRose = item.getType() == Material.WITHER_ROSE;
-
         if (!isPoppy && !isWitherRose) return;
 
         e.setCancelled(true);
@@ -373,13 +450,11 @@ public class Voodoo extends ManaKit {
             PersistentDataType.STRING,
             potentialTarget.getUniqueId().toString()
         );
-
         pdc.set(potentialTargetUUID, PersistentDataType.STRING, "");
         pdc.set(potentialHitCount, PersistentDataType.INTEGER, 0);
 
         if (isPoppy) {
             pdc.set(isSelfBoundKey, PersistentDataType.BOOLEAN, false);
-
             Location spawnLoc =
                 e.getClickedBlock() != null
                     ? e
@@ -422,6 +497,20 @@ public class Voodoo extends ManaKit {
         doll.setGravity(true);
         doll.setCanPickupItems(false);
 
+        doll.getPersistentDataContainer().set(
+            dollOwnerKey,
+            PersistentDataType.STRING,
+            owner.getUniqueId().toString()
+        );
+
+        owner
+            .getPersistentDataContainer()
+            .set(
+                dollUUIDKey,
+                PersistentDataType.STRING,
+                doll.getUniqueId().toString()
+            );
+
         doll.setProfile(
             ResolvableProfile.resolvableProfile().name(target.getName()).build()
         );
@@ -435,24 +524,22 @@ public class Voodoo extends ManaKit {
             doll.getAttribute(Attribute.MAX_HEALTH).setBaseValue(DOLL_HP);
         }
         doll.setHealth(DOLL_HP);
-        doll.setCustomName(
-            SnapshotPvpPlugin.getTeamColor(owner) +
-                owner.getName() +
-                "'s" +
-                ChatColor.DARK_PURPLE +
-                " Doll of " +
-                SnapshotPvpPlugin.getTeamColor(target) +
-                target.getName()
+        doll.customName(
+            Component.text(
+                owner.getName(),
+                SnapshotPvpPlugin.getTeamColor(owner)
+            )
+                .append(
+                    Component.text("'s Doll of ", NamedTextColor.DARK_PURPLE)
+                )
+                .append(
+                    Component.text(
+                        target.getName(),
+                        SnapshotPvpPlugin.getTeamColor(target)
+                    )
+                )
         );
         doll.setCustomNameVisible(true);
-
-        owner
-            .getPersistentDataContainer()
-            .set(
-                dollEntityUUID,
-                PersistentDataType.STRING,
-                doll.getUniqueId().toString()
-            );
 
         loc.getWorld().playSound(
             loc,
@@ -462,7 +549,7 @@ public class Voodoo extends ManaKit {
         );
         loc.getWorld().spawnParticle(
             Particle.WITCH,
-            loc.add(0, 1, 0),
+            loc.clone().add(0, 1, 0),
             30,
             0.5,
             0.5,
@@ -474,12 +561,27 @@ public class Voodoo extends ManaKit {
     }
 
     private void removeExistingDoll(Player owner) {
-        PersistentDataContainer pdc = owner.getPersistentDataContainer();
-        Entity oldDoll = getEntityFromPDC(pdc, dollEntityUUID);
+        Mannequin oldDoll = getDoll(owner);
         if (oldDoll != null) {
             oldDoll.remove();
         }
-        pdc.set(dollEntityUUID, PersistentDataType.STRING, "");
+        owner
+            .getPersistentDataContainer()
+            .set(dollUUIDKey, PersistentDataType.STRING, "");
+    }
+
+    private Mannequin getDoll(Player owner) {
+        PersistentDataContainer pdc = owner.getPersistentDataContainer();
+        if (!pdc.has(dollUUIDKey, PersistentDataType.STRING)) return null;
+        String uuidStr = pdc.get(dollUUIDKey, PersistentDataType.STRING);
+        if (uuidStr == null || uuidStr.isEmpty()) return null;
+        try {
+            Entity entity = Bukkit.getEntity(UUID.fromString(uuidStr));
+            if (entity instanceof Mannequin mannequin && mannequin.isValid()) {
+                return mannequin;
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 
     private Player getPlayerFromPDC(
@@ -490,25 +592,7 @@ public class Voodoo extends ManaKit {
         String uuidStr = pdc.get(key, PersistentDataType.STRING);
         if (uuidStr == null || uuidStr.isEmpty()) return null;
         try {
-            UUID id = UUID.fromString(uuidStr);
-            return Bukkit.getPlayer(id);
-        } catch (Exception ex) {
-            return null;
-        }
-    }
-
-    private Entity getEntityFromPDC(
-        PersistentDataContainer pdc,
-        NamespacedKey key
-    ) {
-        if (!pdc.has(key, PersistentDataType.STRING)) return null;
-        String uuidStr = pdc.get(key, PersistentDataType.STRING);
-        if (uuidStr == null || uuidStr.isEmpty()) return null;
-        try {
-            UUID id = UUID.fromString(uuidStr);
-            Entity e = Bukkit.getEntity(id);
-            if (e == null || !e.isValid()) return null;
-            return e;
+            return Bukkit.getPlayer(UUID.fromString(uuidStr));
         } catch (Exception ex) {
             return null;
         }
@@ -516,7 +600,6 @@ public class Voodoo extends ManaKit {
 
     private void spawnParticleTether(Location from, Location to) {
         if (!from.getWorld().equals(to.getWorld())) return;
-
         double distance = from.distance(to);
         if (distance > 160.0) return;
 

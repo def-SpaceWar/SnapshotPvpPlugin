@@ -59,7 +59,7 @@ public class CactusChampion extends ManaKit {
     private final ItemStack cactusTotemItem;
 
     public CactusChampion() {
-        super("cactus_champion", "Cactus Champion", "[Melee Damage Tank]", 0);
+        super("cactus_champion", "Cactus Champion", "[Melee Damage Tank]", 2);
 
         cactusTotemItem = new ItemStack(Material.CACTUS);
         ItemMeta meta = cactusTotemItem.getItemMeta();
@@ -336,7 +336,9 @@ public class CactusChampion extends ManaKit {
                 CACTUS_TOTEM_HP +
                 " HP"
         );
-        entity.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 100, 0));
+        entity.addPotionEffect(
+            new PotionEffect(PotionEffectType.GLOWING, 100, 0)
+        );
     }
 
     private void showParticleCircle(Location center, double radius) {
@@ -397,7 +399,7 @@ public class CactusChampion extends ManaKit {
 
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
-        if (e.getEntity() instanceof Player || true) {
+        if (e.getEntity() instanceof Player) {
             PersistentDataContainer pdc = p.getPersistentDataContainer();
             pdc.set(
                 cactusTotemCounter,
@@ -413,17 +415,15 @@ public class CactusChampion extends ManaKit {
 
     @Override
     public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {
-        if (e.getDamager() instanceof Player || true) {
-            PersistentDataContainer pdc = p.getPersistentDataContainer();
-            pdc.set(
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        pdc.set(
+            counterSpikesCounter,
+            PersistentDataType.INTEGER,
+            (int) (pdc.getOrDefault(
                 counterSpikesCounter,
                 PersistentDataType.INTEGER,
-                (int) (pdc.getOrDefault(
-                    counterSpikesCounter,
-                    PersistentDataType.INTEGER,
-                    0
-                ) + Math.max(0, e.getDamage()))
-            );
-        }
+                0
+            ) + Math.max(0, e.getDamage()))
+        );
     }
 }

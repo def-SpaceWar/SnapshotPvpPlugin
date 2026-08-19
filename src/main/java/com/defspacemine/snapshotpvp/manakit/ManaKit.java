@@ -1,20 +1,28 @@
 package com.defspacemine.snapshotpvp.manakit;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 
 public abstract class ManaKit {
+
     protected final String id;
     protected final String displayName;
     protected final String description;
     protected final int stars;
 
-    public ManaKit(String id, String displayName, String description, int stars) {
+    public ManaKit(
+        String id,
+        String displayName,
+        String description,
+        int stars
+    ) {
         this.id = id;
         this.displayName = displayName;
         this.description = description;
@@ -33,47 +41,37 @@ public abstract class ManaKit {
         return description;
     }
 
-    public void giveKit(Player p) {
-    }
+    public void giveKit(Player p) {}
 
-    public void resetKit(Player p) {
-    }
+    public void resetKit(Player p) {}
 
-    public void onCombatTick(Player p) {
-    }
+    public void onCombatTick(Player p) {}
 
-    public void onIdleTick(Player p) {
-    }
+    public void onIdleTick(Player p) {}
 
-    public void onDeath(Player p, PlayerDeathEvent e) {
-    }
+    public void onDeath(Player p, PlayerDeathEvent e) {}
 
-    public void onKill(Player p, PlayerDeathEvent e) {
-    }
+    public void onKill(Player p, PlayerDeathEvent e) {}
 
-    public void onEnterCombat(Player p) {
-    }
+    public void onEnterCombat(Player p) {}
 
-    public void onLeaveCombat(Player p) {
-    }
+    public void onLeaveCombat(Player p) {}
 
-    public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
-    }
+    public void onDamageInWorld(Player p, Player attacker, Entity victim, EntityDamageByEntityEvent e) {}
 
-    public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {
-    }
+    public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {}
 
-    public void onInteract(Player p, PlayerInteractEvent e) {
-    }
+    public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {}
 
-    public void onConsume(Player p, PlayerItemConsumeEvent e) {
-    }
+    public void onInteract(Player p, PlayerInteractEvent e) {}
 
-    public void onProjectileHit(Player p, ProjectileHitEvent e) {
-    }
+    public void onInteractEntity(Player p, PlayerInteractEntityEvent e) {}
 
-    public void onShootBow(Player p, EntityShootBowEvent e) {
-    }
+    public void onConsume(Player p, PlayerItemConsumeEvent e) {}
+
+    public void onProjectileHit(Player p, ProjectileHitEvent e) {}
+
+    public void onShootBow(Player p, EntityShootBowEvent e) {}
 
     // add more later
 }

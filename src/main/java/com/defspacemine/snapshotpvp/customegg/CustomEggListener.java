@@ -1,15 +1,31 @@
 package com.defspacemine.snapshotpvp.customegg;
 
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import com.defspacemine.snapshotpvp.WeatherManager;
+import com.defspacemine.snapshotpvp.custommob.EngineerDroid;
+import com.defspacemine.snapshotpvp.custommob.EngineerSentry;
+import com.defspacemine.snapshotpvp.custommob.FITHBomb1;
+import com.defspacemine.snapshotpvp.custommob.FITHBomb2;
+import com.defspacemine.snapshotpvp.custommob.FITHBomb3;
+import com.defspacemine.snapshotpvp.custommob.FITHNuke;
+import com.defspacemine.snapshotpvp.custommob.MercAutoBomb;
+import com.defspacemine.snapshotpvp.custommob.MercGoodShotBhaiya;
+import com.defspacemine.snapshotpvp.custommob.MercLauncher;
+import com.defspacemine.snapshotpvp.manakit.ICBM;
+import com.defspacemine.snapshotpvp.manakit.LightPaladin;
+import io.papermc.paper.event.entity.WardenAngerChangeEvent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Block;
@@ -17,7 +33,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
 import org.bukkit.entity.Arrow;
-import org.bukkit.entity.Blaze;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -25,15 +40,15 @@ import org.bukkit.entity.Firework;
 import org.bukkit.entity.LightningStrike;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
-import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
 import org.bukkit.entity.TippedArrow;
+import org.bukkit.entity.Warden;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityPotionEffectEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -45,32 +60,34 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import com.defspacemine.snapshotpvp.WeatherManager;
-import com.defspacemine.snapshotpvp.custommob.*;
-import com.defspacemine.snapshotpvp.manakit.ICBM;
-import com.defspacemine.snapshotpvp.manakit.LightPaladin;
-import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
-
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
-import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-
 public class CustomEggListener implements Listener {
-    public final static NamespacedKey CUSTOM_EGG = new NamespacedKey("defspacemine", "custom_egg");
-    public final static NamespacedKey OWNER = new NamespacedKey("defspacemine", "owner");
-    public final static NamespacedKey CUSTOM_DAMAGE = new NamespacedKey("defspacemine", "custom_damage");
 
-    public final static NamespacedKey RED_TERROR = new NamespacedKey("defspacemine", "red_terror");
-    public final static NamespacedKey BLINDING_LIGHT = new NamespacedKey("defspacemine", "blinding_light");
+    public static final NamespacedKey CUSTOM_EGG = new NamespacedKey(
+        "defspacemine",
+        "custom_egg"
+    );
+    public static final NamespacedKey OWNER = new NamespacedKey(
+        "defspacemine",
+        "owner"
+    );
+    public static final NamespacedKey CUSTOM_DAMAGE = new NamespacedKey(
+        "defspacemine",
+        "custom_damage"
+    );
+
+    public static final NamespacedKey RED_TERROR = new NamespacedKey(
+        "defspacemine",
+        "red_terror"
+    );
+    public static final NamespacedKey BLINDING_LIGHT = new NamespacedKey(
+        "defspacemine",
+        "blinding_light"
+    );
 
     private static final Map<String, CustomMob> registry = new HashMap<>();
 
@@ -101,22 +118,22 @@ public class CustomEggListener implements Listener {
     }
 
     public static Player getOwner(Entity entity) {
-        if (entity == null)
-            return null;
-        String uuid = entity.getPersistentDataContainer().get(OWNER, PersistentDataType.STRING);
+        if (entity == null) return null;
+        String uuid = entity
+            .getPersistentDataContainer()
+            .get(OWNER, PersistentDataType.STRING);
 
-        if (uuid == null)
-            return null;
+        if (uuid == null) return null;
         return Bukkit.getPlayer(UUID.fromString(uuid));
     }
 
     public static Player getOwner(ItemMeta meta) {
-        if (meta == null)
-            return null;
-        String uuid = meta.getPersistentDataContainer().get(OWNER, PersistentDataType.STRING);
+        if (meta == null) return null;
+        String uuid = meta
+            .getPersistentDataContainer()
+            .get(OWNER, PersistentDataType.STRING);
 
-        if (uuid == null)
-            return null;
+        if (uuid == null) return null;
         return Bukkit.getPlayer(UUID.fromString(uuid));
     }
 
@@ -140,42 +157,41 @@ public class CustomEggListener implements Listener {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent e) {
-        if (e.getClickedBlock() == null)
-            return;
+        if (e.getClickedBlock() == null) return;
 
-        if (!e.hasItem())
-            return;
+        if (!e.hasItem()) return;
 
         Action action = e.getAction();
-        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK)
-            return;
+        if (
+            action != Action.RIGHT_CLICK_AIR &&
+            action != Action.RIGHT_CLICK_BLOCK
+        ) return;
 
         ItemStack item = e.getItem();
-        if (item == null || !item.getType().toString().endsWith("_SPAWN_EGG"))
-            return;
+        if (
+            item == null || !item.getType().toString().endsWith("_SPAWN_EGG")
+        ) return;
 
         ItemMeta meta = item.getItemMeta();
-        if (meta == null)
-            return;
+        if (meta == null) return;
 
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        String id = pdc.get(CustomEggListener.CUSTOM_EGG, PersistentDataType.STRING);
-        if (id == null)
-            return;
+        String id = pdc.get(
+            CustomEggListener.CUSTOM_EGG,
+            PersistentDataType.STRING
+        );
+        if (id == null) return;
 
-        if (!exists(id))
-            return;
+        if (!exists(id)) return;
 
         Block clicked = e.getClickedBlock();
         BlockFace face = e.getBlockFace();
 
-        if (clicked == null || face == null)
-            return;
+        if (clicked == null || face == null) return;
 
         Block targetBlock = clicked.getRelative(face);
 
-        if (!targetBlock.isPassable())
-            return;
+        if (!targetBlock.isPassable()) return;
 
         e.setCancelled(true);
 
@@ -183,43 +199,57 @@ public class CustomEggListener implements Listener {
         CustomMob mob = get(id);
         mob.spawn(spawnLoc.add(0, 0.01, 0), pdc);
 
-        if (e.getPlayer().getGameMode() != GameMode.CREATIVE)
-            item.setAmount(item.getAmount() - 1);
+        if (e.getPlayer().getGameMode() != GameMode.CREATIVE) item.setAmount(
+            item.getAmount() - 1
+        );
     }
 
     @EventHandler
     public void onEntityDamage(EntityDamageByEntityEvent e) {
         {
             Entity causing = e.getDamageSource().getCausingEntity();
-            if (causing instanceof Player)
-                return;
+            if (causing instanceof Player) return;
         }
 
         DamageSource dmgSrc = e.getDamageSource();
         Entity entity = dmgSrc.getCausingEntity();
-        if (entity == null)
-            entity = e.getDamager();
+        if (entity == null) entity = e.getDamager();
         PersistentDataContainer pdc = entity.getPersistentDataContainer();
-        double damage = pdc.getOrDefault(CUSTOM_DAMAGE, PersistentDataType.FLOAT, (float) e.getDamage());
+        double damage = pdc.getOrDefault(
+            CUSTOM_DAMAGE,
+            PersistentDataType.FLOAT,
+            (float) e.getDamage()
+        );
         e.setDamage(damage);
 
         Player owner = getOwner(entity);
-        if (owner == null)
-            return;
+        if (owner == null) return;
 
-        Team ownerTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(owner.getName());
+        Team ownerTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(
+            owner.getName()
+        );
         if (entity instanceof Creeper creeper) {
             if (e.getEntity() instanceof LivingEntity victim) {
                 e.setCancelled(true);
-                applyExplosionKnockback(victim, creeper.getLocation(), creeper.getExplosionRadius(),
-                        creeper.isPowered());
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    if (victim.isValid() && !victim.isDead())
-                        victim.damage(damage, DamageSource.builder(DamageType.EXPLOSION)
+                applyExplosionKnockback(
+                    victim,
+                    creeper.getLocation(),
+                    creeper.getExplosionRadius(),
+                    creeper.isPowered()
+                );
+                Bukkit.getScheduler().runTaskLater(
+                    plugin,
+                    () -> {
+                        if (victim.isValid() && !victim.isDead()) victim.damage(
+                            damage,
+                            DamageSource.builder(DamageType.EXPLOSION)
                                 .withDirectEntity(creeper)
                                 .withCausingEntity(owner)
-                                .build());
-                }, 1L);
+                                .build()
+                        );
+                    },
+                    1L
+                );
             }
             return;
         }
@@ -228,25 +258,33 @@ public class CustomEggListener implements Listener {
             e.setCancelled(true);
 
             Entity damager = e.getDamager();
-            if (damager instanceof Arrow arrow)
-                arrow.remove();
-            if (damager instanceof TippedArrow arrow)
-                arrow.remove();
+            if (damager instanceof Arrow arrow) arrow.remove();
+            if (damager instanceof TippedArrow arrow) arrow.remove();
 
             final Entity direct = entity;
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if (victim.isValid() && !victim.isDead())
-                    victim.damage(damage, DamageSource.builder(dmgSrc.getDamageType())
+            Bukkit.getScheduler().runTaskLater(
+                plugin,
+                () -> {
+                    if (victim.isValid() && !victim.isDead()) victim.damage(
+                        damage,
+                        DamageSource.builder(dmgSrc.getDamageType())
                             .withDirectEntity(direct)
                             .withCausingEntity(owner)
-                            .build());
-            }, 1L);
+                            .build()
+                    );
+                },
+                1L
+            );
         }
     }
 
-    private void applyExplosionKnockback(Entity entity, Location explosion, float radius, boolean isPowered) {
-        if (isPowered)
-            radius *= 2;
+    private void applyExplosionKnockback(
+        Entity entity,
+        Location explosion,
+        float radius,
+        boolean isPowered
+    ) {
+        if (isPowered) radius *= 2;
         double exposure = getExplosionExposure(entity, explosion, 2);
 
         Location el = entity.getLocation();
@@ -255,39 +293,52 @@ public class CustomEggListener implements Listener {
         double dz = el.getZ() - explosion.getZ();
 
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (distance == 0)
-            return;
+        if (distance == 0) return;
 
         double nx = dx / distance;
         double ny = dy / distance;
         double nz = dz / distance;
 
         double distanceRatio = distance / radius;
-        if (distanceRatio > 1)
-            return;
+        if (distanceRatio > 1) return;
 
         double impact = (1 - distanceRatio) * exposure;
-        Vector knockback = new Vector(nx * impact, ny * impact + impact * 0.5, nz * impact);
+        Vector knockback = new Vector(
+            nx * impact,
+            ny * impact + impact * 0.5,
+            nz * impact
+        );
 
         if (entity instanceof LivingEntity le) {
             double expRes = 0.0;
-            if (le.getAttribute(Attribute.EXPLOSION_KNOCKBACK_RESISTANCE) != null)
-                expRes = le.getAttribute(Attribute.EXPLOSION_KNOCKBACK_RESISTANCE).getValue();
+            if (
+                le.getAttribute(Attribute.EXPLOSION_KNOCKBACK_RESISTANCE) !=
+                null
+            ) expRes = le
+                .getAttribute(Attribute.EXPLOSION_KNOCKBACK_RESISTANCE)
+                .getValue();
 
             double genRes = 0.0;
-            if (le.getAttribute(Attribute.KNOCKBACK_RESISTANCE) != null)
-                genRes = le.getAttribute(Attribute.KNOCKBACK_RESISTANCE).getValue();
+            if (
+                le.getAttribute(Attribute.KNOCKBACK_RESISTANCE) != null
+            ) genRes = le
+                .getAttribute(Attribute.KNOCKBACK_RESISTANCE)
+                .getValue();
 
             expRes = Math.max(0, Math.min(1, expRes));
             genRes = Math.max(0, Math.min(1, genRes));
-            double combinedRes = 1 - ((1 - expRes) * (1 - genRes));
+            double combinedRes = 1 - (1 - expRes) * (1 - genRes);
             knockback.multiply(1 - combinedRes);
         }
 
         entity.setVelocity(entity.getVelocity().add(knockback));
     }
 
-    private double getExplosionExposure(Entity entity, Location explosionLoc, int samplesPerAxis) {
+    private double getExplosionExposure(
+        Entity entity,
+        Location explosionLoc,
+        int samplesPerAxis
+    ) {
         BoundingBox box = entity.getBoundingBox();
 
         int unobstructed = 0;
@@ -301,61 +352,64 @@ public class CustomEggListener implements Listener {
 
         // iterate over a grid inside the bounding box
         for (int i = 0; i <= samplesPerAxis; i++) {
-            double x = box.getMinX() + dx * i / samplesPerAxis;
+            double x = box.getMinX() + (dx * i) / samplesPerAxis;
             for (int j = 0; j <= samplesPerAxis; j++) {
-                double y = box.getMinY() + dy * j / samplesPerAxis;
+                double y = box.getMinY() + (dy * j) / samplesPerAxis;
                 for (int k = 0; k <= samplesPerAxis; k++) {
-                    double z = box.getMinZ() + dz * k / samplesPerAxis;
-                    Vector dir = new Vector(x - explosionLoc.getX(),
-                            y - explosionLoc.getY(),
-                            z - explosionLoc.getZ());
+                    double z = box.getMinZ() + (dz * k) / samplesPerAxis;
+                    Vector dir = new Vector(
+                        x - explosionLoc.getX(),
+                        y - explosionLoc.getY(),
+                        z - explosionLoc.getZ()
+                    );
                     if (dir.isZero()) {
                         unobstructed++;
                         total++;
                         continue;
                     }
                     RayTraceResult result = world.rayTraceBlocks(
-                            explosionLoc,
-                            dir,
-                            dir.length(),
-                            FluidCollisionMode.NEVER);
-                    if (result == null)
-                        unobstructed++;
+                        explosionLoc,
+                        dir,
+                        dir.length(),
+                        FluidCollisionMode.NEVER
+                    );
+                    if (result == null) unobstructed++;
                     total++;
                 }
             }
         }
 
-        if (total == 0)
-            return 1.0; // fallback
+        if (total == 0) return 1.0; // fallback
         return (double) unobstructed / total;
     }
 
     @EventHandler
     public void onFireworkLaunch(EntitySpawnEvent e) {
-        if (!(e.getEntity() instanceof Firework firework))
-            return;
+        if (!(e.getEntity() instanceof Firework firework)) return;
 
         ItemStack item = firework.getItem();
-        if (item == null)
-            return;
+        if (item == null) return;
 
         ItemMeta meta = item.getItemMeta();
-        if (meta == null)
-            return;
+        if (meta == null) return;
 
-        if (meta.getPersistentDataContainer().has(RED_TERROR, PersistentDataType.INTEGER))
-            startRedTerrorTask(firework);
+        if (
+            meta
+                .getPersistentDataContainer()
+                .has(RED_TERROR, PersistentDataType.INTEGER)
+        ) startRedTerrorTask(firework);
 
-        if (meta.getPersistentDataContainer().has(BLINDING_LIGHT, PersistentDataType.INTEGER))
-            startBlindingLightTask(firework);
+        if (
+            meta
+                .getPersistentDataContainer()
+                .has(BLINDING_LIGHT, PersistentDataType.INTEGER)
+        ) startBlindingLightTask(firework);
     }
 
     private void startRedTerrorTask(Firework firework) {
-        firework.getPersistentDataContainer().set(
-                RED_TERROR,
-                PersistentDataType.INTEGER,
-                1);
+        firework
+            .getPersistentDataContainer()
+            .set(RED_TERROR, PersistentDataType.INTEGER, 1);
         Vector dir = firework.getVelocity();
         Player owner = (Player) firework.getShooter();
 
@@ -373,12 +427,17 @@ public class CustomEggListener implements Listener {
                 Location loc = firework.getLocation();
                 World world = loc.getWorld();
 
-                Creeper creeper = (Creeper) world.spawnEntity(loc, EntityType.CREEPER);
+                Creeper creeper = (Creeper) world.spawnEntity(
+                    loc,
+                    EntityType.CREEPER
+                );
                 injectOwner(creeper, owner);
 
-                creeper.customName(Component.text("Red Terror")
+                creeper.customName(
+                    Component.text("Red Terror")
                         .color(NamedTextColor.RED)
-                        .decorate(TextDecoration.BOLD));
+                        .decorate(TextDecoration.BOLD)
+                );
                 creeper.setFuseTicks(0);
                 creeper.setExplosionRadius((int) radius);
                 creeper.explode();
@@ -390,19 +449,19 @@ public class CustomEggListener implements Listener {
     }
 
     private void startBlindingLightTask(Firework firework) {
-        firework.getPersistentDataContainer().set(
-                BLINDING_LIGHT,
-                PersistentDataType.INTEGER,
-                1);
+        firework
+            .getPersistentDataContainer()
+            .set(BLINDING_LIGHT, PersistentDataType.INTEGER, 1);
         Player owner = (Player) firework.getShooter();
 
         new BukkitRunnable() {
             @Override
             public void run() {
                 WeatherManager.instance.queueWeather(
-                        owner.getWorld(),
-                        WeatherManager.WeatherType.STORM,
-                        200L);
+                    owner.getWorld(),
+                    WeatherManager.WeatherType.STORM,
+                    200L
+                );
             }
         }.runTaskLater(plugin, 40L);
 
@@ -418,43 +477,57 @@ public class CustomEggListener implements Listener {
                 World world = loc.getWorld();
                 world.strikeLightningEffect(loc);
 
-                if (!(firework.getShooter() instanceof Player p))
-                    return;
-                Team pTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(p.getName());
+                if (!(firework.getShooter() instanceof Player p)) return;
+                Team pTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(
+                    p.getName()
+                );
 
-                for (Entity target : world.getNearbyEntities(loc, LightPaladin.BLINDING_LIGHT_RADIUS,
-                        LightPaladin.BLINDING_LIGHT_RADIUS, LightPaladin.BLINDING_LIGHT_RADIUS)) {
-                    if (target.equals(p) || target instanceof LightningStrike)
-                        continue;
+                for (Entity target : world.getNearbyEntities(
+                    loc,
+                    LightPaladin.BLINDING_LIGHT_RADIUS,
+                    LightPaladin.BLINDING_LIGHT_RADIUS,
+                    LightPaladin.BLINDING_LIGHT_RADIUS
+                )) {
+                    if (
+                        target.equals(p) || target instanceof LightningStrike
+                    ) continue;
 
                     Team targetTeam = SnapshotPvpPlugin.getTeamG(target);
-                    if (pTeam != null && pTeam.equals(targetTeam))
-                        continue;
+                    if (pTeam != null && pTeam.equals(targetTeam)) continue;
 
                     SnapshotPvpPlugin.strikeLightning(target, owner);
 
                     if (target instanceof LivingEntity e) {
-                        e.addPotionEffect(new PotionEffect(
+                        e.addPotionEffect(
+                            new PotionEffect(
                                 PotionEffectType.GLOWING,
                                 100,
                                 0,
                                 false,
                                 true,
-                                true));
-                        e.addPotionEffect(new PotionEffect(
+                                true
+                            )
+                        );
+                        e.addPotionEffect(
+                            new PotionEffect(
                                 PotionEffectType.BLINDNESS,
                                 100,
                                 0,
                                 false,
                                 true,
-                                true));
-                        e.addPotionEffect(new PotionEffect(
+                                true
+                            )
+                        );
+                        e.addPotionEffect(
+                            new PotionEffect(
                                 PotionEffectType.LEVITATION,
                                 20,
                                 6,
                                 false,
                                 true,
-                                true));
+                                true
+                            )
+                        );
                     }
                 }
             }
@@ -462,79 +535,166 @@ public class CustomEggListener implements Listener {
     }
 
     public void startGlobalAggroTask() {
-        Bukkit.getScheduler().runTaskTimer(plugin, task -> {
-            for (World world : Bukkit.getWorlds()) {
-                for (Mob mob : world.getEntitiesByClass(Mob.class)) {
-                    if (!mob.isValid() || mob.isDead())
-                        continue;
+        Bukkit.getScheduler().runTaskTimer(
+            plugin,
+            task -> {
+                for (World world : Bukkit.getWorlds()) {
+                    for (Mob mob : world.getEntitiesByClass(Mob.class)) {
+                        if (
+                            !mob.isValid() ||
+                            mob.isDead() ||
+                            mob instanceof Warden
+                        ) continue;
 
-                    Team mobTeam = SnapshotPvpPlugin.getTeamE(mob);
-                    if (mobTeam == null)
-                        continue;
+                        Team mobTeam = SnapshotPvpPlugin.getTeamE(mob);
+                        if (mobTeam == null) continue;
 
-                    double range = 16;
-                    LivingEntity closestEnemy = null;
-                    double closestDistance = Double.MAX_VALUE;
-                    for (Entity nearby : mob.getNearbyEntities(range, range, range)) {
-                        if (!(nearby instanceof LivingEntity target) || target.isDead() || target == mob)
-                            continue;
+                        double range = 16;
+                        LivingEntity closestEnemy = null;
+                        double closestDistance = Double.MAX_VALUE;
+                        for (Entity nearby : mob.getNearbyEntities(
+                            range,
+                            range,
+                            range
+                        )) {
+                            if (
+                                !(nearby instanceof LivingEntity target) ||
+                                target.isDead() ||
+                                target == mob
+                            ) continue;
 
-                        Team targetTeam = SnapshotPvpPlugin.getTeamG(target);
-                        if (targetTeam == null || targetTeam.equals(mobTeam))
-                            continue;
+                            Team targetTeam = SnapshotPvpPlugin.getTeamG(
+                                target
+                            );
+                            if (
+                                targetTeam == null || targetTeam.equals(mobTeam)
+                            ) continue;
 
-                        double distance = mob.getLocation().distanceSquared(target.getLocation());
-                        if (distance < closestDistance) {
-                            closestDistance = distance;
-                            closestEnemy = target;
+                            double distance = mob
+                                .getLocation()
+                                .distanceSquared(target.getLocation());
+                            if (distance < closestDistance) {
+                                closestDistance = distance;
+                                closestEnemy = target;
+                            }
+                        }
+
+                        LivingEntity currentTarget = mob.getTarget();
+                        if (closestEnemy != null) {
+                            if (
+                                currentTarget == null ||
+                                !currentTarget.equals(closestEnemy)
+                            ) mob.setTarget(closestEnemy);
+                        } else if (currentTarget != null) {
+                            Team currentTargetTeam = SnapshotPvpPlugin.getTeamG(
+                                currentTarget
+                            );
+                            if (
+                                currentTarget.isDead() ||
+                                !currentTarget.isValid() ||
+                                (currentTargetTeam != null &&
+                                    currentTargetTeam.equals(mobTeam))
+                            ) mob.setTarget(null);
                         }
                     }
-
-                    LivingEntity currentTarget = mob.getTarget();
-                    if (closestEnemy != null) {
-                        if (currentTarget == null || !currentTarget.equals(closestEnemy))
-                            mob.setTarget(closestEnemy);
-                    } else if (currentTarget != null) {
-                        Team currentTargetTeam = SnapshotPvpPlugin.getTeamG(currentTarget);
-                        if (currentTarget.isDead() || !currentTarget.isValid()
-                                || (currentTargetTeam != null && currentTargetTeam.equals(mobTeam)))
-                            mob.setTarget(null);
-                    }
                 }
+            },
+            0L,
+            10L
+        );
+    }
+
+    @EventHandler
+    public void onWardenAnger(WardenAngerChangeEvent event) {
+        Warden warden = event.getEntity();
+        Entity target = event.getTarget();
+        if (target == null) return;
+
+        Team wardenTeam = SnapshotPvpPlugin.getTeamE(warden);
+        Team targetTeam = SnapshotPvpPlugin.getTeamG(target);
+
+        if (wardenTeam == null || !wardenTeam.equals(targetTeam)) return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onWardenDarkness(EntityPotionEffectEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity victim)) return;
+
+        PotionEffect newEffect = event.getNewEffect();
+        if (
+            newEffect == null ||
+            !newEffect.getType().equals(PotionEffectType.DARKNESS)
+        ) return;
+
+        if (event.getCause() != EntityPotionEffectEvent.Cause.WARDEN) return;
+
+        Team victimTeam = SnapshotPvpPlugin.getTeamG(victim);
+        if (victimTeam == null) return;
+
+        boolean hasEnemyWardenNearby = false;
+        for (Warden warden : victim
+            .getWorld()
+            .getNearbyEntitiesByType(
+                Warden.class,
+                victim.getLocation(),
+                20.0
+            )) {
+            Team wardenTeam = SnapshotPvpPlugin.getTeamE(warden);
+            if (wardenTeam != null && !wardenTeam.equals(victimTeam)) {
+                hasEnemyWardenNearby = true;
+                break;
             }
-        }, 0L, 10L);
+        }
+
+        if (hasEnemyWardenNearby) return;
+        event.setCancelled(true);
     }
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         Component currentMsg = event.deathMessage();
-        if (currentMsg == null)
-            return;
+        if (currentMsg == null) return;
 
-        String rawText = PlainTextComponentSerializer.plainText().serialize(currentMsg);
+        String rawText = PlainTextComponentSerializer.plainText().serialize(
+            currentMsg
+        );
         if (rawText.equals("death.attack.explosion.item")) {
             Player victim = event.getEntity();
             EntityDamageEvent lastDamage = victim.getLastDamageCause();
 
-            if (lastDamage instanceof EntityDamageByEntityEvent damageEvent)
-                if (damageEvent.getDamager() instanceof Creeper creeper) {
-                    Player owner = getOwner(creeper);
-                    if (owner == null)
-                        return;
+            if (
+                lastDamage instanceof EntityDamageByEntityEvent damageEvent
+            ) if (damageEvent.getDamager() instanceof Creeper creeper) {
+                Player owner = getOwner(creeper);
+                if (owner == null) return;
 
-                    ItemStack item = owner.getItemInHand();
-                    Component customMsg = Component.text()
-                            .append(victim.displayName().hoverEvent(victim.asHoverEvent())
-                                    .color(SnapshotPvpPlugin.getTeamColor(victim)))
-                            .append(Component.text(" was blown up by ", NamedTextColor.WHITE))
-                            .append(owner.displayName().hoverEvent(owner.asHoverEvent())
-                                    .color(SnapshotPvpPlugin.getTeamColor(owner)))
-                            .append(Component.text(" using ", NamedTextColor.WHITE))
-                            .append(item.displayName().hoverEvent(item.asHoverEvent()))
-                            .build();
+                ItemStack item = owner.getItemInHand();
+                Component customMsg = Component.text()
+                    .append(
+                        victim
+                            .displayName()
+                            .hoverEvent(victim.asHoverEvent())
+                            .color(SnapshotPvpPlugin.getTeamColor(victim))
+                    )
+                    .append(
+                        Component.text(
+                            " was blown up by ",
+                            NamedTextColor.WHITE
+                        )
+                    )
+                    .append(
+                        owner
+                            .displayName()
+                            .hoverEvent(owner.asHoverEvent())
+                            .color(SnapshotPvpPlugin.getTeamColor(owner))
+                    )
+                    .append(Component.text(" using ", NamedTextColor.WHITE))
+                    .append(item.displayName().hoverEvent(item.asHoverEvent()))
+                    .build();
 
-                    event.deathMessage(customMsg);
-                }
+                event.deathMessage(customMsg);
+            }
         }
     }
 }

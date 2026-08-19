@@ -71,6 +71,7 @@ public class Juggernaut extends ManaKit {
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
+        if (p.isDead()) return;
         p.addPotionEffect(new PotionEffect(PotionEffectType.HEALTH_BOOST, -1, 1));
         p.setHealth(28);
     }

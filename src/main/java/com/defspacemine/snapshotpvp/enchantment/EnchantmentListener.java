@@ -63,6 +63,7 @@ public class EnchantmentListener implements Listener {
     public static Enchantment DASHING;
     public static Enchantment LIFE_FEAST;
     public static Enchantment FREEZING_ASPECT;
+    public static Enchantment LIFE_STEAL;
 
     private final JavaPlugin plugin;
 
@@ -85,6 +86,7 @@ public class EnchantmentListener implements Listener {
         DASHING = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "dashing"));
         LIFE_FEAST = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "life_feast"));
         FREEZING_ASPECT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "freezing_aspect"));
+        LIFE_STEAL = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "life_steal"));
     }
 
     @EventHandler
@@ -281,6 +283,11 @@ public class EnchantmentListener implements Listener {
                     new PotionEffect(PotionEffectType.SATURATION, level * 20, 1));
             player.addPotionEffect(
                     new PotionEffect(PotionEffectType.REGENERATION, 20 * (int) Math.pow(2, level - 1), 3));
+        }
+
+        if (weapon.containsEnchantment(LIFE_STEAL) && !player.isDead()) {
+            int level = weapon.getEnchantmentLevel(LIFE_STEAL);
+            player.heal(e.getFinalDamage() * level);
         }
 
         if (weapon.containsEnchantment(HEAVY_HIT_CURSE)) {
