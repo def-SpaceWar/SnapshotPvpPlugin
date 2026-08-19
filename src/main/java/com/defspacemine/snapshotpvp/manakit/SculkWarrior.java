@@ -52,6 +52,8 @@ public class SculkWarrior extends ManaKit {
     final NamespacedKey sonicBoomShardCounter = ManaKitListener.MANA_KIT_DATA0;
     final NamespacedKey isChargingKey = ManaKitListener.MANA_KIT_DATABOOL0;
     final NamespacedKey sculkWardenUUID = ManaKitListener.MANA_KIT_DATASTR0;
+    final int shriekerRestock = 3; // 3 kills = warden
+    final NamespacedKey shriekerRestockCounter = ManaKitListener.MANA_KIT_DATA1;
 
     public SculkWarrior() {
         super("sculk_warrior", "Sculk Warrior", "[Melee Assassin]", 0);
@@ -77,6 +79,7 @@ public class SculkWarrior extends ManaKit {
         pdc.set(sonicBoomShardCounter, PersistentDataType.INTEGER, 0);
         pdc.set(isChargingKey, PersistentDataType.BOOLEAN, false);
         pdc.set(sculkWardenUUID, PersistentDataType.STRING, "");
+        pdc.set(shriekerRestockCounter, PersistentDataType.INTEGER, 0);
     }
 
     @Override
@@ -85,6 +88,7 @@ public class SculkWarrior extends ManaKit {
         pdc.set(sonicBoomShardCounter, PersistentDataType.INTEGER, 0);
         pdc.set(isChargingKey, PersistentDataType.BOOLEAN, false);
         pdc.set(sculkWardenUUID, PersistentDataType.STRING, "");
+        pdc.set(shriekerRestockCounter, PersistentDataType.INTEGER, 0);
     }
 
     @Override
@@ -114,6 +118,11 @@ public class SculkWarrior extends ManaKit {
             PersistentDataType.INTEGER,
             0
         );
+        int shriekerRestockC = pdc.getOrDefault(
+            shriekerRestockCounter,
+            PersistentDataType.INTEGER,
+            0
+        );
 
         p.sendActionBar(
             ChatColor.DARK_AQUA +
@@ -122,6 +131,14 @@ public class SculkWarrior extends ManaKit {
                 Math.min(sonicBoomShardC, sonicBoomShard) +
                 "/" +
                 sonicBoomShard +
+                ChatColor.GRAY +
+                "  |  " +
+                ChatColor.YELLOW +
+                "Shrieker: " +
+                ChatColor.WHITE +
+                shriekerRestockC +
+                "/" +
+                shriekerRestock +
                 ChatColor.GRAY +
                 "  |  " +
                 ChatColor.RED +
@@ -141,11 +158,26 @@ public class SculkWarrior extends ManaKit {
             new PotionEffect(PotionEffectType.STRENGTH, 40, 1)
         );
 
+        PlayerInventory inv = p.getInventory();
         if (sonicBoomShardC >= sonicBoomShard) {
-            pdc.set(sonicBoomShardCounter, PersistentDataType.INTEGER, sonicBoomShardC - sonicBoomShard);
-            if (countEchoShards(p) < MAX_ECHO_SHARDS) p.getInventory().addItem(
+            pdc.set(
+                sonicBoomShardCounter,
+                PersistentDataType.INTEGER,
+                sonicBoomShardC - sonicBoomShard
+            );
+            if (countEchoShards(p) < MAX_ECHO_SHARDS) inv.addItem(
                 getEchoShard()
             );
+        }
+
+        if (shriekerRestockC >= shriekerRestock) {
+            pdc.set(
+                shriekerRestockCounter,
+                PersistentDataType.INTEGER,
+                shriekerRestockC - shriekerRestock
+            );
+            SnapshotPvpPlugin.clearInv(inv, Material.SCULK_SHRIEKER);
+            inv.addItem(getSculkShrieker());
         }
     }
 
@@ -278,9 +310,16 @@ public class SculkWarrior extends ManaKit {
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.SCULK_SHRIEKER);
-        inv.addItem(getSculkShrieker());
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        int shriekerRestockC = pdc.get(
+            shriekerRestockCounter,
+            PersistentDataType.INTEGER
+        );
+        pdc.set(
+            shriekerRestockCounter,
+            PersistentDataType.INTEGER,
+            shriekerRestockC + 1
+        );
     }
 
     private void spawnWarden(Player owner, Location loc) {
@@ -432,24 +471,45 @@ public class SculkWarrior extends ManaKit {
         eyeLoc.setPitch(pitch);
         Vector direction = eyeLoc.getDirection().normalize();
 
-        player.getWorld().playSound(eyeLoc, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.2f, 1.0f);
+        player
+            .getWorld()
+            .playSound(eyeLoc, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.2f, 1.0f);
 
         for (double d = 0; d < SONIC_BOOM_RANGE; d += 0.5) {
             Location point = eyeLoc.clone().add(direction.clone().multiply(d));
-            player.getWorld().spawnParticle(Particle.SONIC_BOOM, point, 1, 0, 0, 0, 0);
+            player
+                .getWorld()
+                .spawnParticle(Particle.SONIC_BOOM, point, 1, 0, 0, 0, 0);
         }
 
-        Location midPoint = eyeLoc.clone().add(direction.clone().multiply(SONIC_BOOM_RANGE / 2.0));
-        double searchRadius = (SONIC_BOOM_RANGE / 2.0) + 2.0;
+        Location midPoint = eyeLoc
+            .clone()
+            .add(direction.clone().multiply(SONIC_BOOM_RANGE / 2.0));
+        double searchRadius = SONIC_BOOM_RANGE / 2.0 + 2.0;
         Team userTeam = SnapshotPvpPlugin.getTeam(player);
         Vector startVec = eyeLoc.toVector();
 
-        for (Entity entity : player.getWorld().getNearbyEntities(midPoint, searchRadius, searchRadius, searchRadius)) {
-            if (!(entity instanceof LivingEntity target) || entity.equals(player)) {
+        for (Entity entity : player
+            .getWorld()
+            .getNearbyEntities(
+                midPoint,
+                searchRadius,
+                searchRadius,
+                searchRadius
+            )) {
+            if (
+                !(entity instanceof LivingEntity target) ||
+                entity.equals(player)
+            ) {
                 continue;
             }
 
-            if (target.getBoundingBox().expand(0.5).rayTrace(startVec, direction, SONIC_BOOM_RANGE) != null) {
+            if (
+                target
+                    .getBoundingBox()
+                    .expand(0.5)
+                    .rayTrace(startVec, direction, SONIC_BOOM_RANGE) != null
+            ) {
                 Team targetTeam = SnapshotPvpPlugin.getTeamE(target);
 
                 if (userTeam == null || !userTeam.equals(targetTeam)) {
@@ -461,7 +521,10 @@ public class SculkWarrior extends ManaKit {
                             .build()
                     );
 
-                    Vector knockback = direction.clone().multiply(1.25).setY(0.4);
+                    Vector knockback = direction
+                        .clone()
+                        .multiply(1.25)
+                        .setY(0.4);
                     target.setVelocity(target.getVelocity().add(knockback));
                 }
             }

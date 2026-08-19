@@ -223,6 +223,8 @@ public final class ManaKitListener implements Listener {
         registerKit(new Jockey());
         registerKit(new SculkWarrior());
         registerKit(new HellboundRonin());
+        registerKit(new Deadeye());
+        registerKit(new BuckshotViking());
 
         manakitGameLoop();
         startGlobalScoreboardTask();

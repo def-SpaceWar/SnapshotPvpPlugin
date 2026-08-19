@@ -17,6 +17,7 @@ import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -26,6 +27,10 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ArmorMeta;
+import org.bukkit.inventory.meta.trim.ArmorTrim;
+import org.bukkit.inventory.meta.trim.TrimMaterial;
+import org.bukkit.inventory.meta.trim.TrimPattern;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -48,12 +53,18 @@ public class Voodoo extends ManaKit {
         ManaKitListener.MANA_KIT_DATA0;
     private final NamespacedKey isSelfBoundKey =
         ManaKitListener.MANA_KIT_DATABOOL0;
-
     private final NamespacedKey dollOwnerKey =
         ManaKitListener.MANA_KIT_DATASTR0;
 
+    private ItemStack dollChestplate;
+
     public Voodoo() {
         super("voodoo", "Voodoo", "[Melee Damage]", 2);
+
+        dollChestplate = new ItemStack(Material.GOLDEN_CHESTPLATE);
+        ArmorMeta meta = (ArmorMeta) dollChestplate.getItemMeta();
+        meta.setTrim(new ArmorTrim(TrimMaterial.AMETHYST, TrimPattern.SILENCE));
+        meta.addEnchant(Enchantment.BINDING_CURSE, 1, false);
     }
 
     @Override
@@ -227,7 +238,11 @@ public class Voodoo extends ManaKit {
             }
         }
 
-        if (victim instanceof Player hitPlayer && !hitPlayer.equals(p) && e.getDamageSource().getDamageType() != DamageType.INDIRECT_MAGIC) {
+        if (
+            victim instanceof Player hitPlayer &&
+            !hitPlayer.equals(p) &&
+            e.getDamageSource().getDamageType() != DamageType.INDIRECT_MAGIC
+        ) {
             PersistentDataContainer pdc = p.getPersistentDataContainer();
             String currentPotentialUUID = pdc.getOrDefault(
                 potentialTargetUUID,
@@ -515,9 +530,7 @@ public class Voodoo extends ManaKit {
             ResolvableProfile.resolvableProfile().name(target.getName()).build()
         );
         if (doll.getEquipment() != null) {
-            doll.getEquipment().setChestplate(
-                new ItemStack(Material.GOLDEN_CHESTPLATE)
-            );
+            doll.getEquipment().setChestplate(dollChestplate);
         }
 
         if (doll.getAttribute(Attribute.MAX_HEALTH) != null) {

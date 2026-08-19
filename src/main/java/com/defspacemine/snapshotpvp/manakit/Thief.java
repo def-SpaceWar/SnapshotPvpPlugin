@@ -1,5 +1,6 @@
 package com.defspacemine.snapshotpvp.manakit;
 
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.GameMode;
@@ -14,6 +15,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -21,9 +23,8 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Team;
 
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-
 public class Thief extends ManaKit {
+
     final double CLOSE_RADIUS = 1;
 
     final int ammoRestock = 8; // 8 attacks for 3 ammo (it resets itself)
@@ -41,24 +42,35 @@ public class Thief extends ManaKit {
     public Thief() {
         super("thief", "Thief", "[Melee Assassin]", 3);
 
-        ammo = new ItemStack(Material.TIPPED_ARROW, 3);
-        ammo.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
-        PotionMeta meta = (PotionMeta) ammo.getItemMeta();
+        {
+            ammo = new ItemStack(Material.TIPPED_ARROW, 3);
+            ammo.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
+            PotionMeta meta = (PotionMeta) ammo.getItemMeta();
 
-        meta.setDisplayName(ChatColor.GOLD + "Ammo");
-        meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
-        meta.setColor(Color.fromRGB(0xFFCC44));
-        meta.addCustomEffect(new PotionEffect(
-                PotionEffectType.SLOWNESS,
-                1600,
-                5,
-                false,
-                true,
-                true), true);
-        ammo.setItemMeta(meta);
+            meta.setDisplayName(ChatColor.GOLD + "Ammo");
+            meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
+            meta.setColor(Color.fromRGB(0xFFCC44));
+            meta.addCustomEffect(
+                new PotionEffect(
+                    PotionEffectType.SLOWNESS,
+                    1600,
+                    5,
+                    false,
+                    true,
+                    true
+                ),
+                true
+            );
+            ammo.setItemMeta(meta);
+        }
 
-        smokeBomb = new ItemStack(Material.CHORUS_FRUIT, 1);
-        smokeBomb.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
+        {
+            smokeBomb = new ItemStack(Material.CHORUS_FRUIT, 1);
+            ItemMeta meta = smokeBomb.getItemMeta();
+            meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
+            meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Smoke Bomb");
+            smokeBomb.setItemMeta(meta);
+        }
 
         enderPearl = new ItemStack(Material.ENDER_PEARL, 1);
         enderPearl.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
@@ -68,7 +80,13 @@ public class Thief extends ManaKit {
     public void giveKit(Player p) {
         resetKit(p);
 
-		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -187, 1, -185);
+        ManaKitListener.giveItemsFromShulker(
+            p,
+            "goopshotpeshvp",
+            -187,
+            1,
+            -185
+        );
     }
 
     @Override
@@ -83,50 +101,107 @@ public class Thief extends ManaKit {
     public void onCombatTick(Player p) {
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        int ammoRestockC = pdc.get(ammoRestockCounter, PersistentDataType.INTEGER);
-        int smokeRestockC = pdc.get(smokeRestockCounter, PersistentDataType.INTEGER);
-        int pearlRestockC = pdc.get(pearlRestockCounter, PersistentDataType.INTEGER);
+        int ammoRestockC = pdc.get(
+            ammoRestockCounter,
+            PersistentDataType.INTEGER
+        );
+        int smokeRestockC = pdc.get(
+            smokeRestockCounter,
+            PersistentDataType.INTEGER
+        );
+        int pearlRestockC = pdc.get(
+            pearlRestockCounter,
+            PersistentDataType.INTEGER
+        );
 
-        String displayMessage = ChatColor.GOLD + "Ammo Restock: " + ChatColor.WHITE + ammoRestockC + "/" + ammoRestock
-                + ChatColor.GRAY + " | "
-                + ChatColor.DARK_AQUA + "Pearl Restock: " + ChatColor.WHITE + pearlRestockC + "/" + pearlRestock
-                + ChatColor.GRAY + " | "
-                + ChatColor.RED + "Killstreak: " + ChatColor.WHITE + killstreak + "/4";
+        String displayMessage =
+            ChatColor.GOLD +
+            "Ammo Restock: " +
+            ChatColor.WHITE +
+            ammoRestockC +
+            "/" +
+            ammoRestock +
+            ChatColor.GRAY +
+            " | " +
+            ChatColor.DARK_AQUA +
+            "Pearl Restock: " +
+            ChatColor.WHITE +
+            pearlRestockC +
+            "/" +
+            pearlRestock +
+            ChatColor.GRAY +
+            " | " +
+            ChatColor.RED +
+            "Killstreak: " +
+            ChatColor.WHITE +
+            killstreak +
+            "/4";
 
         PlayerInventory inv = p.getInventory();
-        if (p.getHealth() >= 12)
-            pdc.set(smokeRestockCounter, PersistentDataType.INTEGER, 0);
-        if (inv.contains(Material.CHORUS_FRUIT) ||
-                inv.getItemInOffHand().getType() == Material.CHORUS_FRUIT) {
-            displayMessage = ChatColor.LIGHT_PURPLE + "Smoke Bomb!"
-                    + ChatColor.GRAY + " | " + displayMessage;
+        if (p.getHealth() >= 12) pdc.set(
+            smokeRestockCounter,
+            PersistentDataType.INTEGER,
+            0
+        );
+        if (
+            inv.contains(Material.CHORUS_FRUIT) ||
+            inv.getItemInOffHand().getType() == Material.CHORUS_FRUIT
+        ) {
+            displayMessage =
+                ChatColor.LIGHT_PURPLE +
+                "Smoke Bomb!" +
+                ChatColor.GRAY +
+                " | " +
+                displayMessage;
         } else if (p.getHealth() < 12) {
-            displayMessage = ChatColor.DARK_PURPLE + "Smoke Bomb: " + ChatColor.WHITE + smokeRestockC + "/"
-                    + smokeRestock
-                    + ChatColor.GRAY + " | " + displayMessage;
+            displayMessage =
+                ChatColor.DARK_PURPLE +
+                "Smoke Bomb: " +
+                ChatColor.WHITE +
+                smokeRestockC +
+                "/" +
+                smokeRestock +
+                ChatColor.GRAY +
+                " | " +
+                displayMessage;
         }
 
         p.sendActionBar(displayMessage);
 
-        if (killstreak == 1)
-            p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 0));
+        if (killstreak == 1) p.addPotionEffect(
+            new PotionEffect(PotionEffectType.SPEED, 100, 0)
+        );
         else if (killstreak == 2) {
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 0));
-            p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 100, 0));
+            p.addPotionEffect(
+                new PotionEffect(PotionEffectType.INVISIBILITY, 100, 0)
+            );
         } else if (killstreak >= 3) {
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 1));
-            p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 100, 0));
+            p.addPotionEffect(
+                new PotionEffect(PotionEffectType.INVISIBILITY, 100, 0)
+            );
         }
 
-        if (killstreak >= 4)
-            pdc.set(pearlRestockCounter, PersistentDataType.INTEGER, pearlRestockC + 2);
-        else
-            pdc.set(pearlRestockCounter, PersistentDataType.INTEGER, pearlRestockC + 1);
+        if (killstreak >= 4) pdc.set(
+            pearlRestockCounter,
+            PersistentDataType.INTEGER,
+            pearlRestockC + 2
+        );
+        else pdc.set(
+            pearlRestockCounter,
+            PersistentDataType.INTEGER,
+            pearlRestockC + 1
+        );
 
         if (ammoRestockC >= ammoRestock) {
             SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
             p.getInventory().addItem(ammo);
-            pdc.set(ammoRestockCounter, PersistentDataType.INTEGER, ammoRestockC - ammoRestock);
+            pdc.set(
+                ammoRestockCounter,
+                PersistentDataType.INTEGER,
+                ammoRestockC - ammoRestock
+            );
         }
 
         if (smokeRestockC >= smokeRestock) {
@@ -143,8 +218,9 @@ public class Thief extends ManaKit {
 
         Location loc = p.getLocation();
         for (Player _p : p.getWorld().getNearbyPlayers(loc, CLOSE_RADIUS))
-            if (!_p.equals(p))
-                p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 5, 1));
+            if (!_p.equals(p)) p.addPotionEffect(
+                new PotionEffect(PotionEffectType.STRENGTH, 5, 1)
+            );
     }
 
     @Override
@@ -167,38 +243,52 @@ public class Thief extends ManaKit {
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
         if (e.getEntity() instanceof Player) {
-            int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
+            int killstreak = SnapshotPvpPlugin.getPlayerScore(
+                p,
+                "dummyKillstreak"
+            );
             PersistentDataContainer pdc = p.getPersistentDataContainer();
 
-            if (killstreak >= 4)
-                pdc.set(ammoRestockCounter, PersistentDataType.INTEGER,
-                        pdc.get(ammoRestockCounter, PersistentDataType.INTEGER) + 2);
-            else
-                pdc.set(ammoRestockCounter, PersistentDataType.INTEGER,
-                        pdc.get(ammoRestockCounter, PersistentDataType.INTEGER) + 1);
+            if (killstreak >= 4) pdc.set(
+                ammoRestockCounter,
+                PersistentDataType.INTEGER,
+                pdc.get(ammoRestockCounter, PersistentDataType.INTEGER) + 2
+            );
+            else pdc.set(
+                ammoRestockCounter,
+                PersistentDataType.INTEGER,
+                pdc.get(ammoRestockCounter, PersistentDataType.INTEGER) + 1
+            );
         }
     }
 
     @Override
     public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {
-        if (p.getHealth() >= 12)
-            return;
+        if (p.getHealth() >= 12) return;
 
         PlayerInventory inv = p.getInventory();
-        if (inv.contains(Material.CHORUS_FRUIT) ||
-                inv.getItemInOffHand().getType() == Material.CHORUS_FRUIT)
-            return;
+        if (
+            inv.contains(Material.CHORUS_FRUIT) ||
+            inv.getItemInOffHand().getType() == Material.CHORUS_FRUIT
+        ) return;
 
         if (e.getDamageSource().getCausingEntity() instanceof Player) {
-            int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
+            int killstreak = SnapshotPvpPlugin.getPlayerScore(
+                p,
+                "dummyKillstreak"
+            );
             PersistentDataContainer pdc = p.getPersistentDataContainer();
 
-            if (killstreak >= 4)
-                pdc.set(ammoRestockCounter, PersistentDataType.INTEGER,
-                        pdc.get(ammoRestockCounter, PersistentDataType.INTEGER) + 2);
-            else
-                pdc.set(smokeRestockCounter, PersistentDataType.INTEGER,
-                        pdc.get(smokeRestockCounter, PersistentDataType.INTEGER) + 1);
+            if (killstreak >= 4) pdc.set(
+                ammoRestockCounter,
+                PersistentDataType.INTEGER,
+                pdc.get(ammoRestockCounter, PersistentDataType.INTEGER) + 2
+            );
+            else pdc.set(
+                smokeRestockCounter,
+                PersistentDataType.INTEGER,
+                pdc.get(smokeRestockCounter, PersistentDataType.INTEGER) + 1
+            );
         }
     }
 
@@ -212,45 +302,50 @@ public class Thief extends ManaKit {
     public void onConsume(Player p, PlayerItemConsumeEvent e) {
         {
             ItemStack item = e.getItem();
-            if (item.getType() != Material.CHORUS_FRUIT)
-                return;
+            if (item.getType() != Material.CHORUS_FRUIT) return;
         }
 
         p.setHealth(20);
-        p.addPotionEffect(new PotionEffect(
-                PotionEffectType.SPEED,
-                160,
-                2,
-                false,
-                false,
-                true));
-        p.addPotionEffect(new PotionEffect(
-                PotionEffectType.HASTE,
-                160,
-                2,
-                false,
-                false,
-                true));
+        p.addPotionEffect(
+            new PotionEffect(PotionEffectType.SPEED, 160, 2, false, false, true)
+        );
+        p.addPotionEffect(
+            new PotionEffect(PotionEffectType.HASTE, 160, 2, false, false, true)
+        );
 
         Team eaterTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(p.getName());
-        for (Player target : p.getWorld().getNearbyPlayers(p.getLocation(), smokeBombRadius)) {
-            if (target.equals(p) || target.getGameMode() != GameMode.ADVENTURE)
-                continue;
+        for (Player target : p
+            .getWorld()
+            .getNearbyPlayers(p.getLocation(), smokeBombRadius)) {
+            if (
+                target.equals(p) || target.getGameMode() != GameMode.ADVENTURE
+            ) continue;
 
-            Team targetTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(target.getName());
-            if (eaterTeam != null && eaterTeam.equals(targetTeam))
-                continue;
+            Team targetTeam = SnapshotPvpPlugin.scoreboard.getEntryTeam(
+                target.getName()
+            );
+            if (eaterTeam != null && eaterTeam.equals(targetTeam)) continue;
 
-            target.addPotionEffect(new PotionEffect(
+            target.addPotionEffect(
+                new PotionEffect(
                     PotionEffectType.BLINDNESS,
                     300,
                     0,
                     false,
                     true,
-                    true));
+                    true
+                )
+            );
         }
 
-        p.getWorld().spawnParticle(Particle.SMOKE, p.getLocation(), 80,
-                2, 1, 2, 0.02);
+        p.getWorld().spawnParticle(
+            Particle.SMOKE,
+            p.getLocation(),
+            80,
+            2,
+            1,
+            2,
+            0.02
+        );
     }
 }
