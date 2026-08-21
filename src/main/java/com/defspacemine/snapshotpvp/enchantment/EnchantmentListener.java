@@ -1,9 +1,13 @@
 package com.defspacemine.snapshotpvp.enchantment;
 
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -42,14 +46,8 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.Team;
 import org.bukkit.util.Vector;
 
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
-
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
-
 public class EnchantmentListener implements Listener {
+
     public static Enchantment CLEAVING;
 
     public static Enchantment EXPLOSIVE_HOOK;
@@ -64,6 +62,7 @@ public class EnchantmentListener implements Listener {
     public static Enchantment LIFE_FEAST;
     public static Enchantment FREEZING_ASPECT;
     public static Enchantment LIFE_STEAL;
+    public static Enchantment NON_FATAL_SMASH_CURSE;
 
     private final JavaPlugin plugin;
 
@@ -73,20 +72,49 @@ public class EnchantmentListener implements Listener {
     public EnchantmentListener(JavaPlugin plugin) {
         this.plugin = plugin;
 
-        CLEAVING = Registry.ENCHANTMENT.get(new NamespacedKey("minecraft", "cleaving"));
+        CLEAVING = Registry.ENCHANTMENT.get(
+            new NamespacedKey("minecraft", "cleaving")
+        );
 
-        EXPLOSIVE_HOOK = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "explosive_hook"));
-        TRIPLE_JUMP = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "triple_jump"));
-        BREEZY_ASPECT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "breezy_aspect"));
-        LIGHTNING_ASPECT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "lightning_aspect"));
-        DOUBLE_JUMP = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "double_jump"));
-        HEAVY_HIT_CURSE = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "heavy_hit_curse"));
-        BACKSTAB = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "backstab"));
-        UPPERCUT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "uppercut"));
-        DASHING = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "dashing"));
-        LIFE_FEAST = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "life_feast"));
-        FREEZING_ASPECT = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "freezing_aspect"));
-        LIFE_STEAL = Registry.ENCHANTMENT.get(new NamespacedKey("defspacemine", "life_steal"));
+        EXPLOSIVE_HOOK = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "explosive_hook")
+        );
+        TRIPLE_JUMP = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "triple_jump")
+        );
+        BREEZY_ASPECT = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "breezy_aspect")
+        );
+        LIGHTNING_ASPECT = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "lightning_aspect")
+        );
+        DOUBLE_JUMP = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "double_jump")
+        );
+        HEAVY_HIT_CURSE = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "heavy_hit_curse")
+        );
+        BACKSTAB = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "backstab")
+        );
+        UPPERCUT = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "uppercut")
+        );
+        DASHING = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "dashing")
+        );
+        LIFE_FEAST = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "life_feast")
+        );
+        FREEZING_ASPECT = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "freezing_aspect")
+        );
+        LIFE_STEAL = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "life_steal")
+        );
+        NON_FATAL_SMASH_CURSE = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "non_fatal_smash_curse")
+        );
     }
 
     @EventHandler
@@ -98,8 +126,10 @@ public class EnchantmentListener implements Listener {
                 jumpCount.put(p.getUniqueId(), 0);
                 p.setAllowFlight(true);
             }
-        } else if (p.getGameMode() == GameMode.ADVENTURE || p.getGameMode() == GameMode.SURVIVAL)
-            p.setAllowFlight(false);
+        } else if (
+            p.getGameMode() == GameMode.ADVENTURE ||
+            p.getGameMode() == GameMode.SURVIVAL
+        ) p.setAllowFlight(false);
     }
 
     @EventHandler
@@ -107,11 +137,9 @@ public class EnchantmentListener implements Listener {
         Player player = e.getPlayer();
         ItemStack rod = player.getInventory().getItem(e.getHand());
 
-        if (rod == null || rod.getType() != Material.FISHING_ROD)
-            return;
+        if (rod == null || rod.getType() != Material.FISHING_ROD) return;
 
-        if (!rod.containsEnchantment(EXPLOSIVE_HOOK))
-            return;
+        if (!rod.containsEnchantment(EXPLOSIVE_HOOK)) return;
 
         int level = rod.getEnchantmentLevel(EXPLOSIVE_HOOK);
         FishHook hook = e.getHook();
@@ -126,8 +154,7 @@ public class EnchantmentListener implements Listener {
                     return;
                 }
 
-                if (enabled)
-                    explosiveHook(player, hook.getLocation(), level);
+                if (enabled) explosiveHook(player, hook.getLocation(), level);
 
                 if (hook.getVelocity().lengthSquared() < 0.001) {
                     enabled = true;
@@ -141,14 +168,18 @@ public class EnchantmentListener implements Listener {
     }
 
     private void explosiveHook(Player p, Location loc, int level) {
-        Creeper creeper = (Creeper) loc.getWorld().spawnEntity(loc, EntityType.CREEPER);
+        Creeper creeper = (Creeper) loc
+            .getWorld()
+            .spawnEntity(loc, EntityType.CREEPER);
         CustomEggListener.injectOwner(creeper, p);
         PersistentDataContainer pdc = creeper.getPersistentDataContainer();
         pdc.set(CustomEggListener.CUSTOM_DAMAGE, PersistentDataType.FLOAT, 1f);
-        creeper.customName(Component.text("Explosive Hook")
+        creeper.customName(
+            Component.text("Explosive Hook")
                 .color(NamedTextColor.GOLD)
                 .decoration(TextDecoration.BOLD, true)
-                .decoration(TextDecoration.ITALIC, false));
+                .decoration(TextDecoration.ITALIC, false)
+        );
         creeper.setExplosionRadius(level);
         creeper.explode();
     }
@@ -157,11 +188,9 @@ public class EnchantmentListener implements Listener {
     public void onFlight(PlayerToggleFlightEvent e) {
         Player p = e.getPlayer();
 
-        if (hasTripleJump(p))
-            tripleJump(p, e);
+        if (hasTripleJump(p)) tripleJump(p, e);
 
-        if (hasDoubleJump(p))
-            doubleJump(p, e);
+        if (hasDoubleJump(p)) doubleJump(p, e);
     }
 
     private boolean hasTripleJump(Player p) {
@@ -175,8 +204,7 @@ public class EnchantmentListener implements Listener {
     }
 
     private void tripleJump(Player p, PlayerToggleFlightEvent e) {
-        if (p.getGameMode() == GameMode.CREATIVE)
-            return;
+        if (p.getGameMode() == GameMode.CREATIVE) return;
 
         e.setCancelled(true);
         p.setFlying(false);
@@ -197,29 +225,35 @@ public class EnchantmentListener implements Listener {
         p.setVelocity(p.getVelocity().add(boost));
 
         p.getWorld().spawnParticle(
-                Particle.GUST,
-                p.getLocation(),
-                10,
-                0.2, 0.2, 0.2,
-                0);
+            Particle.GUST,
+            p.getLocation(),
+            10,
+            0.2,
+            0.2,
+            0.2,
+            0
+        );
 
         p.getWorld().playSound(
-                p.getLocation(),
-                Sound.ENTITY_WIND_CHARGE_THROW,
-                1f,
-                1f);
+            p.getLocation(),
+            Sound.ENTITY_WIND_CHARGE_THROW,
+            1f,
+            1f
+        );
 
-        WindCharge charge = (WindCharge) p.getWorld().spawnEntity(
+        WindCharge charge = (WindCharge) p
+            .getWorld()
+            .spawnEntity(
                 p.getLocation().subtract(0, 1, 0),
-                EntityType.WIND_CHARGE);
+                EntityType.WIND_CHARGE
+            );
 
         charge.setShooter(p);
         charge.setVelocity(new Vector(0, -1, 0));
     }
 
     private void doubleJump(Player p, PlayerToggleFlightEvent e) {
-        if (p.getGameMode() == GameMode.CREATIVE)
-            return;
+        if (p.getGameMode() == GameMode.CREATIVE) return;
 
         e.setCancelled(true);
         p.setFlying(false);
@@ -234,12 +268,18 @@ public class EnchantmentListener implements Listener {
         jumpCount.put(p.getUniqueId(), jumps + 1);
 
         Location loc = p.getLocation();
-        Creeper creeper = (Creeper) loc.getWorld().spawnEntity(loc, EntityType.CREEPER);
+        Creeper creeper = (Creeper) loc
+            .getWorld()
+            .spawnEntity(loc, EntityType.CREEPER);
         // CustomEggListener.injectOwner(creeper, p);
 
         creeper.customName(
-                Component.text("Double Jump", NamedTextColor.AQUA, TextDecoration.BOLD)
-                        .append(Component.text(" ...wait what?", NamedTextColor.WHITE)));
+            Component.text(
+                "Double Jump",
+                NamedTextColor.AQUA,
+                TextDecoration.BOLD
+            ).append(Component.text(" ...wait what?", NamedTextColor.WHITE))
+        );
         creeper.setCustomNameVisible(true);
         creeper.setMaxFuseTicks(0);
         creeper.setExplosionRadius(-1);
@@ -248,19 +288,17 @@ public class EnchantmentListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onHit(EntityDamageByEntityEvent e) {
-        if (e.getDamageSource().getDamageType() != DamageType.PLAYER_ATTACK)
-            return;
+        if (
+            e.getDamageSource().getDamageType() != DamageType.PLAYER_ATTACK
+        ) return;
 
-        if (!(e.getDamager() instanceof Player player))
-            return;
+        if (!(e.getDamager() instanceof Player player)) return;
 
-        if (!(e.getEntity() instanceof LivingEntity target))
-            return;
+        if (!(e.getEntity() instanceof LivingEntity target)) return;
 
         ItemStack weapon = player.getInventory().getItemInMainHand();
 
-        if (weapon == null)
-            return;
+        if (weapon == null) return;
 
         if (weapon.containsEnchantment(BREEZY_ASPECT)) {
             int level = weapon.getEnchantmentLevel(BREEZY_ASPECT);
@@ -280,9 +318,15 @@ public class EnchantmentListener implements Listener {
         if (weapon.containsEnchantment(LIFE_FEAST)) {
             int level = weapon.getEnchantmentLevel(LIFE_FEAST);
             player.addPotionEffect(
-                    new PotionEffect(PotionEffectType.SATURATION, level * 20, 1));
+                new PotionEffect(PotionEffectType.SATURATION, level * 20, 1)
+            );
             player.addPotionEffect(
-                    new PotionEffect(PotionEffectType.REGENERATION, 20 * (int) Math.pow(2, level - 1), 3));
+                new PotionEffect(
+                    PotionEffectType.REGENERATION,
+                    20 * (int) Math.pow(2, level - 1),
+                    3
+                )
+            );
         }
 
         if (weapon.containsEnchantment(LIFE_STEAL) && !player.isDead()) {
@@ -293,11 +337,26 @@ public class EnchantmentListener implements Listener {
         if (weapon.containsEnchantment(HEAVY_HIT_CURSE)) {
             int level = weapon.getEnchantmentLevel(HEAVY_HIT_CURSE);
             player.addPotionEffect(
-                    new PotionEffect(PotionEffectType.SLOWNESS, (int) e.getFinalDamage() * 4 * level, 5));
+                new PotionEffect(
+                    PotionEffectType.SLOWNESS,
+                    (int) e.getFinalDamage() * 4 * level,
+                    2
+                )
+            );
             player.addPotionEffect(
-                    new PotionEffect(PotionEffectType.WEAKNESS, (int) e.getFinalDamage() * 2 * level, 1));
+                new PotionEffect(
+                    PotionEffectType.WEAKNESS,
+                    (int) e.getFinalDamage() * 2 * level,
+                    1
+                )
+            );
             player.addPotionEffect(
-                    new PotionEffect(PotionEffectType.JUMP_BOOST, (int) e.getFinalDamage() * 2 * (level + 1), 255));
+                new PotionEffect(
+                    PotionEffectType.JUMP_BOOST,
+                    (int) e.getFinalDamage() * 2 * (level + 1),
+                    255
+                )
+            );
         }
 
         if (weapon.containsEnchantment(BACKSTAB)) {
@@ -311,37 +370,76 @@ public class EnchantmentListener implements Listener {
         }
     }
 
+    @EventHandler(ignoreCancelled = true)
+    public void onSmash(EntityDamageByEntityEvent e) {
+        if (
+            e.getDamageSource().getDamageType() != DamageType.MACE_SMASH
+        ) return;
+
+        if (!(e.getDamager() instanceof Player player)) return;
+
+        if (!(e.getEntity() instanceof LivingEntity target)) return;
+
+        ItemStack weapon = player.getInventory().getItemInMainHand();
+        if (weapon == null) return;
+
+        if (weapon.containsEnchantment(NON_FATAL_SMASH_CURSE)) {
+            double finalDamage = e.getFinalDamage();
+            double currentHealth = target.getHealth();
+
+            if (finalDamage >= currentHealth) {
+                double targetRemainingHealth = 0.5;
+                double maxAllowedFinalDamage = Math.max(
+                    0.1,
+                    currentHealth - targetRemainingHealth
+                );
+                e.setDamage(e.getDamage() * maxAllowedFinalDamage / finalDamage);
+            }
+        }
+    }
+
     @EventHandler
     public void onInteract(PlayerInteractEvent e) {
         Player player = e.getPlayer();
 
-        if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK)
-            return;
+        if (
+            e.getAction() != Action.RIGHT_CLICK_AIR &&
+            e.getAction() != Action.RIGHT_CLICK_BLOCK
+        ) return;
 
         ItemStack weapon = player.getInventory().getItemInMainHand();
 
         if (weapon.containsEnchantment(DASHING)) {
-            if (player.hasCooldown(weapon))
-                return;
+            if (player.hasCooldown(weapon)) return;
 
             Location playerLoc = player.getLocation();
-            Location idealLoc = playerLoc.clone().add(playerLoc.getDirection().normalize().clone().multiply(3));
+            Location idealLoc = playerLoc
+                .clone()
+                .add(playerLoc.getDirection().normalize().clone().multiply(3));
             Location teleportLoc = raycastToWall(playerLoc, idealLoc);
 
-            player.addPotionEffect(new PotionEffect(
+            player.addPotionEffect(
+                new PotionEffect(
                     PotionEffectType.SPEED,
                     20,
                     2,
                     false,
                     true,
-                    true));
+                    true
+                )
+            );
 
-            player.getWorld().spawnParticle(
+            player
+                .getWorld()
+                .spawnParticle(
                     Particle.CLOUD,
                     playerLoc,
                     20,
-                    0.3, 0.5, 0.3,
-                    0.1);
+                    0.3,
+                    0.5,
+                    0.3,
+                    0.1
+                );
 
             player.setCooldown(weapon.getType(), 35);
             player.teleport(teleportLoc);
@@ -355,22 +453,32 @@ public class EnchantmentListener implements Listener {
         int count = 2 + level;
 
         for (int i = 0; i < count; i++) {
-            WindCharge charge = (WindCharge) player.getWorld().spawnEntity(
-                    spawnLoc,
-                    EntityType.WIND_CHARGE);
+            WindCharge charge = (WindCharge) player
+                .getWorld()
+                .spawnEntity(spawnLoc, EntityType.WIND_CHARGE);
 
             charge.setShooter(player);
 
-            Vector spread = baseDir.clone().add(new Vector(
-                    (Math.random() - 0.5) * 0.3,
-                    (Math.random() - 0.5) * 0.2,
-                    (Math.random() - 0.5) * 0.3)).normalize();
+            Vector spread = baseDir
+                .clone()
+                .add(
+                    new Vector(
+                        (Math.random() - 0.5) * 0.3,
+                        (Math.random() - 0.5) * 0.2,
+                        (Math.random() - 0.5) * 0.3
+                    )
+                )
+                .normalize();
 
             charge.setVelocity(spread.multiply(1.6));
         }
     }
 
-    private void spawnLightningAttack(Player p, LivingEntity target, int level) {
+    private void spawnLightningAttack(
+        Player p,
+        LivingEntity target,
+        int level
+    ) {
         World world = p.getWorld();
         Location spawnLoc = target.getLocation();
         double radius = 4 + 2 * level;
@@ -378,55 +486,87 @@ public class EnchantmentListener implements Listener {
 
         Team pTeam = SnapshotPvpPlugin.getTeam(p);
 
-        for (Entity t : world.getNearbyEntities(target.getLocation(), radius, radius, radius)) {
-            if (t instanceof Player player)
-                if (player.equals(p) || (player.getGameMode() != GameMode.SURVIVAL && player.getGameMode() != GameMode.ADVENTURE))
-                    continue;
+        for (Entity t : world.getNearbyEntities(
+            target.getLocation(),
+            radius,
+            radius,
+            radius
+        )) {
+            if (t instanceof Player player) if (
+                player.equals(p) ||
+                (player.getGameMode() != GameMode.SURVIVAL &&
+                    player.getGameMode() != GameMode.ADVENTURE)
+            ) continue;
 
             Team tTeam = SnapshotPvpPlugin.getTeamG(t);
-            if (pTeam != null && pTeam.equals(tTeam))
-                continue;
+            if (pTeam != null && pTeam.equals(tTeam)) continue;
 
             SnapshotPvpPlugin.strikeLightning(t, p, damage);
         }
     }
 
     private void spawnFreezingAttack(Player p, LivingEntity target, int level) {
-        int ticks = 140 + (level * 160);
+        int ticks = 140 + level * 160;
         target.setFreezeTicks(ticks);
-        target.damage(level, DamageSource.builder(DamageType.FREEZE)
+        target.damage(
+            level,
+            DamageSource.builder(DamageType.FREEZE)
                 .withDirectEntity(p)
                 .withCausingEntity(p)
-                .build());
+                .build()
+        );
     }
 
-    private void performBackstab(Player player, LivingEntity target, int level) {
-        double maxDistance = 2.0 + (level * 1);
+    private void performBackstab(
+        Player player,
+        LivingEntity target,
+        int level
+    ) {
+        double maxDistance = 2.0 + level * 1;
 
         Location targetLoc = target.getLocation();
-        Location idealLoc = targetLoc.clone().add(targetLoc.getDirection().normalize().clone().multiply(-maxDistance));
+        Location idealLoc = targetLoc
+            .clone()
+            .add(
+                targetLoc
+                    .getDirection()
+                    .normalize()
+                    .clone()
+                    .multiply(-maxDistance)
+            );
         Location teleportLoc = raycastToWall(target.getLocation(), idealLoc);
-        if (teleportLoc == null)
-            return;
+        if (teleportLoc == null) return;
 
-        player.teleport(teleportLoc.setDirection(player.getLocation().getDirection()));
+        player.teleport(
+            teleportLoc.setDirection(player.getLocation().getDirection())
+        );
     }
 
-    private void performUppercut(Player player, LivingEntity target, int level) {
-        double maxDistance = 3.0 + (level * 1);
+    private void performUppercut(
+        Player player,
+        LivingEntity target,
+        int level
+    ) {
+        double maxDistance = 3.0 + level * 1;
 
         Location targetLoc = target.getLocation();
         Vector direction = targetLoc.getDirection().normalize();
 
-        Vector rightVec = direction.clone().crossProduct(new Vector(0, 1, 0)).normalize();
+        Vector rightVec = direction
+            .clone()
+            .crossProduct(new Vector(0, 1, 0))
+            .normalize();
         Vector upVec = rightVec.clone().crossProduct(direction).normalize();
-        Location idealLoc = targetLoc.clone().add(upVec.clone().multiply(maxDistance));
+        Location idealLoc = targetLoc
+            .clone()
+            .add(upVec.clone().multiply(maxDistance));
 
         Location teleportLoc = raycastToWall(target.getLocation(), idealLoc);
-        if (teleportLoc == null)
-            return;
+        if (teleportLoc == null) return;
 
-        player.teleport(teleportLoc.setDirection(player.getLocation().getDirection()));
+        player.teleport(
+            teleportLoc.setDirection(player.getLocation().getDirection())
+        );
     }
 
     private Location raycastToWall(Location from, Location to) {
@@ -439,11 +579,14 @@ public class EnchantmentListener implements Listener {
 
         double step = .1;
         for (double d = step; d <= maxDistance; d += step) {
-            Location checkPoint = from.clone().add(direction.clone().multiply(d));
+            Location checkPoint = from
+                .clone()
+                .add(direction.clone().multiply(d));
             Material type = checkPoint.getBlock().getType();
 
-            if (type.isSolid() && type.isOccluding() && !type.isInteractable())
-                return lastValidLoc;
+            if (
+                type.isSolid() && type.isOccluding() && !type.isInteractable()
+            ) return lastValidLoc;
             lastValidLoc = checkPoint.clone();
         }
 

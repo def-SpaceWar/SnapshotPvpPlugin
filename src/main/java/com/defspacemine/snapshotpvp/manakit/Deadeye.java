@@ -37,7 +37,7 @@ public class Deadeye extends ManaKit {
     final NamespacedKey markedUntilKey = ManaKitListener.MANA_KIT_DATA1;
     final NamespacedKey markedTargetKey = ManaKitListener.MANA_KIT_DATASTR0;
 
-    final int requiredAttacks = 15;
+    final int requiredAttacks = 16;
     final int maxArrows = 20;
     final int markDurationTicks = 400;
 
@@ -57,7 +57,7 @@ public class Deadeye extends ManaKit {
         spectralArrowItem = new ItemStack(Material.SPECTRAL_ARROW, 1);
         ItemMeta spectralMeta = spectralArrowItem.getItemMeta();
         if (spectralMeta != null) {
-            spectralMeta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "Marking Arrow");
+            spectralMeta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "Precise Arrow");
             spectralMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
             spectralArrowItem.setItemMeta(spectralMeta);
         }
@@ -203,17 +203,17 @@ public class Deadeye extends ManaKit {
         }
 
         Component actionBar = markedPrefix
-            .append(Component.text("Precise Shot: ", NamedTextColor.GOLD))
+            .append(Component.text("Pinpoint Precision: ", NamedTextColor.GOLD))
             .append(Component.text(attackC + "/" + requiredAttacks, NamedTextColor.WHITE))
             .append(Component.text("  |  ", NamedTextColor.GRAY))
             .append(Component.text("Killstreak: ", NamedTextColor.RED))
-            .append(Component.text(killstreak + "/2", NamedTextColor.WHITE));
+            .append(Component.text(killstreak + "/3", NamedTextColor.WHITE));
 
         p.sendActionBar(actionBar);
 
-        if (killstreak == 1)
+        if (killstreak == 2)
             p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 0));
-        if (killstreak >= 2)
+        if (killstreak >= 3)
             p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 1));
 
         PlayerInventory inv = p.getInventory();
@@ -228,9 +228,10 @@ public class Deadeye extends ManaKit {
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
+        int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         Integer attackC = pdc.get(attackCounter, PersistentDataType.INTEGER);
         if (attackC == null) attackC = 0;
-        pdc.set(attackCounter, PersistentDataType.INTEGER, attackC + 1);
+        pdc.set(attackCounter, PersistentDataType.INTEGER, attackC + (killstreak > 0 ? 2 : 1));
 
         if (e.getEntity() instanceof LivingEntity victim && isMarked(p, victim)) {
             e.setDamage(e.getDamage() * MARK_MULTIPLIER);

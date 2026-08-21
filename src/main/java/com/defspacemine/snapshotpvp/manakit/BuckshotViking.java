@@ -75,6 +75,17 @@ public class BuckshotViking extends ManaKit {
         );
         meta.addCustomEffect(
             new PotionEffect(
+                PotionEffectType.HASTE,
+                100,
+                4,
+                false,
+                true,
+                true
+            ),
+            true
+        );
+        meta.addCustomEffect(
+            new PotionEffect(
                 PotionEffectType.INSTANT_HEALTH,
                 1,
                 1,

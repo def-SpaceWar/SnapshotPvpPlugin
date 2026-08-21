@@ -87,6 +87,11 @@ public class CactusChampion extends ManaKit {
         pdc.set(ManaKitListener.MANA_KIT, PersistentDataType.STRING, this.id);
         pdc.set(counterSpikesCounter, PersistentDataType.INTEGER, 0);
         pdc.set(cactusTotemCounter, PersistentDataType.INTEGER, 0);
+        pdc.set(
+            cactusTotemUUID,
+            PersistentDataType.STRING,
+            ""
+        );
     }
 
     @Override
@@ -395,6 +400,11 @@ public class CactusChampion extends ManaKit {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(counterSpikesCounter, PersistentDataType.INTEGER, 0);
         pdc.set(cactusTotemCounter, PersistentDataType.INTEGER, 0);
+        pdc.set(
+            cactusTotemUUID,
+            PersistentDataType.STRING,
+            ""
+        );
     }
 
     @Override

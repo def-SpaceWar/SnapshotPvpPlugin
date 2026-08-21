@@ -27,16 +27,18 @@ import org.bukkit.util.Vector;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Incendiary extends ManaKit {
-    final double SIPHON_RADIUS = 24;
-    private static final int HEAT_PER_TICK = 15;
-    private static final int COOL_RATE = 2;
-    private static final int MAX_RANGE = 8;
+    private final double SIPHON_RADIUS = 24;
+    private final int HEAT_PER_TICK = 15;
+    private final int COOL_RATE = 2;
+    private final int MAX_RANGE = 8;
+    private final double FLAME_INITIAL_DAMAGE = 0.05;
+    private final double FLAME_RAMP_DAMAGE = 0.2;
 
     final int flamethrower = 2000; // max ammo
     final NamespacedKey flamethrowerCounter = ManaKitListener.MANA_KIT_DATA0;
-    private static final int maxHeat = 1800;
+    private final int maxHeat = 1500;
     final NamespacedKey heatKey = ManaKitListener.MANA_KIT_DATA1;
-    private static final int maxRamp = 60;
+    private final int maxRamp = 50;
     final NamespacedKey rampKey = ManaKitListener.MANA_KIT_DATA2;
     final NamespacedKey overheatKey = ManaKitListener.MANA_KIT_DATA3;
 
@@ -202,7 +204,7 @@ public class Incendiary extends ManaKit {
             return;
         }
 
-        double damage = 0.05 + (ramp * 0.005);
+        double damage = FLAME_INITIAL_DAMAGE + (ramp / maxRamp * FLAME_RAMP_DAMAGE);
 
         World world = player.getWorld();
         Vector direction = player.getEyeLocation().getDirection().normalize();

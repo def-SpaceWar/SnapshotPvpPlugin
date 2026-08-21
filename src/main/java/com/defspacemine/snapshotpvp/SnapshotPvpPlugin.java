@@ -1,8 +1,23 @@
 package com.defspacemine.snapshotpvp;
 
+import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
+import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
+import com.defspacemine.snapshotpvp.lobby.LobbyManager;
+import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
+import com.destroystokyo.paper.event.player.PlayerJumpEvent;
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import io.papermc.lib.PaperLib;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.command.brigadier.Commands;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import java.util.UUID;
 import java.util.logging.Logger;
-
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameRules;
@@ -20,6 +35,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -27,27 +43,12 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
-
-import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
-import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
-import com.defspacemine.snapshotpvp.lobby.LobbyManager;
-import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
-import com.mojang.brigadier.Command;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.context.CommandContext;
-
-import io.papermc.lib.PaperLib;
-import io.papermc.paper.command.brigadier.CommandSourceStack;
-import io.papermc.paper.command.brigadier.Commands;
-import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
 
 public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
 
@@ -359,7 +360,20 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
     @EventHandler
     public void onExplosion(EntityExplodeEvent e) {
         if (e.getEntity() instanceof TNTPrimed tnt) {
-            if (tnt.getWorld().getGameRuleValue(GameRules.MOB_GRIEFING) == false) e.blockList().clear();
+            if (
+                tnt.getWorld().getGameRuleValue(GameRules.MOB_GRIEFING) == false
+            ) e.blockList().clear();
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlayerJump(PlayerJumpEvent event) {
+        PotionEffect jumpBoost = event
+            .getPlayer()
+            .getPotionEffect(PotionEffectType.JUMP_BOOST);
+
+        if (
+            jumpBoost != null && jumpBoost.getAmplifier() == 255
+        ) event.setCancelled(true);
     }
 }

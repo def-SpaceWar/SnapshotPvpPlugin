@@ -127,5 +127,6 @@ public class Ranger extends ManaKit {
         if (!(e.getHitEntity() instanceof LivingEntity target)) return;
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestock);
+        p.getInventory().addItem(this.arrow);
     }
 }
