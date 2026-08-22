@@ -204,7 +204,7 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
                 commands.registrar().register(
                     Commands.literal("hub")
                         .executes((CommandContext<CommandSourceStack> ctx) -> {
-                            hub(ctx.getSource().getSender());
+                            hub(ctx.getSource().getExecutor());
                             return Command.SINGLE_SUCCESS;
                         })
                         .build()
@@ -214,7 +214,7 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
                     Commands.literal("kit")
                         .executes((CommandContext<CommandSourceStack> ctx) -> {
                             ManaKitListener.instance.kit(
-                                ctx.getSource().getSender(),
+                                ctx.getSource().getExecutor(),
                                 null
                             );
                             return Command.SINGLE_SUCCESS;
@@ -246,7 +246,7 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
                                                 "id"
                                             );
                                         ManaKitListener.instance.kit(
-                                            ctx.getSource().getSender(),
+                                            ctx.getSource().getExecutor(),
                                             id
                                         );
                                         return Command.SINGLE_SUCCESS;

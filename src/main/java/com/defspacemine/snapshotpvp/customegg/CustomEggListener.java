@@ -566,9 +566,10 @@ public class CustomEggListener implements Listener {
                             Team targetTeam = SnapshotPvpPlugin.getTeamG(
                                 target
                             );
-                            if (
-                                targetTeam == null || targetTeam.equals(mobTeam)
-                            ) continue;
+                            // if (
+                            //     targetTeam == null || targetTeam.equals(mobTeam)
+                            // ) continue;
+                            if (mobTeam.equals(targetTeam)) continue;
 
                             double distance = mob
                                 .getLocation()

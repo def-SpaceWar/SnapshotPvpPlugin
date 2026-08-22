@@ -362,10 +362,7 @@ public final class ManaKitListener implements Listener {
             attacker != null &&
             vTeam != null &&
             vTeam.equals(SnapshotPvpPlugin.getTeam(attacker))
-        ) if (!(victim instanceof Mannequin)) {
-            // VOODOO ONLY THING
-            return;
-        }
+        ) return;
 
         for (Player player : victim.getWorld().getPlayers()) {
             if (player.equals(victim) || player.equals(attacker)) continue;

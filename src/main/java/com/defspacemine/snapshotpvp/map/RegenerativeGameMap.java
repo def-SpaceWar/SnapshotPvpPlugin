@@ -217,19 +217,22 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
                 continue;
             }
 
-            Location feetBlockLoc = player
-                .getLocation()
-                .getBlock()
-                .getLocation();
+            //Location feetBlockLoc = player
+            //    .getLocation()
+            //    .getBlock()
+            //    .getLocation();
             Location headBlockLoc = player
                 .getEyeLocation()
                 .getBlock()
                 .getLocation();
 
             boolean inRegenZone =
-                originalBlockStates.containsKey(feetBlockLoc) ||
+                //originalBlockStates.containsKey(feetBlockLoc) ||
                 originalBlockStates.containsKey(headBlockLoc);
-            boolean inSolidBlock = headBlockLoc.getBlock().getType().isSolid();
+            boolean inSolidBlock = headBlockLoc
+                .getBlock()
+                .getType()
+                .isOccluding();
 
             if (inRegenZone || inSolidBlock) {
                 int ticks =

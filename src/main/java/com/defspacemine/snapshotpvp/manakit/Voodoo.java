@@ -569,8 +569,6 @@ public class Voodoo extends ManaKit {
             0.5,
             0.1
         );
-
-        SnapshotPvpPlugin.addToTeam(owner, doll);
     }
 
     private void removeExistingDoll(Player owner) {
@@ -617,7 +615,7 @@ public class Voodoo extends ManaKit {
         if (distance > 160.0) return;
 
         Vector direction = to.toVector().subtract(from.toVector()).normalize();
-        double stepSize = 0.5;
+        double stepSize = 2;
 
         for (double d = 0; d < distance; d += stepSize) {
             Location point = from.clone().add(direction.clone().multiply(d));

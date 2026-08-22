@@ -1,6 +1,9 @@
 package com.defspacemine.snapshotpvp.manakit;
 
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -8,6 +11,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Particle.DustOptions;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -33,6 +37,8 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Team;
 import org.bukkit.util.Vector;
+
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Titan extends ManaKit {
 
@@ -360,16 +366,16 @@ public class Titan extends ManaKit {
         final double damage = SMASH_DAMAGE * multiplier;
 
         final Location startLoc = p.getLocation();
-        final org.bukkit.util.Vector direction = startLoc
+        final Vector direction = startLoc
             .getDirection()
             .setY(0)
             .normalize();
         final World world = p.getWorld();
-        final java.util.Set<java.util.UUID> hitEntities =
-            new java.util.HashSet<>();
+        final Set<UUID> hitEntities =
+            new HashSet<UUID>();
         world.playSound(
             startLoc,
-            org.bukkit.Sound.ENTITY_LIGHTNING_BOLT_THUNDER,
+            Sound.ENTITY_LIGHTNING_BOLT_THUNDER,
             1.0f,
             0.5f
         );
@@ -492,13 +498,6 @@ public class Titan extends ManaKit {
                                     PotionEffectType.JUMP_BOOST,
                                     (int) (SMASH_DURATION * multiplier),
                                     255
-                                )
-                            );
-                            target.addPotionEffect(
-                                new PotionEffect(
-                                    PotionEffectType.SLOWNESS,
-                                    (int) (SMASH_DURATION * multiplier),
-                                    5
                                 )
                             );
                             target.damage(damage, p);
