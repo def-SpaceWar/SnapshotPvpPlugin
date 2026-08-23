@@ -1,5 +1,6 @@
 package com.defspacemine.snapshotpvp;
 
+import com.defspacemine.scoreboard.GlobalScoreboardManager;
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
 import com.defspacemine.snapshotpvp.lobby.LobbyManager;
@@ -42,6 +43,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -57,9 +59,10 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
     public static final NamespacedKey BLOCK_KNOCKBACK_REDUCTION =
         new NamespacedKey("combatium", "knockback_reduction");
 
-    public static Scoreboard scoreboard;
     public static Server server;
     public static Logger logger;
+    public static Scoreboard scoreboard;
+    public static PluginManager pluginManager;
 
     public static void strikeLightning(Entity e, Player causing) {
         strikeLightning(e, causing, 5);
@@ -181,21 +184,15 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         SnapshotPvpPlugin.scoreboard = server
             .getScoreboardManager()
             .getMainScoreboard();
+        pluginManager = server.getPluginManager();
 
         new WeatherManager(this);
-        server
-            .getPluginManager()
-            .registerEvents(new AntiSwapExploit(this), this);
-        server
-            .getPluginManager()
-            .registerEvents(new CustomEggListener(this), this);
-        server
-            .getPluginManager()
-            .registerEvents(new EnchantmentListener(this), this);
-        server
-            .getPluginManager()
-            .registerEvents(new ManaKitListener(this), this);
+        pluginManager.registerEvents(new AntiSwapExploit(this), this);
+        pluginManager.registerEvents(new CustomEggListener(this), this);
+        pluginManager.registerEvents(new EnchantmentListener(this), this);
+        pluginManager.registerEvents(new ManaKitListener(this), this);
         new LobbyManager(this);
+        new GlobalScoreboardManager(this);
 
         // move this to manakit lobby eventually
         getLifecycleManager().registerEventHandler(
@@ -225,7 +222,7 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
                                     String remaining = builder
                                         .getRemaining()
                                         .toLowerCase();
-                                    ManaKitListener.instance.manakitRegistry
+                                    ManaKitListener.instance.manaKitRegistry
                                         .keySet()
                                         .stream()
                                         .filter(kitId ->

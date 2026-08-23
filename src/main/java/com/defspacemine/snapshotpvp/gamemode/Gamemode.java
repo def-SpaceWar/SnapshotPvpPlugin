@@ -1,17 +1,23 @@
 package com.defspacemine.snapshotpvp.gamemode;
 
-import org.bukkit.World;
-
 import com.defspacemine.snapshotpvp.lobby.LobbyType.LobbyInstance;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 public abstract class Gamemode {
-    private LobbyInstance lobby;
-    private World world;
+
+    protected LobbyInstance lobby;
+    protected World world;
 
     public abstract void configure();
+
     public abstract void onStart();
+
     public abstract void onTick();
+
     public abstract boolean isOver();
-    public abstract String getGameOverMessage();
+
+    public abstract void sendGameOverMessage(Player p);
+
     public abstract void onDestroy();
 }

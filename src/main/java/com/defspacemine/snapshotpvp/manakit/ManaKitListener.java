@@ -53,7 +53,7 @@ public final class ManaKitListener implements Listener {
     public static ManaKitListener instance;
     private final JavaPlugin plugin;
 
-    public final Map<String, ManaKit> manakitRegistry = new HashMap<
+    public final Map<String, ManaKit> manaKitRegistry = new HashMap<
         String,
         ManaKit
     >();
@@ -227,15 +227,14 @@ public final class ManaKitListener implements Listener {
         registerKit(new BuckshotViking());
 
         manakitGameLoop();
-        startGlobalScoreboardTask();
     }
 
     private void registerKit(ManaKit kit) {
-        manakitRegistry.put(kit.getId(), kit);
+        manaKitRegistry.put(kit.getId(), kit);
     }
 
     public ManaKit getKit(String id) {
-        return manakitRegistry.get(id);
+        return manaKitRegistry.get(id);
     }
 
     public ManaKit getPlayerKit(Player player) {
@@ -483,7 +482,7 @@ public final class ManaKitListener implements Listener {
     void showKits(Player player) {
         player.sendMessage(ChatColor.GREEN + "===== Available Kits =====");
         ArrayList<ManaKit> kits = new ArrayList();
-        for (ManaKit kit : manakitRegistry.values()) kits.add(kit);
+        for (ManaKit kit : manaKitRegistry.values()) kits.add(kit);
         kits.sort((a, b) -> {
             if (a.stars != b.stars) return a.stars - b.stars;
             return a.getDisplayName().charAt(0) - b.getDisplayName().charAt(0);
@@ -625,163 +624,5 @@ public final class ManaKitListener implements Listener {
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
-    }
-
-    public void startGlobalScoreboardTask() {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (World world : Bukkit.getWorlds()) {
-                    List<Player> playersInWorld = world.getPlayers();
-
-                    for (Player viewer : playersInWorld) {
-                        if (viewer == null || !viewer.isOnline()) continue;
-
-                        if (
-                            viewer.getScoreboardTags().contains("fighting")
-                        ) updateWorldScoreboard(viewer, playersInWorld);
-                        else if (
-                            viewer.getScoreboard() !=
-                            Bukkit.getScoreboardManager().getMainScoreboard()
-                        ) viewer.setScoreboard(
-                            Bukkit.getScoreboardManager().getMainScoreboard()
-                        );
-                    }
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 5L);
-    }
-
-    private void updateWorldScoreboard(
-        Player viewer,
-        List<Player> trackedPlayers
-    ) {
-        Scoreboard mainBoard =
-            Bukkit.getScoreboardManager().getMainScoreboard();
-        Scoreboard board = viewer.getScoreboard();
-
-        if (board == mainBoard) {
-            board = Bukkit.getScoreboardManager().getNewScoreboard();
-            viewer.setScoreboard(board);
-        }
-
-        for (Team mainTeam : mainBoard.getTeams()) {
-            if (mainTeam.getName() == null) continue;
-
-            Team localTeam = board.getTeam(mainTeam.getName());
-            if (localTeam == null) {
-                localTeam = board.registerNewTeam(mainTeam.getName());
-            }
-
-            localTeam.setColor(mainTeam.getColor());
-            localTeam.setPrefix(mainTeam.getPrefix());
-            localTeam.setAllowFriendlyFire(mainTeam.allowFriendlyFire());
-            localTeam.setCanSeeFriendlyInvisibles(
-                mainTeam.canSeeFriendlyInvisibles()
-            );
-
-            for (String entry : mainTeam.getEntries()) {
-                Entity entity = SnapshotPvpPlugin.getEntityFromEntry(entry);
-                if (!localTeam.hasEntry(entry) && entity != null) if (
-                    viewer.getWorld().equals(entity.getWorld())
-                ) localTeam.addEntry(entry);
-                else localTeam.removeEntry(entry);
-            }
-        }
-
-        Objective healthObj = board.getObjective("health");
-        if (healthObj == null) {
-            healthObj = board.registerNewObjective(
-                "health",
-                Criteria.DUMMY,
-                Component.text("❤").color(NamedTextColor.RED)
-            );
-            healthObj.setDisplaySlot(DisplaySlot.PLAYER_LIST);
-            healthObj.setDisplaySlot(DisplaySlot.BELOW_NAME);
-        }
-
-        for (Player p : trackedPlayers)
-            healthObj
-                .getScore(p)
-                .setScore((int) (p.getHealth() + p.getAbsorptionAmount()));
-
-        Objective obj = board.getObjective("combat_list");
-        if (obj == null) {
-            obj = board.registerNewObjective(
-                "combat_list",
-                Criteria.DUMMY,
-                Component.text("— FFA STATS —")
-                    .color(NamedTextColor.GOLD)
-                    .decorate(TextDecoration.BOLD)
-            );
-            obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-        }
-
-        for (String entry : board.getEntries())
-            obj.getScore(entry).resetScore();
-
-        List<Player> sortedPlayers = new ArrayList<>(trackedPlayers);
-        sortedPlayers.removeIf(p -> {
-            return !p.getScoreboardTags().contains("fighting");
-        });
-        sortedPlayers.sort((p1, p2) -> {
-            int ks1 = SnapshotPvpPlugin.getPlayerScore(p1, "dummyKillstreak");
-            int ks2 = SnapshotPvpPlugin.getPlayerScore(p2, "dummyKillstreak");
-            if (ks1 != ks2) return Integer.compare(ks2, ks1);
-
-            double hp1 = p1.getHealth();
-            double hp2 = p2.getHealth();
-            if (hp1 != hp2) return Double.compare(hp2, hp1);
-
-            return p1.getName().compareToIgnoreCase(p2.getName());
-        });
-
-        int position = 100;
-        setHiddenScore(obj, "", position--);
-
-        for (Player p : sortedPlayers) {
-            int ks = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
-            int hp = (int) p.getHealth();
-            int absorp = (int) p.getAbsorptionAmount();
-            Team team = SnapshotPvpPlugin.getTeam(p);
-            ChatColor nameColor =
-                team != null
-                    ? ChatColor.valueOf(team.getColor().name())
-                    : ChatColor.WHITE;
-
-            String prefix = team == null ? "" : team.getPrefix();
-            String hpText = "" + ChatColor.GREEN + hp + "❤";
-            if (absorp > 0) hpText += " " + ChatColor.YELLOW + absorp + "❤";
-            String entry =
-                nameColor +
-                prefix +
-                p.getName() +
-                ChatColor.DARK_GRAY +
-                ": " +
-                ChatColor.GOLD +
-                ks +
-                "🔥" +
-                ChatColor.GRAY +
-                " | " +
-                hpText;
-            setHiddenScore(obj, entry, position--);
-        }
-
-        setHiddenScore(obj, " ", position--);
-        setHiddenScore(
-            obj,
-            ChatColor.GRAY +
-                "Players: " +
-                ChatColor.WHITE +
-                trackedPlayers.size(),
-            position--
-        );
-    }
-
-    private void setHiddenScore(Objective obj, String text, int value) {
-        if (obj == null || text == null) return;
-        Score score = obj.getScore(text);
-        score.setScore(value);
-        score.numberFormat(NumberFormat.blank());
     }
 }

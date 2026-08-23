@@ -22,7 +22,10 @@ public class BobLands extends RegenerativeGameMap {
 
     @Override
     public void configure() {
-        // Setup gamemode settings or rules
+        // Setup/get gamemode settings or rules
+        throw new UnsupportedOperationException(
+            "Unimplemented method 'configure'"
+        );
     }
 
     @Override

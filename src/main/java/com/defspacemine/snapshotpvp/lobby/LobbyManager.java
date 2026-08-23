@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import java.util.function.Function;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -32,7 +33,8 @@ public class LobbyManager {
             @Override
             public void run() {
                 activeLobbies.removeIf(active -> {
-                    boolean remove = active.getPlayers().size() == 0;
+                    List<Player> players = active.getPlayers();
+                    boolean remove = players == null || active.getPlayers().size() == 0;
                     if (remove) active.onDestroy();
                     else active.onTick();
                     return remove;
