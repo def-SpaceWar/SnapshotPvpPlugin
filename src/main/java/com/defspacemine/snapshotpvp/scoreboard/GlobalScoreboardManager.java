@@ -1,4 +1,4 @@
-package com.defspacemine.scoreboard;
+package com.defspacemine.snapshotpvp.scoreboard;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import io.papermc.paper.scoreboard.numbers.NumberFormat;

@@ -1,10 +1,10 @@
 package com.defspacemine.snapshotpvp;
 
-import com.defspacemine.scoreboard.GlobalScoreboardManager;
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
 import com.defspacemine.snapshotpvp.lobby.LobbyManager;
 import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
+import com.defspacemine.snapshotpvp.scoreboard.GlobalScoreboardManager;
 import com.destroystokyo.paper.event.player.PlayerJumpEvent;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;

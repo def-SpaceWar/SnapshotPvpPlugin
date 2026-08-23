@@ -152,7 +152,7 @@ public class SculkWarrior extends ManaKit {
             new PotionEffect(PotionEffectType.RESISTANCE, 40, 0)
         );
         if (killstreak >= 2) p.addPotionEffect(
-            new PotionEffect(PotionEffectType.SPEED, 40, 1)
+            new PotionEffect(PotionEffectType.HASTE, 40, 1)
         );
         if (killstreak >= 3) p.addPotionEffect(
             new PotionEffect(PotionEffectType.STRENGTH, 40, 1)
@@ -282,6 +282,11 @@ public class SculkWarrior extends ManaKit {
                 item.setAmount(item.getAmount() - 1);
             }
         }
+    }
+
+    @Override
+    public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {
+        p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 2));
     }
 
     @Override

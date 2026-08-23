@@ -1,6 +1,6 @@
 package com.defspacemine.snapshotpvp.gamemode;
 
-import com.defspacemine.scoreboard.GlobalScoreboardManager;
+import com.defspacemine.snapshotpvp.scoreboard.GlobalScoreboardManager;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.lobby.LobbyType.LobbyInstance;
 import java.util.ArrayList;
