@@ -150,8 +150,9 @@ public class GlobalScoreboardManager {
         }
 
         setHiddenScore(obj, " ", position--);
-        setHiddenScoreR(
+        setHiddenScore(
             obj,
+            "  ",
             ChatColor.GRAY +
                 "Players: " +
                 ChatColor.WHITE +
@@ -258,13 +259,5 @@ public class GlobalScoreboardManager {
 
     public static void setHiddenScore(Objective obj, String text, int value) {
         setHiddenScore(obj, text, null, value);
-    }
-
-    public static void setHiddenScoreL(Objective obj, String text, int value) {
-        setHiddenScore(obj, text, null, value);
-    }
-
-    public static void setHiddenScoreR(Objective obj, String text, int value) {
-        setHiddenScore(obj, null, text, value);
     }
 }

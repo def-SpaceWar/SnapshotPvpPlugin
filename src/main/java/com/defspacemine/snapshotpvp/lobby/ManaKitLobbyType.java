@@ -3,6 +3,7 @@ package com.defspacemine.snapshotpvp.lobby;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.gamemode.Deathmatch;
 import com.defspacemine.snapshotpvp.gamemode.Gamemode;
+import com.defspacemine.snapshotpvp.map.BobInvasionRemaster;
 import com.defspacemine.snapshotpvp.map.BobLands;
 import com.defspacemine.snapshotpvp.map.GameMap;
 import java.util.List;
@@ -65,7 +66,10 @@ public class ManaKitLobbyType extends LobbyType {
             lobbyState = LobbyState.WAITING;
 
             // debug purposes
-            gameMap = new BobLands(this, mapWorld);
+            gameMap =
+                Math.random() > 0.5
+                    ? new BobLands(this, mapWorld)
+                    : new BobInvasionRemaster(this, mapWorld);
             gamemode = new Deathmatch(this, mapWorld);
             gameMap.onCreate();
             gamemode.onStart();
@@ -120,7 +124,10 @@ public class ManaKitLobbyType extends LobbyType {
             new BukkitRunnable() {
                 @Override
                 public void run() {
-                    if (p.teleport(new Location(world, 0, 65, 0)) || !p.isOnline()) cancel();
+                    if (
+                        p.teleport(new Location(world, 0, 65, 0)) ||
+                        !p.isOnline()
+                    ) cancel();
                 }
             }.runTaskTimer(SnapshotPvpPlugin.instance, 0, 1);
         }

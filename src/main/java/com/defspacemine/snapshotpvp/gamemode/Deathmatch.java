@@ -157,8 +157,9 @@ public class Deathmatch extends Gamemode implements Listener {
                 }
 
                 GlobalScoreboardManager.setHiddenScore(obj, " ", position--);
-                GlobalScoreboardManager.setHiddenScoreR(
+                GlobalScoreboardManager.setHiddenScore(
                     obj,
+                    "  ",
                     ChatColor.GRAY +
                         "Time Left: " +
                         ChatColor.WHITE +

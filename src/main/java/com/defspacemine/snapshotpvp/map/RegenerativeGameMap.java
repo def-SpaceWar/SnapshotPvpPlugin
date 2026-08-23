@@ -777,7 +777,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
     protected int fluidFlowMinY = Integer.MIN_VALUE;
 
     public void setFluidFlowMinY(int y) {
-        this.fluidFlowMinY = y;
+        fluidFlowMinY = y;
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

@@ -41,7 +41,7 @@ public class BobLands extends RegenerativeGameMap {
             worldLoc
         );
 
-        setFluidFlowMinY(45);
+        setFluidFlowMinY(55);
     }
 
     @Override
