@@ -28,7 +28,7 @@ public class Mercenary extends ManaKit {
     public static final int LAUNCHER_TICKS = 15;
     public static final int LAUNCHER_RADIUS = -3;
     public static final int AUTO_BOMB_TICKS = 20;
-    public static final int AUTO_BOMB_RADIUS = 4;
+    public static final int AUTO_BOMB_RADIUS = 3;
     public static final int GOOD_SHOT_BHAIYA_RADIUS = -64;
 
     final int mercRestock = 300; // bomb restock every 15 seconds, they auto reset

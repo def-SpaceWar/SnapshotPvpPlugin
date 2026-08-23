@@ -36,12 +36,12 @@ public class FireInTheHole extends ManaKit {
     public static final double MEDIUM_BOMB_HEALTH = 20;
     public static final double MEDIUM_BOMB_SCALE = 1;
     public static final int MEDIUM_BOMB_TICKS = 45;
-    public static final int MEDIUM_BOMB_RADIUS = 7;
+    public static final int MEDIUM_BOMB_RADIUS = 6;
 
     public static final double LARGE_BOMB_HEALTH = 25;
     public static final double LARGE_BOMB_SCALE = 1.25;
     public static final int LARGE_BOMB_TICKS = 60;
-    public static final int LARGE_BOMB_RADIUS = 10;
+    public static final int LARGE_BOMB_RADIUS = 8;
 
     public static final double NUKE_HEALTH = 40;
     public static final double NUKE_SCALE = 1.5;

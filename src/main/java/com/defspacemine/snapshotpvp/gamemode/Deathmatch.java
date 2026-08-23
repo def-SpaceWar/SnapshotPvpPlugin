@@ -54,125 +54,124 @@ public class Deathmatch extends Gamemode implements Listener {
         );
 
         GlobalScoreboardManager.registerBoardHandler(
+            lobby.getWorld().getName(),
+            this::scoreboardHandler
+        );
+
+        GlobalScoreboardManager.registerBoardHandler(
             world.getName(),
-            (viewer, playersInWorld) -> {
-                Scoreboard board = GlobalScoreboardManager.makeNewScoreboard(
-                    viewer,
-                    playersInWorld
-                );
-                GlobalScoreboardManager.setupScoreboardHP(
-                    board,
-                    playersInWorld
-                );
+            this::scoreboardHandler
+        );
+    }
 
-                Objective obj = board.getObjective("combat_list");
-                if (obj == null) {
-                    obj = board.registerNewObjective(
-                        "combat_list",
-                        Criteria.DUMMY,
-                        Component.text("---- DEATHMATCH ----")
-                            .color(NamedTextColor.GOLD)
-                            .decorate(TextDecoration.BOLD)
-                    );
-                    obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-                }
+    private void scoreboardHandler(Player viewer) {
+        List<Player> playersInGame = lobby.getPlayers();
+        if (playersInGame == null) return;
 
-                for (String entry : board.getEntries())
-                    obj.getScore(entry).resetScore();
+        Scoreboard board = GlobalScoreboardManager.makeNewScoreboard(
+            viewer,
+            playersInGame
+        );
+        GlobalScoreboardManager.setupScoreboardHP(board, playersInGame);
+        Objective obj = GlobalScoreboardManager.initializeCombatList(board);
+        obj.displayName(
+            Component.text("---- DEATHMATCH ----")
+                .color(NamedTextColor.GOLD)
+                .decorate(TextDecoration.BOLD)
+        );
 
-                List<Player> sortedPlayers = new ArrayList<>(playersInWorld);
-                sortedPlayers.removeIf(p -> {
-                    return !p.getScoreboardTags().contains("fighting");
-                });
-                sortedPlayers.sort((p1, p2) -> {
-                    Integer kills1 = killCounts.get(p1);
-                    if (kills1 == null) kills1 = 0;
-                    Integer kills2 = killCounts.get(p2);
-                    if (kills2 == null) kills2 = 0;
-                    if (kills1 != kills2) return Integer.compare(
-                        kills2,
-                        kills1
-                    );
+        for (String entry : board.getEntries())
+            obj.getScore(entry).resetScore();
 
-                    int ks1 = SnapshotPvpPlugin.getPlayerScore(
-                        p1,
-                        "dummyKillstreak"
-                    );
-                    int ks2 = SnapshotPvpPlugin.getPlayerScore(
-                        p2,
-                        "dummyKillstreak"
-                    );
-                    if (ks1 != ks2) return Integer.compare(ks2, ks1);
+        List<Player> sortedPlayers = new ArrayList<>(playersInGame);
+        sortedPlayers.sort((p1, p2) -> {
+            Integer kills1 = killCounts.get(p1);
+            if (kills1 == null) kills1 = 0;
+            Integer kills2 = killCounts.get(p2);
+            if (kills2 == null) kills2 = 0;
+            if (kills1 != kills2) return Integer.compare(kills2, kills1);
 
-                    double hp1 = p1.getHealth();
-                    double hp2 = p2.getHealth();
-                    if (hp1 != hp2) return Double.compare(hp2, hp1);
+            int ks1 = p1.getScoreboardTags().contains("fighting") ? SnapshotPvpPlugin.getPlayerScore(p1, "dummyKillstreak") : -1;
+            int ks2 = p2.getScoreboardTags().contains("fighting") ? SnapshotPvpPlugin.getPlayerScore(p2, "dummyKillstreak") : -1;
+            if (ks1 != ks2) return Integer.compare(ks2, ks1);
 
-                    return p1.getName().compareToIgnoreCase(p2.getName());
-                });
+            double hp1 = p1.getHealth();
+            double hp2 = p2.getHealth();
+            if (hp1 != hp2) return Double.compare(hp2, hp1);
 
-                int position = 100;
-                GlobalScoreboardManager.setHiddenScore(obj, "", position--);
+            return p1.getName().compareToIgnoreCase(p2.getName());
+        });
 
-                for (Player p : sortedPlayers) {
-                    Integer killCount = killCounts.get(p);
-                    if (killCount == null) killCount = 0;
+        int position = 100;
+        GlobalScoreboardManager.setHiddenScore(obj, "", position--);
 
-                    int ks = SnapshotPvpPlugin.getPlayerScore(
-                        p,
-                        "dummyKillstreak"
-                    );
+        for (Player p : sortedPlayers) {
+            Integer killCount = killCounts.get(p);
+            if (killCount == null) killCount = 0;
 
-                    int hp = (int) p.getHealth();
-                    int absorp = (int) p.getAbsorptionAmount();
-                    Team team = SnapshotPvpPlugin.getTeam(p);
-                    ChatColor nameColor =
-                        team != null
-                            ? ChatColor.valueOf(team.getColor().name())
-                            : ChatColor.WHITE;
+            Team team = SnapshotPvpPlugin.getTeam(p);
+            ChatColor nameColor =
+                team != null
+                    ? ChatColor.valueOf(team.getColor().name())
+                    : ChatColor.WHITE;
+            String prefix = team == null ? "" : team.getPrefix();
+            String leftSide = nameColor + prefix + p.getName();
+            String rightSide;
 
-                    String prefix = team == null ? "" : team.getPrefix();
-                    String hpText = "" + ChatColor.GREEN + hp + "❤";
-                    if (absorp > 0) hpText +=
-                        " " + ChatColor.YELLOW + absorp + "❤";
+            if (p.getScoreboardTags().contains("fighting")) {
+                int ks = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
+                int hp = (int) p.getHealth();
+                int absorp = (int) p.getAbsorptionAmount();
+                String hpText = "" + ChatColor.GREEN + hp + "❤";
+                if (absorp > 0) hpText += " " + ChatColor.YELLOW + absorp + "❤";
 
-                    String leftSide = nameColor + prefix + p.getName();
-                    String rightSide =
-                        ChatColor.RED +
-                        "" +
-                        killCount +
-                        (killsRequired == -1 ? "" : "/" + killsRequired) +
-                        "🗡" +
-                        ChatColor.GRAY +
-                        " | " +
-                        ChatColor.GOLD +
-                        ks +
-                        "🔥" +
-                        ChatColor.GRAY +
-                        " | " +
-                        hpText;
-                    GlobalScoreboardManager.setHiddenScore(
-                        obj,
-                        leftSide,
-                        rightSide,
-                        position--
-                    );
-                }
-
-                GlobalScoreboardManager.setHiddenScore(obj, " ", position--);
-                GlobalScoreboardManager.setHiddenScore(
-                    obj,
-                    "  ",
+                rightSide =
+                    ChatColor.RED +
+                    "" +
+                    killCount +
+                    (killsRequired == -1 ? "" : "/" + killsRequired) +
+                    "🗡" +
                     ChatColor.GRAY +
-                        "Time Left: " +
-                        ChatColor.WHITE +
-                        timeLimit / 1200 +
-                        "m" +
-                        (timeLimit % 1200) / 20 +
-                        "s",
-                    position--
-                );
+                    " | " +
+                    ChatColor.GOLD +
+                    ks +
+                    "🔥" +
+                    ChatColor.GRAY +
+                    " | " +
+                    hpText;
+            } else {
+                rightSide =
+                    ChatColor.RED +
+                    "" +
+                    killCount +
+                    (killsRequired == -1 ? "" : "/" + killsRequired) +
+                    "🗡" +
+                    ChatColor.GRAY +
+                    " | " +
+                    ChatColor.AQUA +
+                    "IN LOBBY";
             }
+
+            GlobalScoreboardManager.setHiddenScore(
+                obj,
+                leftSide,
+                rightSide,
+                position--
+            );
+        }
+
+        GlobalScoreboardManager.setHiddenScore(obj, " ", position--);
+        GlobalScoreboardManager.setHiddenScore(
+            obj,
+            "  ",
+            ChatColor.GRAY +
+                "Time Left: " +
+                ChatColor.WHITE +
+                timeLimit / 1200 +
+                "m" +
+                (timeLimit % 1200) / 20 +
+                "s",
+            position--
         );
     }
 
@@ -198,6 +197,7 @@ public class Deathmatch extends Gamemode implements Listener {
 
     @Override
     public void onDestroy() {
+        GlobalScoreboardManager.removeBoardHandler(lobby.getWorld().getName());
         GlobalScoreboardManager.removeBoardHandler(world.getName());
         HandlerList.unregisterAll(this);
     }

@@ -30,7 +30,7 @@ public class GlobalScoreboardManager {
     private final JavaPlugin plugin;
 
     public interface ScoreboardHandler {
-        void setScoreboard(Player viewer, List<Player> playersInWorld);
+        void setScoreboard(Player viewer);
     }
 
     public static final Map<
@@ -53,7 +53,7 @@ public class GlobalScoreboardManager {
                         ScoreboardHandler handler =
                             scoreboardHandlerRegistry.get(world.getName());
                         if (handler != null) {
-                            handler.setScoreboard(viewer, playersInWorld);
+                            handler.setScoreboard(viewer);
                         } else if (
                             viewer.getScoreboardTags().contains("fighting")
                         ) {
@@ -87,21 +87,12 @@ public class GlobalScoreboardManager {
     ) {
         Scoreboard board = makeNewScoreboard(viewer, playersInWorld);
         setupScoreboardHP(board, playersInWorld);
-
-        Objective obj = board.getObjective("combat_list");
-        if (obj == null) {
-            obj = board.registerNewObjective(
-                "combat_list",
-                Criteria.DUMMY,
-                Component.text("---- FFA STATS ----")
-                    .color(NamedTextColor.GOLD)
-                    .decorate(TextDecoration.BOLD)
-            );
-            obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-        }
-
-        for (String entry : board.getEntries())
-            obj.getScore(entry).resetScore();
+        Objective obj = initializeCombatList(board);
+        obj.displayName(
+            Component.text("---- FFA STATS ----")
+                .color(NamedTextColor.GOLD)
+                .decorate(TextDecoration.BOLD)
+        );
 
         List<Player> sortedPlayers = new ArrayList<>(playersInWorld);
         sortedPlayers.removeIf(p -> {
@@ -132,8 +123,8 @@ public class GlobalScoreboardManager {
                 team != null
                     ? ChatColor.valueOf(team.getColor().name())
                     : ChatColor.WHITE;
-
             String prefix = team == null ? "" : team.getPrefix();
+
             String hpText = "" + ChatColor.GREEN + hp + "❤";
             if (absorp > 0) hpText += " " + ChatColor.YELLOW + absorp + "❤";
 
@@ -259,5 +250,18 @@ public class GlobalScoreboardManager {
 
     public static void setHiddenScore(Objective obj, String text, int value) {
         setHiddenScore(obj, text, null, value);
+    }
+
+    public static Objective initializeCombatList(Scoreboard board) {
+        Objective obj = board.getObjective("combat_list");
+        if (obj == null) {
+            obj = board.registerNewObjective("combat_list", Criteria.DUMMY, "");
+            obj.setDisplaySlot(DisplaySlot.SIDEBAR);
+        }
+
+        for (String entry : board.getEntries())
+            obj.getScore(entry).resetScore();
+
+        return obj;
     }
 }
