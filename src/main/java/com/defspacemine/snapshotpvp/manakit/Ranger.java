@@ -25,7 +25,7 @@ public class Ranger extends ManaKit {
     private ItemStack arrow;
 
     public Ranger() {
-        super("ranger", "Ranger", "[Ranged Sniper]", 0);
+        super("ranger", "Ranger", "[Ranged Sniper]", 3);
 
         arrow = new ItemStack(Material.SPECTRAL_ARROW, 1);
         arrow.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);

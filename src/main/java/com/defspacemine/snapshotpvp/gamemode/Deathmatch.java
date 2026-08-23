@@ -26,13 +26,16 @@ import org.bukkit.scoreboard.Team;
 
 public class Deathmatch extends Gamemode implements Listener {
 
-    public int killsRequired = 10;
+    public int killsRequired = -1; // -1 | 5 | 10 | 20
     public int timeLimit = 12000; // ticks ~ 10 minutess
     public Map<Player, Integer> killCounts = new HashMap<Player, Integer>();
 
     public Deathmatch(LobbyInstance lobby, World world) {
         this.lobby = lobby;
         this.world = world;
+
+        int[] arr = { -1, 5, 10, 20 };
+        killsRequired = arr[(int) Math.floor(Math.random() * 4)];
     }
 
     @Override
@@ -136,10 +139,10 @@ public class Deathmatch extends Gamemode implements Listener {
                     String leftSide = nameColor + prefix + p.getName();
                     String rightSide =
                         ChatColor.RED +
-                        "🗡 " +
+                        "" +
                         killCount +
-                        "/" +
-                        killsRequired +
+                        (killsRequired == -1 ? "" : "/" + killsRequired) +
+                        "🗡" +
                         ChatColor.GRAY +
                         " | " +
                         ChatColor.GOLD +
@@ -180,7 +183,7 @@ public class Deathmatch extends Gamemode implements Listener {
 
     @Override
     public boolean isOver() {
-        for (Integer i : killCounts.values())
+        if (killsRequired != -1) for (Integer i : killCounts.values())
             if (i >= killsRequired) return true;
         if (timeLimit <= 0) return true;
         return false;
@@ -188,7 +191,9 @@ public class Deathmatch extends Gamemode implements Listener {
 
     @Override
     public void sendGameOverMessage(Player p) {
-        p.sendMessage("Bro the game finished. Someone shoulda payed attention to who won, just check chat. :|");
+        p.sendMessage(
+            "Bro the game finished. Someone shoulda payed attention to who won, just check chat. :|"
+        );
     }
 
     @Override
