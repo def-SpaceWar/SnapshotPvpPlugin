@@ -319,6 +319,11 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         );
     }
 
+    @Override
+    public void onDisable() {
+        LobbyManager.instance.onDestroy();
+    }
+
     public void hub(CommandSender sender) {
         if (!(sender instanceof Player)) return;
 

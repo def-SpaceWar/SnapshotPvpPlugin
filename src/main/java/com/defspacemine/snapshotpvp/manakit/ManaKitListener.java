@@ -338,6 +338,7 @@ public final class ManaKitListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onEntityShootBow(EntityShootBowEvent event) {
         if (!(event.getEntity() instanceof Player shooter)) return;
+        if (!shooter.getScoreboardTags().contains("combat")) return;
 
         ManaKit shooterKit = getPlayerKit(shooter);
         if (shooterKit == null) return;
@@ -364,7 +365,11 @@ public final class ManaKitListener implements Listener {
         ) return;
 
         for (Player player : victim.getWorld().getPlayers()) {
-            if (player.equals(victim) || player.equals(attacker)) continue;
+            if (
+                player.equals(victim) ||
+                player.equals(attacker) ||
+                !player.getScoreboardTags().contains("combat")
+            ) continue;
             ManaKit kit = getPlayerKit(player);
             if (kit != null) kit.onDamageInWorld(
                 player,
@@ -374,12 +379,17 @@ public final class ManaKitListener implements Listener {
             );
         }
 
-        if (victim instanceof Player p) {
+        if (
+            victim instanceof Player p &&
+            p.getScoreboardTags().contains("combat")
+        ) {
             ManaKit victimKit = getPlayerKit(p);
             if (victimKit != null) victimKit.onDamageTaken(p, event);
         }
 
-        if (attacker != null) {
+        if (
+            attacker != null && attacker.getScoreboardTags().contains("combat")
+        ) {
             ManaKit attackerKit = getPlayerKit(attacker);
             if (attackerKit != null) attackerKit.onDamageDealt(attacker, event);
         }
@@ -421,6 +431,7 @@ public final class ManaKitListener implements Listener {
     @EventHandler
     public void onInteract(PlayerInteractEvent e) {
         Player p = e.getPlayer();
+        if (!p.getScoreboardTags().contains("combat")) return;
         ManaKit kit = getPlayerKit(p);
         if (kit == null) return;
         kit.onInteract(p, e);
@@ -429,6 +440,7 @@ public final class ManaKitListener implements Listener {
     @EventHandler
     public void onInteractEntity(PlayerInteractEntityEvent e) {
         Player p = e.getPlayer();
+        if (!p.getScoreboardTags().contains("combat")) return;
         ManaKit kit = getPlayerKit(p);
         if (kit == null) return;
         kit.onInteractEntity(p, e);
@@ -466,6 +478,7 @@ public final class ManaKitListener implements Listener {
             }
         }
 
+        if (!p.getScoreboardTags().contains("combat")) return;
         ManaKit kit = getPlayerKit(p);
         if (kit == null) return;
         kit.onConsume(p, e);
@@ -474,6 +487,7 @@ public final class ManaKitListener implements Listener {
     @EventHandler
     public void onProjectileHit(ProjectileHitEvent e) {
         if (!(e.getEntity().getShooter() instanceof Player p)) return;
+        if (!p.getScoreboardTags().contains("combat")) return;
         ManaKit kit = getPlayerKit(p);
         if (kit == null) return;
         kit.onProjectileHit(p, e);

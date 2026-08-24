@@ -56,4 +56,11 @@ public class LobbyManager {
             }
         }.runTaskTimer(plugin, 0, 1);
     }
+
+    public void onDestroy() {
+        activeLobbies.removeIf(active -> {
+            active.onDestroy();
+            return true;
+        });
+    }
 }

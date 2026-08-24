@@ -93,7 +93,7 @@ public class ManaKitLobbyType extends LobbyType {
             if (gamemode == null || !gamemode.isOver()) return players;
 
             for (Player p : players) {
-                p.teleport(new Location(world, 0, 65, 0));
+                p.teleport(new Location(world, 0.5, 65, 0.5));
                 gamemode.sendGameOverMessage(p);
             }
             return null;
@@ -131,7 +131,7 @@ public class ManaKitLobbyType extends LobbyType {
                 @Override
                 public void run() {
                     if (
-                        p.teleport(new Location(world, 0, 65, 0)) ||
+                        p.teleport(new Location(world, 0.5, 65, 0.5)) ||
                         !p.isOnline()
                     ) cancel();
                 }
