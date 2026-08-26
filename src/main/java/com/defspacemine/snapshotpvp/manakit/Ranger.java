@@ -37,7 +37,7 @@ public class Ranger extends ManaKit {
     public Ranger() {
         super("ranger", "Ranger", "[Ranged Sniper]", 3);
 
-        arrow = new ItemStack(Material.SPECTRAL_ARROW, 3);
+        arrow = new ItemStack(Material.SPECTRAL_ARROW, 1);
         arrow.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
 
         {
@@ -123,7 +123,7 @@ public class Ranger extends ManaKit {
         );
 
         if (arrowRestockC >= arrowRestock) {
-            inv.addItem(arrow);
+            inv.addItem(arrow, arrow);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
     }
@@ -162,10 +162,11 @@ public class Ranger extends ManaKit {
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         PlayerInventory inv = p.getInventory();
         int arrowCount = countArrows(inv);
-        if (arrowCount < MAX_ARROWS) {
-            inv.addItem(this.arrow);
-            if (arrowCount + 1 < MAX_ARROWS) inv.addItem(this.arrow);
-        }
+        if (arrowCount >= MAX_ARROWS) return;
+        inv.addItem(this.arrow);
+        arrowCount++;
+        if (arrowCount >= MAX_ARROWS) return;
+        inv.addItem(this.arrow);
     }
 
     private int countArrows(PlayerInventory inv) {
