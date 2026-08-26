@@ -17,6 +17,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.entity.SpectralArrow;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -247,7 +248,7 @@ public class Deadeye extends ManaKit {
 
     @Override
     public void onProjectileHit(Player p, ProjectileHitEvent e) {
-        if (e.getEntity() instanceof SpectralArrow && e.getHitEntity() instanceof LivingEntity victim) {
+        if (e.getEntity() instanceof SpectralArrow spec && e.getHitEntity() instanceof LivingEntity victim) {
             int expireTick = Bukkit.getCurrentTick() + markDurationTicks;
 
             PersistentDataContainer pdc = p.getPersistentDataContainer();
@@ -256,6 +257,8 @@ public class Deadeye extends ManaKit {
 
             victim.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, markDurationTicks, 0, false, false));
             victim.getWorld().playSound(victim.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, 1.0f, 0.5f);
+
+            spec.remove();
         }
     }
 

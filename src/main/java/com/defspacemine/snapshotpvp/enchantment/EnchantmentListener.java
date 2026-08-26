@@ -2,6 +2,7 @@ package com.defspacemine.snapshotpvp.enchantment;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
+import io.papermc.paper.entity.LookAnchor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -19,6 +20,7 @@ import org.bukkit.World;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -26,11 +28,15 @@ import org.bukkit.entity.FishHook;
 import org.bukkit.entity.LightningStrike;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.entity.SpectralArrow;
 import org.bukkit.entity.WindCharge;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -41,6 +47,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.Team;
@@ -63,6 +70,7 @@ public class EnchantmentListener implements Listener {
     public static Enchantment FREEZING_ASPECT;
     public static Enchantment LIFE_STEAL;
     public static Enchantment NON_FATAL_SMASH_CURSE;
+    public static Enchantment TARGET_CHAIN;
 
     private final JavaPlugin plugin;
 
@@ -114,6 +122,9 @@ public class EnchantmentListener implements Listener {
         );
         NON_FATAL_SMASH_CURSE = Registry.ENCHANTMENT.get(
             new NamespacedKey("defspacemine", "non_fatal_smash_curse")
+        );
+        TARGET_CHAIN = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "target_chain")
         );
     }
 
@@ -189,8 +200,7 @@ public class EnchantmentListener implements Listener {
         Player p = e.getPlayer();
 
         if (hasTripleJump(p)) tripleJump(p, e);
-
-        if (hasDoubleJump(p)) doubleJump(p, e);
+        else if (hasDoubleJump(p)) doubleJump(p, e);
     }
 
     private boolean hasTripleJump(Player p) {
@@ -393,7 +403,9 @@ public class EnchantmentListener implements Listener {
                     0.1,
                     currentHealth - targetRemainingHealth
                 );
-                e.setDamage(e.getDamage() * maxAllowedFinalDamage / finalDamage);
+                e.setDamage(
+                    (e.getDamage() * maxAllowedFinalDamage) / finalDamage
+                );
             }
         }
     }
@@ -443,6 +455,40 @@ public class EnchantmentListener implements Listener {
 
             player.setCooldown(weapon.getType(), 35);
             player.teleport(teleportLoc);
+        }
+    }
+
+    @EventHandler
+    public void onTargetChain(ProjectileHitEvent e) {
+        if (e.getHitBlock() != null) return;
+        if (!(e.getHitEntity() instanceof LivingEntity victim)) return;
+
+        Projectile projectile = e.getEntity();
+        ItemStack weapon;
+        if (projectile instanceof Arrow arr) {
+            weapon = arr.getWeapon();
+        } else if (projectile instanceof SpectralArrow spec) {
+            weapon = spec.getWeapon();
+        } else return;
+        if (weapon == null || !weapon.containsEnchantment(TARGET_CHAIN)) return;
+
+        ProjectileSource source = projectile.getShooter();
+        if (!(source instanceof LivingEntity shooter)) return;
+        Team team = SnapshotPvpPlugin.getTeamG(shooter);
+
+        for (Entity entity : projectile.getNearbyEntities(20, 20, 20)) {
+            if (!projectile.canHitEntity(entity)) continue;
+            if (victim.equals(entity) || shooter.equals(entity)) continue;
+            if (SnapshotPvpPlugin.isSameTeam(shooter, entity)) continue;
+            projectile.setVelocity(
+                entity
+                    .getBoundingBox()
+                    .getCenter()
+                    .subtract(projectile.getLocation().toVector())
+                    .normalize()
+                    .multiply(3)
+            );
+            return;
         }
     }
 

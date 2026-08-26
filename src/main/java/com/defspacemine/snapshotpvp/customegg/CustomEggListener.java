@@ -531,7 +531,7 @@ public class CustomEggListener implements Listener {
                     }
                 }
             }
-        }.runTaskTimer(plugin, 0L, 2L);
+        }.runTaskTimer(plugin, 0L, 4L);
     }
 
     public void startGlobalAggroTask() {

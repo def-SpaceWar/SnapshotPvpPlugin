@@ -16,10 +16,12 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.data.AnaloguePowerable;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.FaceAttachable;
+import org.bukkit.block.data.Powerable;
 import org.bukkit.block.data.type.Lantern;
 import org.bukkit.block.data.type.PointedDripstone;
 import org.bukkit.damage.DamageSource;
@@ -187,11 +189,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             rollbackQueue.poll();
             originalBlockStates.remove(next.location);
 
-            boolean applyPhysics = !isUnsafeToUpdate(
-                originalState,
-                currentWorldBlock
-            );
-            originalState.update(true, applyPhysics);
+            restoreBlockState(next.location, originalState);
 
             if (!isFluidRelated) {
                 restoredThisTick++;
@@ -217,18 +215,12 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
                 continue;
             }
 
-            //Location feetBlockLoc = player
-            //    .getLocation()
-            //    .getBlock()
-            //    .getLocation();
             Location headBlockLoc = player
                 .getEyeLocation()
                 .getBlock()
                 .getLocation();
 
-            boolean inRegenZone =
-                //originalBlockStates.containsKey(feetBlockLoc) ||
-                originalBlockStates.containsKey(headBlockLoc);
+            boolean inRegenZone = originalBlockStates.containsKey(headBlockLoc);
             boolean inSolidBlock = headBlockLoc
                 .getBlock()
                 .getType()
@@ -269,9 +261,69 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
     @Override
     public void onDestroy() {
         HandlerList.unregisterAll(this);
+
+        Set<Location> restored = new HashSet<>();
+
+        for (Map.Entry<
+            Location,
+            BlockState
+        > entry : originalBlockStates.entrySet()) {
+            Location loc = entry.getKey();
+            BlockState state = entry.getValue();
+            if (
+                state.getType().isSolid() &&
+                !isUnsafeToUpdate(state, loc.getBlock())
+            ) {
+                restoreBlockState(loc, state);
+                restored.add(loc);
+            }
+        }
+
+        for (Map.Entry<
+            Location,
+            BlockState
+        > entry : originalBlockStates.entrySet()) {
+            Location loc = entry.getKey();
+            if (!restored.contains(loc)) {
+                restoreBlockState(loc, entry.getValue());
+            }
+        }
+
         rollbackQueue.clear();
         originalBlockStates.clear();
         regenSuffocationTicks.clear();
+    }
+
+    private void restoreBlockState(Location loc, BlockState originalState) {
+        Block currentWorldBlock = loc.getBlock();
+        BlockData data = originalState.getBlockData();
+        boolean dataModified = false;
+
+        if (data instanceof Powerable) {
+            Powerable powerable = (Powerable) data;
+            if (powerable.isPowered()) {
+                powerable.setPowered(false);
+                dataModified = true;
+            }
+        }
+
+        if (data instanceof AnaloguePowerable) {
+            AnaloguePowerable analogue = (AnaloguePowerable) data;
+            if (analogue.getPower() > 0) {
+                analogue.setPower(0);
+                dataModified = true;
+            }
+        }
+
+        if (dataModified) {
+            originalState.setBlockData(data);
+        }
+
+        boolean applyPhysics = !isUnsafeToUpdate(
+            originalState,
+            currentWorldBlock
+        );
+        originalState.update(true, applyPhysics);
     }
 
     private boolean isFluid(Material type) {

@@ -36,7 +36,7 @@ import org.bukkit.util.Vector;
 
 public class CactusChampion extends ManaKit {
 
-    final int CACTUS_TOTEM_HP = 120;
+    final int CACTUS_TOTEM_HP = 200;
     final int CACTUS_TOTEM_RADIUS = 8;
     final int CACTUS_TOTEM_RADIUS_SQUARED =
         CACTUS_TOTEM_RADIUS * CACTUS_TOTEM_RADIUS;
@@ -186,7 +186,7 @@ public class CactusChampion extends ManaKit {
                         CACTUS_TOTEM_RADIUS_SQUARED
                     ) {
                         nearby.addPotionEffect(
-                            new PotionEffect(PotionEffectType.RESISTANCE, 40, 0)
+                            new PotionEffect(PotionEffectType.RESISTANCE, 40, 1)
                         );
                     }
                 }

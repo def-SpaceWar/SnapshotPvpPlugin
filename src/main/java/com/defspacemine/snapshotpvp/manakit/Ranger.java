@@ -145,12 +145,10 @@ public class Ranger extends ManaKit {
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
         PlayerInventory inv = p.getInventory();
-        for (
-            int arrowCount = countArrows(inv);
-            arrowCount < MAX_ARROWS;
-            arrowCount++
-        ) {
+        int arrowCount = countArrows(inv);
+        while (arrowCount < MAX_ARROWS) {
             inv.addItem(arrow);
+            arrowCount++;
         }
         SnapshotPvpPlugin.clearInv(inv, Material.IRON_SWORD);
         inv.addItem(kbSword);

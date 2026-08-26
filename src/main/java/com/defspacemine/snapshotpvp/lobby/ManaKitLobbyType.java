@@ -3,6 +3,7 @@ package com.defspacemine.snapshotpvp.lobby;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.gamemode.Deathmatch;
 import com.defspacemine.snapshotpvp.gamemode.Gamemode;
+import com.defspacemine.snapshotpvp.gamemode.Streakmatch;
 import com.defspacemine.snapshotpvp.map.BobInvasionRemaster;
 import com.defspacemine.snapshotpvp.map.BobLands;
 import com.defspacemine.snapshotpvp.map.GameMap;
@@ -70,7 +71,8 @@ public class ManaKitLobbyType extends LobbyType {
                 Math.random() > 0.5
                     ? new BobLands(this, mapWorld)
                     : new BobInvasionRemaster(this, mapWorld);
-            gamemode = new Deathmatch(this, mapWorld);
+            // gamemode = new Deathmatch(this, mapWorld);
+            gamemode = new Streakmatch(this, mapWorld);
             gameMap.onCreate();
             gamemode.onStart();
 
@@ -92,10 +94,9 @@ public class ManaKitLobbyType extends LobbyType {
 
             if (gamemode == null || !gamemode.isOver()) return players;
 
-            for (Player p : players) {
+            for (Player p : players) gamemode.sendGameOverMessage(p);
+            for (Player p : players)
                 p.teleport(new Location(world, 0.5, 65, 0.5));
-                gamemode.sendGameOverMessage(p);
-            }
             return null;
         }
 
