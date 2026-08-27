@@ -123,7 +123,7 @@ public class Ranger extends ManaKit {
         );
 
         if (arrowRestockC >= arrowRestock) {
-            inv.addItem(arrow, arrow);
+            inv.addItem(arrow);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
     }
@@ -139,7 +139,13 @@ public class Ranger extends ManaKit {
     @Override
     public void onEnterCombat(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestock);
+        pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
+        PlayerInventory inv = p.getInventory();
+        int arrowCount = countArrows(inv);
+        while (arrowCount < MAX_ARROWS) {
+            inv.addItem(arrow);
+            arrowCount++;
+        }
     }
 
     @Override

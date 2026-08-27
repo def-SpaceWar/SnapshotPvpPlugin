@@ -18,6 +18,10 @@ public class BobInvasionRemaster extends RegenerativeGameMap {
     public BobInvasionRemaster(LobbyInstance lobby, World world) {
         this.lobby = lobby;
         this.world = world;
+
+        blocksPerTick *= 2;
+        minDelayTicks *= 2;
+        maxDelayTicks *= 2;
     }
 
     @Override

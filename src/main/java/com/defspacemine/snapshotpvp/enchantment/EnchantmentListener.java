@@ -10,6 +10,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.GameMode;
+import org.bukkit.Input;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -38,8 +39,10 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerFishEvent;
+import org.bukkit.event.player.PlayerInputEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -75,7 +78,7 @@ public class EnchantmentListener implements Listener {
     private final JavaPlugin plugin;
 
     private final Map<UUID, Integer> jumpCount = new HashMap<>();
-    private final Map<UUID, BukkitTask> groundCheck = new HashMap<>();
+    private final Map<UUID, Boolean> lastJumpInput = new HashMap<>();
 
     public EnchantmentListener(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -131,16 +134,119 @@ public class EnchantmentListener implements Listener {
     @EventHandler
     public void onMove(PlayerMoveEvent e) {
         Player p = e.getPlayer();
+        if (p.isOnGround()) {
+            jumpCount.put(p.getUniqueId(), 0);
+        }
+    }
 
-        if (hasTripleJump(p) || hasDoubleJump(p)) {
-            if (p.isOnGround()) {
-                jumpCount.put(p.getUniqueId(), 0);
-                p.setAllowFlight(true);
+    @EventHandler
+    public void onPlayerInput(PlayerInputEvent e) {
+        Player p = e.getPlayer();
+
+        if (
+            p.getGameMode() == GameMode.CREATIVE ||
+            p.getGameMode() == GameMode.SPECTATOR
+        ) return;
+
+        boolean hasTriple = hasTripleJump(p);
+        boolean hasDouble = hasDoubleJump(p);
+        if (!hasTriple && !hasDouble) return;
+
+        Input input = e.getInput();
+        boolean isJumpingNow = input.isJump();
+        boolean wasJumpingLast = lastJumpInput.getOrDefault(
+            p.getUniqueId(),
+            false
+        );
+
+        lastJumpInput.put(p.getUniqueId(), isJumpingNow);
+
+        if (isJumpingNow && !wasJumpingLast) {
+            if (!p.isOnGround() && !p.isSwimming() && !p.isClimbing()) {
+                int maxJumps = hasTriple ? 2 : 1;
+                int currentJumps = jumpCount.getOrDefault(p.getUniqueId(), 0);
+
+                if (currentJumps < maxJumps) {
+                    if (p.isGliding()) p.setGliding(false);
+
+                    jumpCount.put(p.getUniqueId(), currentJumps + 1);
+
+                    if (hasTriple) performTripleJump(p);
+                    else performDoubleJump(p);
+                }
             }
-        } else if (
-            p.getGameMode() == GameMode.ADVENTURE ||
-            p.getGameMode() == GameMode.SURVIVAL
-        ) p.setAllowFlight(false);
+        }
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent e) {
+        UUID uuid = e.getPlayer().getUniqueId();
+        jumpCount.remove(uuid);
+        lastJumpInput.remove(uuid);
+    }
+
+    private boolean hasTripleJump(Player p) {
+        ItemStack boots = p.getInventory().getBoots();
+        return boots != null && boots.containsEnchantment(TRIPLE_JUMP);
+    }
+
+    private boolean hasDoubleJump(Player p) {
+        ItemStack boots = p.getInventory().getBoots();
+        return boots != null && boots.containsEnchantment(DOUBLE_JUMP);
+    }
+
+    private void performTripleJump(Player p) {
+        Vector direction = p.getLocation().getDirection().normalize();
+        Vector boost = direction.multiply(0.6);
+        boost.setY(0.9);
+
+        p.setVelocity(p.getVelocity().add(boost));
+
+        p.getWorld().spawnParticle(
+            Particle.GUST,
+            p.getLocation(),
+            10,
+            0.2,
+            0.2,
+            0.2,
+            0
+        );
+
+        p.getWorld().playSound(
+            p.getLocation(),
+            Sound.ENTITY_WIND_CHARGE_THROW,
+            1f,
+            1f
+        );
+
+        WindCharge charge = (WindCharge) p
+            .getWorld()
+            .spawnEntity(
+                p.getLocation().subtract(0, 1, 0),
+                EntityType.WIND_CHARGE
+            );
+
+        charge.setShooter(p);
+        charge.setVelocity(new Vector(0, -1, 0));
+    }
+
+    private void performDoubleJump(Player p) {
+        Location loc = p.getLocation();
+        Creeper creeper = (Creeper) loc
+            .getWorld()
+            .spawnEntity(loc, EntityType.CREEPER);
+
+        creeper.customName(
+            Component.text(
+                "Double Jump",
+                NamedTextColor.AQUA,
+                TextDecoration.BOLD
+            ).append(Component.text(" ...wait what?", NamedTextColor.WHITE))
+        );
+        creeper.setCustomNameVisible(true);
+        creeper.setMaxFuseTicks(0);
+        creeper.setExplosionRadius(-1);
+        creeper.setIgnited(true);
     }
 
     @EventHandler
@@ -193,107 +299,6 @@ public class EnchantmentListener implements Listener {
         );
         creeper.setExplosionRadius(level);
         creeper.explode();
-    }
-
-    @EventHandler
-    public void onFlight(PlayerToggleFlightEvent e) {
-        Player p = e.getPlayer();
-
-        if (hasTripleJump(p)) tripleJump(p, e);
-        else if (hasDoubleJump(p)) doubleJump(p, e);
-    }
-
-    private boolean hasTripleJump(Player p) {
-        ItemStack boots = p.getInventory().getBoots();
-        return boots != null && boots.containsEnchantment(TRIPLE_JUMP);
-    }
-
-    private boolean hasDoubleJump(Player p) {
-        ItemStack boots = p.getInventory().getBoots();
-        return boots != null && boots.containsEnchantment(DOUBLE_JUMP);
-    }
-
-    private void tripleJump(Player p, PlayerToggleFlightEvent e) {
-        if (p.getGameMode() == GameMode.CREATIVE) return;
-
-        e.setCancelled(true);
-        p.setFlying(false);
-
-        int jumps = jumpCount.getOrDefault(p.getUniqueId(), 0);
-
-        if (jumps >= 2) {
-            p.setAllowFlight(false);
-            return;
-        }
-
-        jumpCount.put(p.getUniqueId(), jumps + 1);
-
-        Vector direction = p.getLocation().getDirection().normalize();
-        Vector boost = direction.multiply(0.6);
-        boost.setY(0.9);
-
-        p.setVelocity(p.getVelocity().add(boost));
-
-        p.getWorld().spawnParticle(
-            Particle.GUST,
-            p.getLocation(),
-            10,
-            0.2,
-            0.2,
-            0.2,
-            0
-        );
-
-        p.getWorld().playSound(
-            p.getLocation(),
-            Sound.ENTITY_WIND_CHARGE_THROW,
-            1f,
-            1f
-        );
-
-        WindCharge charge = (WindCharge) p
-            .getWorld()
-            .spawnEntity(
-                p.getLocation().subtract(0, 1, 0),
-                EntityType.WIND_CHARGE
-            );
-
-        charge.setShooter(p);
-        charge.setVelocity(new Vector(0, -1, 0));
-    }
-
-    private void doubleJump(Player p, PlayerToggleFlightEvent e) {
-        if (p.getGameMode() == GameMode.CREATIVE) return;
-
-        e.setCancelled(true);
-        p.setFlying(false);
-
-        int jumps = jumpCount.getOrDefault(p.getUniqueId(), 0);
-
-        if (jumps >= 1) {
-            p.setAllowFlight(false);
-            return;
-        }
-
-        jumpCount.put(p.getUniqueId(), jumps + 1);
-
-        Location loc = p.getLocation();
-        Creeper creeper = (Creeper) loc
-            .getWorld()
-            .spawnEntity(loc, EntityType.CREEPER);
-        // CustomEggListener.injectOwner(creeper, p);
-
-        creeper.customName(
-            Component.text(
-                "Double Jump",
-                NamedTextColor.AQUA,
-                TextDecoration.BOLD
-            ).append(Component.text(" ...wait what?", NamedTextColor.WHITE))
-        );
-        creeper.setCustomNameVisible(true);
-        creeper.setMaxFuseTicks(0);
-        creeper.setExplosionRadius(-1);
-        creeper.setIgnited(true);
     }
 
     @EventHandler(ignoreCancelled = true)

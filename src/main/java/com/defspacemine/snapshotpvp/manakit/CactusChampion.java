@@ -87,11 +87,7 @@ public class CactusChampion extends ManaKit {
         pdc.set(ManaKitListener.MANA_KIT, PersistentDataType.STRING, this.id);
         pdc.set(counterSpikesCounter, PersistentDataType.INTEGER, 0);
         pdc.set(cactusTotemCounter, PersistentDataType.INTEGER, 0);
-        pdc.set(
-            cactusTotemUUID,
-            PersistentDataType.STRING,
-            ""
-        );
+        pdc.set(cactusTotemUUID, PersistentDataType.STRING, "");
     }
 
     @Override
@@ -172,6 +168,7 @@ public class CactusChampion extends ManaKit {
 
             showParticleCircle(kitEntity.getLocation(), CACTUS_TOTEM_RADIUS);
 
+            if (p.getTicksLived() % 10 != 0) return;
             for (Player nearby : kitEntity.getWorld().getPlayers()) {
                 if (
                     nearby.equals(p) ||
@@ -183,12 +180,9 @@ public class CactusChampion extends ManaKit {
                         nearby
                             .getLocation()
                             .distanceSquared(kitEntity.getLocation()) <=
-                        CACTUS_TOTEM_RADIUS_SQUARED
-                    ) {
-                        nearby.addPotionEffect(
-                            new PotionEffect(PotionEffectType.RESISTANCE, 40, 1)
-                        );
-                    }
+                            CACTUS_TOTEM_RADIUS_SQUARED &&
+                        !nearby.isDead()
+                    ) nearby.heal(1);
                 }
             }
         }
@@ -400,11 +394,7 @@ public class CactusChampion extends ManaKit {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(counterSpikesCounter, PersistentDataType.INTEGER, 0);
         pdc.set(cactusTotemCounter, PersistentDataType.INTEGER, 0);
-        pdc.set(
-            cactusTotemUUID,
-            PersistentDataType.STRING,
-            ""
-        );
+        pdc.set(cactusTotemUUID, PersistentDataType.STRING, "");
     }
 
     @Override
