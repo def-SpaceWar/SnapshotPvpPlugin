@@ -168,23 +168,120 @@ public class CactusChampion extends ManaKit {
 
             showParticleCircle(kitEntity.getLocation(), CACTUS_TOTEM_RADIUS);
 
-            if (p.getTicksLived() % 10 != 0) return;
-            for (Player nearby : kitEntity.getWorld().getPlayers()) {
-                if (
-                    nearby.equals(p) ||
-                    SnapshotPvpPlugin.getTeam(p).equals(
-                        SnapshotPvpPlugin.getTeam(nearby)
-                    )
-                ) {
+            if (p.getTicksLived() % 20 != 0) return;
+
+            Location waveCenter = kitEntity
+                .getLocation()
+                .clone()
+                .add(0, 0.2, 0);
+            DustOptions healDust = new DustOptions(
+                Color.fromRGB(80, 220, 100),
+                1.2f
+            );
+
+            new org.bukkit.scheduler.BukkitRunnable() {
+                double currentRadius = .5;
+                final java.util.Set<java.util.UUID> healedEntities =
+                    new java.util.HashSet<>();
+
+                @Override
+                public void run() {
                     if (
-                        nearby
-                            .getLocation()
-                            .distanceSquared(kitEntity.getLocation()) <=
-                            CACTUS_TOTEM_RADIUS_SQUARED &&
-                        !nearby.isDead()
-                    ) nearby.heal(1);
+                        currentRadius > CACTUS_TOTEM_RADIUS ||
+                        !kitEntity.isValid()
+                    ) {
+                        cancel();
+                        return;
+                    }
+
+                    int points = (int) (currentRadius * 4) + 4;
+                    for (int i = 0; i < points; i++) {
+                        double angle = (2 * Math.PI * i) / points;
+                        double x =
+                            waveCenter.getX() + currentRadius * Math.cos(angle);
+                        double z =
+                            waveCenter.getZ() + currentRadius * Math.sin(angle);
+                        Location pLoc = new Location(
+                            waveCenter.getWorld(),
+                            x,
+                            waveCenter.getY(),
+                            z
+                        );
+
+                        waveCenter
+                            .getWorld()
+                            .spawnParticle(
+                                Particle.DUST,
+                                pLoc,
+                                1,
+                                0,
+                                0.02,
+                                0,
+                                0,
+                                healDust
+                            );
+                        //if (i % 3 == 0) {
+                        //    waveCenter
+                        //        .getWorld()
+                        //        .spawnParticle(
+                        //            Particle.HAPPY_VILLAGER,
+                        //            pLoc,
+                        //            1,
+                        //            0,
+                        //            0,
+                        //            0,
+                        //            0
+                        //        );
+                        //}
+                    }
+
+                    double currentRadiusSquared = currentRadius * currentRadius;
+                    Location totemLoc = kitEntity.getLocation();
+
+                    for (Player nearby : kitEntity.getWorld().getPlayers()) {
+                        if (
+                            healedEntities.contains(nearby.getUniqueId()) ||
+                            nearby.isDead()
+                        ) {
+                            continue;
+                        }
+
+                        Location playerLoc = nearby.getLocation();
+
+                        double dy = Math.abs(
+                            playerLoc.getY() - totemLoc.getY()
+                        );
+                        if (dy > 1.0) {
+                            continue;
+                        }
+
+                        double dx = playerLoc.getX() - totemLoc.getX();
+                        double dz = playerLoc.getZ() - totemLoc.getZ();
+                        double xzDistanceSquared = dx * dx + dz * dz;
+
+                        if (xzDistanceSquared <= currentRadiusSquared) {
+                            boolean isSameTeam =
+                                SnapshotPvpPlugin.getTeam(p) != null &&
+                                SnapshotPvpPlugin.getTeam(p).equals(
+                                    SnapshotPvpPlugin.getTeam(nearby)
+                                );
+
+                            if (nearby.equals(p) || isSameTeam) {
+                                healedEntities.add(nearby.getUniqueId());
+                                nearby.heal(1);
+                            }
+                        }
+                    }
+
+                    currentRadius += .5;
                 }
-            }
+            }.runTaskTimer(
+                org.bukkit.plugin.java.JavaPlugin.getPlugin(
+                    SnapshotPvpPlugin.class
+                ),
+                0L,
+                1L
+            );
         }
     }
 
