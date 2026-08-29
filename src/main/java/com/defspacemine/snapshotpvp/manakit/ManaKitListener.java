@@ -225,6 +225,7 @@ public final class ManaKitListener implements Listener {
         registerKit(new HellboundRonin());
         registerKit(new Deadeye());
         registerKit(new BuckshotViking());
+        registerKit(new HeadlessHorseman());
 
         manakitGameLoop();
     }
@@ -286,6 +287,22 @@ public final class ManaKitListener implements Listener {
             }
         }
         p.updateInventory();
+    }
+
+    public static ItemStack getItemFromShulker(
+        int idx,
+        String worldName,
+        int x,
+        int y,
+        int z
+    ) {
+        World world = Bukkit.getWorld(worldName);
+        if (world == null) return null;
+
+        Block block = world.getBlockAt(x, y, z);
+        if (!(block.getState() instanceof ShulkerBox shulker)) return null;
+
+        return shulker.getInventory().getItem(idx);
     }
 
     public boolean hasKit(Player player) {

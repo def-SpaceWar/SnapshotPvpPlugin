@@ -189,6 +189,8 @@ public class LightPaladin extends ManaKit {
 
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
+        if (!(e.getEntity() instanceof Player)) return;
+
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(
             holyShieldRestockCounter,
