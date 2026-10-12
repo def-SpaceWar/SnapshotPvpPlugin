@@ -218,8 +218,8 @@ public class Gambler extends ManaKit {
         int comboC = pdc.get(comboCounter, PersistentDataType.INTEGER);
         int moneyC = pdc.get(moneyCounter, PersistentDataType.INTEGER);
 
-        int gain = (int) ((20 * Math.pow(1.5, comboC + luckLevel))
-                + (Math.random() * (3 + luckLevel) + 1));
+        int gain = Math.min((int) ((20 * Math.pow(1.5, comboC + luckLevel))
+                + (Math.random() * (3 + luckLevel) + 1)), 100_000);
         pdc.set(moneyCounter, PersistentDataType.INTEGER, Math.min(moneyMax, moneyC + gain));
         pdc.set(comboCounter, PersistentDataType.INTEGER, comboC + 1);
 

@@ -7,6 +7,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Trident;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -96,12 +97,15 @@ public class Tridentite extends ManaKit {
         }
     }
 
-    @Override
-    public void onLeaveCombat(Player p) {
+    public void onDeath(Player p, PlayerDeathEvent e) {
         PlayerInventory inv = p.getInventory();
         if (!inv.contains(Material.TRIDENT) &&
                 inv.getItemInOffHand().getType() != Material.TRIDENT)
             retrieveTrident(p);
+    }
+
+    @Override
+    public void onLeaveCombat(Player p) {
         p.clearActivePotionEffects();
         resetKit(p);
     }

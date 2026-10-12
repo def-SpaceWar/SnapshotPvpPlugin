@@ -92,18 +92,19 @@ public class SculkWarrior extends ManaKit {
     }
 
     @Override
-    public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.ECHO_SHARD);
-        SnapshotPvpPlugin.clearInv(inv, Material.SCULK_SHRIEKER);
-
+    public void onDeath(Player p, PlayerDeathEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(isChargingKey, PersistentDataType.BOOLEAN, false);
 
         Entity warden = getEntityFromPDC(pdc, sculkWardenUUID);
-        if (warden != null) {
-            warden.remove();
-        }
+        if (warden != null) warden.remove();
+    }
+
+    @Override
+    public void onLeaveCombat(Player p) {
+        PlayerInventory inv = p.getInventory();
+        SnapshotPvpPlugin.clearInv(inv, Material.ECHO_SHARD);
+        SnapshotPvpPlugin.clearInv(inv, Material.SCULK_SHRIEKER);
 
         p.clearActivePotionEffects();
         resetKit(p);
@@ -286,7 +287,7 @@ public class SculkWarrior extends ManaKit {
 
     @Override
     public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {
-        p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 2));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 40, 2));
     }
 
     @Override
@@ -365,26 +366,26 @@ public class SculkWarrior extends ManaKit {
         final float lockedYaw = player.getLocation().getYaw();
         final float lockedPitch = player.getLocation().getPitch();
 
-        player.addPotionEffect(
-            new PotionEffect(
-                PotionEffectType.SLOWNESS,
-                SONIC_BOOM_CHARGE_TICKS + 5,
-                255,
-                false,
-                false,
-                false
-            )
-        );
-        player.addPotionEffect(
-            new PotionEffect(
-                PotionEffectType.JUMP_BOOST,
-                SONIC_BOOM_CHARGE_TICKS + 5,
-                255,
-                false,
-                false,
-                false
-            )
-        );
+        //  player.addPotionEffect(
+        //      new PotionEffect(
+        //          PotionEffectType.SLOWNESS,
+        //          SONIC_BOOM_CHARGE_TICKS + 5,
+        //          255,
+        //          false,
+        //          false,
+        //          false
+        //      )
+        //  );
+        //  player.addPotionEffect(
+        //      new PotionEffect(
+        //          PotionEffectType.JUMP_BOOST,
+        //          SONIC_BOOM_CHARGE_TICKS + 5,
+        //          255,
+        //          false,
+        //          false,
+        //          false
+        //      )
+        //  );
         player
             .getWorld()
             .playSound(
@@ -412,7 +413,7 @@ public class SculkWarrior extends ManaKit {
                 ) {
                     currentLoc.setYaw(lockedYaw);
                     currentLoc.setPitch(lockedPitch);
-                    player.teleport(currentLoc);
+                    // player.teleport(currentLoc);
                 }
 
                 Location center = player.getLocation().add(0, 1.0, 0);

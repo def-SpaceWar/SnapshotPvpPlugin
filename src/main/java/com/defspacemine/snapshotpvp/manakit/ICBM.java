@@ -59,7 +59,7 @@ public class ICBM extends ManaKit {
                     .trail(true)
                     .flicker(true)
                     .build();
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 3; i++)
                 meta.addEffect(effect);
             meta.setPower(7);
             avgMissiles.setItemMeta(meta);
@@ -76,7 +76,7 @@ public class ICBM extends ManaKit {
             FireworkEffect effect = FireworkEffect.builder()
                     .with(FireworkEffect.Type.BALL)
                     .build();
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 7; i++)
                 meta.addEffect(effect);
             meta.setPower(0);
             antimatterMissiles.setItemMeta(meta);

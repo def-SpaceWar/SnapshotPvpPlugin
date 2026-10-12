@@ -106,7 +106,10 @@ public class HeadlessHorseman extends ManaKit {
 
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        int midnightRideC = pdc.get(midnightRideCounter, PersistentDataType.INTEGER);
+        int midnightRideC = pdc.get(
+            midnightRideCounter,
+            PersistentDataType.INTEGER
+        );
         boolean hasEgg = p
             .getInventory()
             .contains(Material.ZOMBIE_HORSE_SPAWN_EGG);
@@ -268,6 +271,12 @@ public class HeadlessHorseman extends ManaKit {
     public void onKill(Player p, PlayerDeathEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(midnightRideCounter, PersistentDataType.INTEGER, midnightRide);
+    }
+
+    @Override
+    public void onDeath(Player p, PlayerDeathEvent e) {
+        ZombieHorse horse = getTrackedHorse(p);
+        if (horse != null) horse.remove();
     }
 
     private void checkHorseState(Player p) {
