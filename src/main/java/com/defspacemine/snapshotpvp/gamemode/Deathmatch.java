@@ -28,6 +28,7 @@ public class Deathmatch extends Gamemode implements Listener {
 
     public int killsRequired = -1; // -1 | 5 | 10 | 20
     public int timeLimit = 18000; // ticks ~ 15 minutess
+    // public int timeLimit = 912000000;
     public Map<Player, Integer> killCounts = new HashMap<Player, Integer>();
 
     public Deathmatch(LobbyInstance lobby, World world) {
