@@ -1,5 +1,6 @@
 package com.defspacemine.snapshotpvp.map;
 
+import org.bukkit.Location;
 import org.bukkit.World;
 
 import com.defspacemine.snapshotpvp.gamemode.Gamemode;
@@ -14,4 +15,5 @@ public abstract class GameMap {
     public abstract void onCreate();
     public abstract void onTick();
     public abstract void onDestroy();
+    public abstract Location[] getSpawnPoints();
 }

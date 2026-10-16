@@ -104,8 +104,19 @@ public class ManaKitLobbyType extends LobbyType {
             // if (lobbyState == LobbyState.IN_GAME)
             {
                 if (gameMap != null) {
-                    for (Player p : mapWorld.getPlayers())
-                        p.addScoreboardTag("fighting");
+                    for (Player p : mapWorld.getPlayers()) {
+                        if (!p.getScoreboardTags().contains("fighting")) {
+                            p.addScoreboardTag("fighting");
+                            Location[] spawnPoints = gameMap.getSpawnPoints();
+                            p.teleport(
+                                spawnPoints[
+                                    (int) Math.floor(
+                                        Math.random() * spawnPoints.length
+                                    )
+                                ]
+                            );
+                        }
+                    }
                     for (Player p : world.getPlayers())
                         p.removeScoreboardTag("fighting");
                     gameMap.onTick();

@@ -123,7 +123,7 @@ public class Ranger extends ManaKit {
         );
 
         if (arrowRestockC >= arrowRestock) {
-            inv.addItem(arrow);
+            for (int i = 0; i < MAX_ARROWS; i++) inv.addItem(arrow);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
     }

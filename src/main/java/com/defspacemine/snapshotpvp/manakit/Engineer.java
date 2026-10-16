@@ -37,11 +37,14 @@ import org.bukkit.util.Vector;
 
 public class Engineer extends ManaKit {
 
-    public static final double DROID_HEALTH = 40;
-    public static final double SENTRY_HEALTH = 80;
+    public static final double DROID_HEALTH = 20;
+    public static final int DROID_AMOUNT = 5;
+    public static final double SENTRY_HEALTH = 20;
+    public static final int SENTRY_AMOUNT = 3;
+    public static final int SUMMON_TICKS = 300;
 
     final NamespacedKey fuelCounter = ManaKitListener.MANA_KIT_DATA0;
-    final int bot = 15; // 15 attacks per bots
+    final int bot = 35; // 35 attacks per bots
     final NamespacedKey botChargeCounter = ManaKitListener.MANA_KIT_DATA1;
     final int tpCooldown = 200; // 10 seconds between teleport
     final NamespacedKey tpCooldownCounter = ManaKitListener.MANA_KIT_DATA2;
@@ -67,7 +70,7 @@ public class Engineer extends ManaKit {
         meta.setUnbreakable(true);
         trident.setItemMeta(meta);
 
-        droid = new ItemStack(Material.WITHER_SKELETON_SPAWN_EGG, 1);
+        droid = new ItemStack(Material.WITHER_SKELETON_SPAWN_EGG, DROID_AMOUNT);
         ItemMeta dMeta = droid.getItemMeta();
         dMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
         dMeta.setDisplayName(ChatColor.DARK_GRAY + "Droid");
@@ -80,7 +83,7 @@ public class Engineer extends ManaKit {
             );
         droid.setItemMeta(dMeta);
 
-        sentry = new ItemStack(Material.SKELETON_SPAWN_EGG, 1);
+        sentry = new ItemStack(Material.SKELETON_SPAWN_EGG, SENTRY_AMOUNT);
         ItemMeta sMeta = sentry.getItemMeta();
         sMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
         sMeta.setDisplayName(ChatColor.GRAY + "Sentry");

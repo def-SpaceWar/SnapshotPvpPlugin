@@ -9,7 +9,9 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
 
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 import com.defspacemine.snapshotpvp.customegg.CustomMob;
 import com.defspacemine.snapshotpvp.manakit.Engineer;
@@ -44,10 +46,28 @@ public class EngineerDroid implements CustomMob {
         droid.getEquipment().setBoots(new ItemStack(Material.IRON_BOOTS));
         droid.getEquipment().setItemInMainHand(new ItemStack(Material.AIR));
 
-        droid.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, -1, 4));
-        droid.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, -1, 4));
+        droid.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, -1, 2));
+        droid.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, -1, 2));
         droid.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, -1, 0));
-        droid.setPersistent(true); 
+        droid.setPersistent(true);
+
+        new BukkitRunnable() {
+            int tick = 0;
+
+            @Override
+            public void run() {
+                if (droid.isDead() || droid == null) {
+                    cancel();
+                    return;
+                }
+
+                tick++;
+                if (tick >= Engineer.SUMMON_TICKS) {
+                    droid.remove();
+                    cancel();
+                }
+            }
+        }.runTaskTimer(SnapshotPvpPlugin.instance, 0, 1);
 
         return droid;
     }

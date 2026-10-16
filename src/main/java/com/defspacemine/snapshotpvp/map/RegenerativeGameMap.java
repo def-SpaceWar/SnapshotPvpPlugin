@@ -292,6 +292,10 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
         rollbackQueue.clear();
         originalBlockStates.clear();
         regenSuffocationTicks.clear();
+
+        world.getEntities().forEach(e -> {
+            e.remove();
+        });
     }
 
     private void restoreBlockState(Location loc, BlockState originalState) {
