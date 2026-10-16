@@ -39,8 +39,10 @@ public class Engineer extends ManaKit {
 
     public static final double DROID_HEALTH = 20;
     public static final int DROID_AMOUNT = 5;
+    public static final int UPGRADED_DROID_AMOUNT = 2;
     public static final double SENTRY_HEALTH = 20;
     public static final int SENTRY_AMOUNT = 3;
+    public static final int UPGRADED_SENTRY_AMOUNT = 1;
     public static final int SUMMON_TICKS = 300;
 
     final NamespacedKey fuelCounter = ManaKitListener.MANA_KIT_DATA0;
@@ -57,7 +59,9 @@ public class Engineer extends ManaKit {
 
     private ItemStack trident;
     private final ItemStack droid;
+    private final ItemStack upgradedDroid;
     private final ItemStack sentry;
+    private final ItemStack upgradedSentry;
     private final ItemStack teleporterItem;
 
     public Engineer() {
@@ -83,6 +87,20 @@ public class Engineer extends ManaKit {
             );
         droid.setItemMeta(dMeta);
 
+
+        upgradedDroid = new ItemStack(Material.WITHER_SKELETON_SPAWN_EGG, UPGRADED_DROID_AMOUNT);
+        ItemMeta udMeta = upgradedDroid.getItemMeta();
+        udMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
+        udMeta.setDisplayName(ChatColor.GOLD + "Upgraded Droid");
+        udMeta
+            .getPersistentDataContainer()
+            .set(
+                CustomEggListener.CUSTOM_EGG,
+                PersistentDataType.STRING,
+                "engineer_upgraded_droid"
+            );
+        upgradedDroid.setItemMeta(udMeta);
+
         sentry = new ItemStack(Material.SKELETON_SPAWN_EGG, SENTRY_AMOUNT);
         ItemMeta sMeta = sentry.getItemMeta();
         sMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
@@ -95,6 +113,19 @@ public class Engineer extends ManaKit {
                 "engineer_sentry"
             );
         sentry.setItemMeta(sMeta);
+
+        upgradedSentry = new ItemStack(Material.SKELETON_SPAWN_EGG, UPGRADED_SENTRY_AMOUNT);
+        ItemMeta usMeta = upgradedSentry.getItemMeta();
+        usMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
+        usMeta.setDisplayName(ChatColor.AQUA + "Upgraded Sentry");
+        usMeta
+            .getPersistentDataContainer()
+            .set(
+                CustomEggListener.CUSTOM_EGG,
+                PersistentDataType.STRING,
+                "engineer_upgraded_sentry"
+            );
+        upgradedSentry.setItemMeta(usMeta);
 
         teleporterItem = new ItemStack(Material.BEACON);
         ItemMeta tMeta = teleporterItem.getItemMeta();
@@ -185,8 +216,8 @@ public class Engineer extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (botChargeC >= bot) {
-            SnapshotPvpPlugin.clearInv(inv, Material.WITHER_SKELETON_SPAWN_EGG);
-            SnapshotPvpPlugin.clearInv(inv, Material.SKELETON_SPAWN_EGG);
+            SnapshotPvpPlugin.clearInv(inv, CustomEggListener.injectOwner(droid, p));
+            SnapshotPvpPlugin.clearInv(inv, CustomEggListener.injectOwner(sentry, p));
             inv.addItem(CustomEggListener.injectOwner(droid, p));
             inv.addItem(CustomEggListener.injectOwner(sentry, p));
             pdc.set(botChargeCounter, PersistentDataType.INTEGER, 0);
@@ -438,16 +469,21 @@ public class Engineer extends ManaKit {
             Math.min(
                 100,
                 pdc.getOrDefault(fuelCounter, PersistentDataType.INTEGER, 0) +
-                    5 * (killstreak >= 2 ? 2 : 1)
+                    3 * (killstreak >= 2 ? 2 : 1)
             )
         );
     }
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
-        PersistentDataContainer pdc = p.getPersistentDataContainer();
-        pdc.set(fuelCounter, PersistentDataType.INTEGER, 100);
-        pdc.set(botChargeCounter, PersistentDataType.INTEGER, bot);
+        // PersistentDataContainer pdc = p.getPersistentDataContainer();
+        // pdc.set(fuelCounter, PersistentDataType.INTEGER, 100);
+        // pdc.set(botChargeCounter, PersistentDataType.INTEGER, bot);
+        PlayerInventory inv = p.getInventory();
+        SnapshotPvpPlugin.clearInv(inv, CustomEggListener.injectOwner(upgradedDroid, p));
+        SnapshotPvpPlugin.clearInv(inv, CustomEggListener.injectOwner(upgradedSentry, p));
+        inv.addItem(CustomEggListener.injectOwner(upgradedDroid, p));
+        inv.addItem(CustomEggListener.injectOwner(upgradedSentry, p));
     }
 
     @Override
@@ -532,7 +568,7 @@ public class Engineer extends ManaKit {
             node.getUniqueId().toString()
         );
         pdc.set(teleToggleKey, PersistentDataType.BOOLEAN, !toggle);
-        pdc.set(tpCooldownCounter, PersistentDataType.INTEGER, 0);
+        // pdc.set(tpCooldownCounter, PersistentDataType.INTEGER, 0);
 
         p.playSound(loc, Sound.BLOCK_BEACON_ACTIVATE, 1f, 2f);
         loc.getWorld().spawnParticle(

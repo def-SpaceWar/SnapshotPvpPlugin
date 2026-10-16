@@ -40,14 +40,14 @@ public class EngineerDroid implements CustomMob {
         droid.setHealth(Engineer.DROID_HEALTH);
         droid.setCustomNameVisible(true);
 
-        droid.getEquipment().setHelmet(new ItemStack(Material.IRON_BLOCK));
-        droid.getEquipment().setChestplate(new ItemStack(Material.IRON_CHESTPLATE));
-        droid.getEquipment().setLeggings(new ItemStack(Material.IRON_LEGGINGS));
-        droid.getEquipment().setBoots(new ItemStack(Material.IRON_BOOTS));
+        droid.getEquipment().setHelmet(new ItemStack(Material.COPPER_BLOCK));
+        droid.getEquipment().setChestplate(new ItemStack(Material.COPPER_CHESTPLATE));
+        droid.getEquipment().setLeggings(new ItemStack(Material.COPPER_LEGGINGS));
+        droid.getEquipment().setBoots(new ItemStack(Material.COPPER_BOOTS));
         droid.getEquipment().setItemInMainHand(new ItemStack(Material.AIR));
 
-        droid.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, -1, 2));
-        droid.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, -1, 2));
+        droid.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, -1, 1));
+        droid.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, -1, 1));
         droid.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, -1, 0));
         droid.setPersistent(true);
 

@@ -4,6 +4,8 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.WeatherManager;
 import com.defspacemine.snapshotpvp.custommob.EngineerDroid;
 import com.defspacemine.snapshotpvp.custommob.EngineerSentry;
+import com.defspacemine.snapshotpvp.custommob.EngineerUpgradedDroid;
+import com.defspacemine.snapshotpvp.custommob.EngineerUpgradedSentry;
 import com.defspacemine.snapshotpvp.custommob.FITHBomb1;
 import com.defspacemine.snapshotpvp.custommob.FITHBomb2;
 import com.defspacemine.snapshotpvp.custommob.FITHBomb3;
@@ -150,7 +152,9 @@ public class CustomEggListener implements Listener {
         register(new MercAutoBomb());
         register(new MercGoodShotBhaiya());
         register(new EngineerDroid());
+        register(new EngineerUpgradedDroid());
         register(new EngineerSentry());
+        register(new EngineerUpgradedSentry());
 
         startGlobalAggroTask();
     }
