@@ -54,7 +54,7 @@ public class EngineerUpgradedSentry implements CustomMob {
         );
 
         sentry.customName(
-            Component.text("Sentry")
+            Component.text("Upgraded Sentry")
                 .color(NamedTextColor.AQUA)
                 .decoration(TextDecoration.BOLD, true)
                 .decoration(TextDecoration.ITALIC, false)

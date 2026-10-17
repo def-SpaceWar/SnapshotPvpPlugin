@@ -28,8 +28,8 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 public class ICBM extends ManaKit {
-    public static final int RED_TERROR_RADIUS = 4;
-    public static final double RED_TERROR_RADIUS_GROWTH = .2;
+    public static final int RED_TERROR_RADIUS = 3;
+    public static final double RED_TERROR_RADIUS_GROWTH = .1;
     final double DMG_PER_DISTANCE = 30;
 
     final int ammoRestock = 240; // firework rockets every 12 seconds
