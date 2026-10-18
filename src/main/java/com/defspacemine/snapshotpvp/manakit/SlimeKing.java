@@ -24,7 +24,11 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ArmorMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.inventory.meta.trim.ArmorTrim;
+import org.bukkit.inventory.meta.trim.TrimMaterial;
+import org.bukkit.inventory.meta.trim.TrimPattern;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -441,12 +445,17 @@ public class SlimeKing extends ManaKit implements Listener {
         ItemStack[] armor = p.getInventory().getArmorContents();
 
         for (ItemStack item : armor) {
-            if (
-                item != null &&
-                item.getItemMeta() instanceof LeatherArmorMeta meta
-            ) {
-                meta.setColor(color);
-                item.setItemMeta(meta);
+            if (item != null) {
+                if (item.getItemMeta() instanceof LeatherArmorMeta meta) {
+                    meta.setColor(color);
+                    item.setItemMeta(meta);
+                }
+
+                if (item.getType().name().endsWith("_HELMET") && item.getItemMeta() instanceof ArmorMeta armorMeta) {
+                    TrimMaterial material = color.asRGB() == SLIME_COLOR ? TrimMaterial.DIAMOND : TrimMaterial.NETHERITE;
+                    armorMeta.setTrim(new ArmorTrim(material, TrimPattern.FLOW));
+                    item.setItemMeta(armorMeta);
+                }
             }
         }
 
