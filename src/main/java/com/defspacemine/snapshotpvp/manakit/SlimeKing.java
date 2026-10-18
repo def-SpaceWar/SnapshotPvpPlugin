@@ -268,7 +268,7 @@ public class SlimeKing extends ManaKit implements Listener {
         if (slimeOrMagma instanceof Slime slime) {
             slime.setSize(size);
         } else if (slimeOrMagma instanceof MagmaCube magma) {
-            magma.setSize(size * 2);
+            magma.setSize(size + 1);
         }
 
         configureMinion(slimeOrMagma, p, isMagma);

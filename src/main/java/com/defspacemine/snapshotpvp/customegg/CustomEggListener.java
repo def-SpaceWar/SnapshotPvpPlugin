@@ -1,14 +1,19 @@
 package com.defspacemine.snapshotpvp.customegg;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Block;
@@ -22,8 +27,10 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.LightningStrike;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.MagmaCube;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Slime;
 import org.bukkit.entity.TippedArrow;
 import org.bukkit.entity.Warden;
 import org.bukkit.event.EventHandler;
@@ -161,6 +168,7 @@ public class CustomEggListener implements Listener {
         register(new EngineerUpgradedSentry());
 
         startGlobalAggroTask();
+        startSlimeDamageTask();
     }
 
     @EventHandler
@@ -613,6 +621,86 @@ public class CustomEggListener implements Listener {
         );
     }
 
+    public void startSlimeDamageTask() {
+        Bukkit.getScheduler().runTaskTimer(
+            plugin,
+            task -> {
+                for (World world : Bukkit.getWorlds()) {
+                    Set<Mob> cubes = new HashSet<>();
+                    cubes.addAll(world.getEntitiesByClass(Slime.class));
+                    cubes.addAll(world.getEntitiesByClass(MagmaCube.class));
+
+                    for (Mob slime : cubes) {
+                        if (!slime.isValid() || slime.isDead() || !slime.hasAI()) continue;
+
+                        boolean magma = slime instanceof MagmaCube;
+                        int size = magma
+                            ? ((MagmaCube) slime).getSize()
+                            : ((Slime) slime).getSize();
+
+                        // size-1 slimes deal no damage; magma cubes always do
+                        if (!magma && size <= 1) continue;
+
+                        Team slimeTeam = SnapshotPvpPlugin.getTeamE(slime);
+                        if (slimeTeam == null) continue;
+
+                        double damage;
+                        if (slime.getPersistentDataContainer().has(CUSTOM_DAMAGE, PersistentDataType.FLOAT)) {
+                            damage = slime.getPersistentDataContainer().get(CUSTOM_DAMAGE, PersistentDataType.FLOAT);
+                        } else {
+                            var attr = slime.getAttribute(Attribute.ATTACK_DAMAGE);
+                            damage = attr != null ? attr.getValue() : size;
+                            if (magma) damage += 2.0;
+                        }
+                        if (damage <= 0) continue;
+
+                        double reach = 0.6 * size;
+                        double reachSq = reach * reach;
+                        double search = reach + 2.0;
+                        Player owner = getOwner(slime);
+                        BoundingBox slimeBox = slime.getBoundingBox();
+
+                        for (Entity nearby : slime.getNearbyEntities(search, search, search)) {
+                            if (!(nearby instanceof LivingEntity target)) continue;
+                            if (target instanceof Player) continue; // vanilla handles players
+                            if (target == slime || target.isDead() || !target.isValid() || target.isInvulnerable()) continue;
+
+                            Team targetTeam = SnapshotPvpPlugin.getTeamG(target);
+                            if (slimeTeam.equals(targetTeam)) continue;
+
+                            if (target.getNoDamageTicks() > target.getMaximumNoDamageTicks() / 2f) continue;
+
+                            BoundingBox touchBox = target.getBoundingBox().expand(1.0, 0.5, 1.0);
+                            if (!touchBox.overlaps(slimeBox)) continue;
+
+                            if (slime.getLocation().distanceSquared(target.getLocation()) >= reachSq) continue;
+                            if (!slime.hasLineOfSight(target)) continue;
+
+                            DamageSource.Builder builder = DamageSource.builder(DamageType.MOB_ATTACK)
+                                .withDirectEntity(slime);
+                            if (owner != null) builder.withCausingEntity(owner);
+
+                            target.damage(damage, builder.build());
+
+                            if (target.getNoDamageTicks() > target.getMaximumNoDamageTicks() / 2f) {
+                                ThreadLocalRandom r = ThreadLocalRandom.current();
+                                slime.getWorld().playSound(
+                                    slime.getLocation(),
+                                    Sound.ENTITY_SLIME_ATTACK,
+                                    SoundCategory.HOSTILE,
+                                    1.0f,
+                                    (r.nextFloat() - r.nextFloat()) * 0.2f + 1.0f
+                                );
+                            }
+                        }
+                    }
+                }
+            },
+            0L,
+            1L
+        );
+    }
+
     @EventHandler
     public void onWardenAnger(WardenAngerChangeEvent event) {
         Warden warden = event.getEntity();
@@ -709,7 +797,9 @@ public class CustomEggListener implements Listener {
 
     @EventHandler
     public void onEntityTransform(EntityTransformEvent e) {
-        if (e.getTransformReason() == EntityTransformEvent.TransformReason.SPLIT) {
+        if (
+            e.getTransformReason() == EntityTransformEvent.TransformReason.SPLIT
+        ) {
             if (CustomEggListener.getOwner(e.getEntity()) != null) {
                 e.setCancelled(true);
             }
