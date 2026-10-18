@@ -638,7 +638,6 @@ public class CustomEggListener implements Listener {
                             ? ((MagmaCube) slime).getSize()
                             : ((Slime) slime).getSize();
 
-                        // size-1 slimes deal no damage; magma cubes always do
                         if (!magma && size <= 1) continue;
 
                         Team slimeTeam = SnapshotPvpPlugin.getTeamE(slime);
@@ -662,7 +661,7 @@ public class CustomEggListener implements Listener {
 
                         for (Entity nearby : slime.getNearbyEntities(search, search, search)) {
                             if (!(nearby instanceof LivingEntity target)) continue;
-                            if (target instanceof Player) continue; // vanilla handles players
+                            if (target instanceof Player) continue;
                             if (target == slime || target.isDead() || !target.isValid() || target.isInvulnerable()) continue;
 
                             Team targetTeam = SnapshotPvpPlugin.getTeamG(target);
