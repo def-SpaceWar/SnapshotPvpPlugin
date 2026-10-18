@@ -31,9 +31,9 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 public class JapaneseGoblin extends ManaKit {
-    final static double KUNAI_DAMAGE = 8;
-    final static int KUNAI_TICKS = 40;
-    final static int KUNAI_RADIUS = 4;
+    final static double KUNAI_DAMAGE = 2;
+    final static int KUNAI_TICKS = 0;
+    final static int KUNAI_RADIUS = 1;
 
     final int kunaiRestock = 6; // 6 player hits for kunai
     final NamespacedKey kunaiRestockCounter = ManaKitListener.MANA_KIT_DATA0;

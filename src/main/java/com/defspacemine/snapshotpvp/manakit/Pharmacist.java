@@ -201,21 +201,21 @@ public class Pharmacist extends ManaKit {
             meta.setColor(Color.fromRGB(0xAA0000));
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.SPEED,
-                    800,
+                    400,
                     0,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.HASTE,
-                    800,
+                    400,
                     0,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.STRENGTH,
-                    800,
+                    400,
                     0,
                     false,
                     true,
@@ -231,14 +231,14 @@ public class Pharmacist extends ManaKit {
             meta.setColor(Color.fromRGB(0xEEFF55));
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.REGENERATION,
-                    800,
+                    200,
                     0,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.RESISTANCE,
-                    800,
+                    200,
                     0,
                     false,
                     true,
@@ -328,14 +328,14 @@ public class Pharmacist extends ManaKit {
             meta.setColor(Color.fromRGB(0xDD0000));
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.WITHER,
-                    400,
+                    200,
                     2,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.WEAKNESS,
-                    400,
+                    200,
                     1,
                     false,
                     true,
@@ -358,49 +358,49 @@ public class Pharmacist extends ManaKit {
             meta.setColor(Color.fromRGB(0x00FFDD));
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.SPEED,
-                    800,
+                    300,
                     4,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.HASTE,
-                    800,
+                    300,
                     4,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.STRENGTH,
-                    800,
+                    300,
                     5,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.WEAKNESS,
-                    1200,
+                    600,
                     1,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.MINING_FATIGUE,
-                    1200,
+                    600,
                     1,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.WITHER,
-                    1200,
+                    600,
                     3,
                     false,
                     true,
                     true), true);
             meta.addCustomEffect(new PotionEffect(
                     PotionEffectType.POISON,
-                    800,
+                    300,
                     3,
                     false,
                     true,

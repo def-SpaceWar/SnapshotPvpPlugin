@@ -71,8 +71,11 @@ public class ManaKitLobbyType extends LobbyType {
                 Math.random() > 0.5
                     ? new BobLands(this, mapWorld)
                     : new BobInvasionRemaster(this, mapWorld);
-            // gamemode = new Deathmatch(this, mapWorld);
-            gamemode = new Streakmatch(this, mapWorld);
+            gamemode =
+                Math.random() > 0.5
+                    ? new Deathmatch(this, mapWorld)
+                    : new Streakmatch(this, mapWorld);
+            // gamemode = new Streakmatch(this, mapWorld);
             gameMap.onCreate();
             gamemode.onStart();
 
