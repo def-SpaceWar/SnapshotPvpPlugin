@@ -74,21 +74,21 @@ public class Pharmacist extends ManaKit {
     int potionStock(int currentPotion) {
         switch (currentPotion) {
             case TA_SEDATIVE_SHOT:
-                return 3;
-            case P_ANABOLIC_STEROIDS:
                 return 5;
+            case P_ANABOLIC_STEROIDS:
+                return 8;
             case SP_PANACEA_RUSH:
-                return 6;
-            case LP_MUSTARD_GAS:
-                return 4;
-            case TA_LETHAL_INJECTION:
                 return 7;
-            case SP_CONTRAINDICTION:
+            case LP_MUSTARD_GAS:
                 return 6;
+            case TA_LETHAL_INJECTION:
+                return 5;
+            case SP_CONTRAINDICTION:
+                return 7;
             case P_UNSTABLE_OVERCLOCK:
                 return 8;
             case LP_SARIN:
-                return 4;
+                return 6;
         }
         return -1;
     }
