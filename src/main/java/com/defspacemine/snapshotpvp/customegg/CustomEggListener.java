@@ -1,28 +1,9 @@
 package com.defspacemine.snapshotpvp.customegg;
 
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import com.defspacemine.snapshotpvp.WeatherManager;
-import com.defspacemine.snapshotpvp.custommob.EngineerDroid;
-import com.defspacemine.snapshotpvp.custommob.EngineerSentry;
-import com.defspacemine.snapshotpvp.custommob.EngineerUpgradedDroid;
-import com.defspacemine.snapshotpvp.custommob.EngineerUpgradedSentry;
-import com.defspacemine.snapshotpvp.custommob.FITHBomb1;
-import com.defspacemine.snapshotpvp.custommob.FITHBomb2;
-import com.defspacemine.snapshotpvp.custommob.FITHBomb3;
-import com.defspacemine.snapshotpvp.custommob.FITHNuke;
-import com.defspacemine.snapshotpvp.custommob.MercAutoBomb;
-import com.defspacemine.snapshotpvp.custommob.MercGoodShotBhaiya;
-import com.defspacemine.snapshotpvp.custommob.MercLauncher;
-import com.defspacemine.snapshotpvp.manakit.ICBM;
-import com.defspacemine.snapshotpvp.manakit.LightPaladin;
-import io.papermc.paper.event.entity.WardenAngerChangeEvent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
@@ -52,6 +33,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPotionEffectEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
+import org.bukkit.event.entity.EntityTransformEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
@@ -66,6 +48,28 @@ import org.bukkit.scoreboard.Team;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
+
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import com.defspacemine.snapshotpvp.WeatherManager;
+import com.defspacemine.snapshotpvp.custommob.EngineerDroid;
+import com.defspacemine.snapshotpvp.custommob.EngineerSentry;
+import com.defspacemine.snapshotpvp.custommob.EngineerUpgradedDroid;
+import com.defspacemine.snapshotpvp.custommob.EngineerUpgradedSentry;
+import com.defspacemine.snapshotpvp.custommob.FITHBomb1;
+import com.defspacemine.snapshotpvp.custommob.FITHBomb2;
+import com.defspacemine.snapshotpvp.custommob.FITHBomb3;
+import com.defspacemine.snapshotpvp.custommob.FITHNuke;
+import com.defspacemine.snapshotpvp.custommob.MercAutoBomb;
+import com.defspacemine.snapshotpvp.custommob.MercGoodShotBhaiya;
+import com.defspacemine.snapshotpvp.custommob.MercLauncher;
+import com.defspacemine.snapshotpvp.manakit.ICBM;
+import com.defspacemine.snapshotpvp.manakit.LightPaladin;
+
+import io.papermc.paper.event.entity.WardenAngerChangeEvent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 public class CustomEggListener implements Listener {
 
@@ -699,6 +703,15 @@ public class CustomEggListener implements Listener {
                     .build();
 
                 event.deathMessage(customMsg);
+            }
+        }
+    }
+
+    @EventHandler
+    public void onEntityTransform(EntityTransformEvent e) {
+        if (e.getTransformReason() == EntityTransformEvent.TransformReason.SPLIT) {
+            if (CustomEggListener.getOwner(e.getEntity()) != null) {
+                e.setCancelled(true);
             }
         }
     }

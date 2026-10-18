@@ -80,22 +80,12 @@ public class EngineerUpgradedSentry implements CustomMob {
         sentry.setPersistent(true);
 
         new BukkitRunnable() {
-            int tick = 0;
-
             @Override
             public void run() {
-                if (sentry.isDead() || sentry == null) {
-                    cancel();
-                    return;
-                }
-
-                tick++;
-                if (tick >= Engineer.SUMMON_TICKS) {
-                    sentry.remove();
-                    cancel();
-                }
+                if (sentry.isDead() || sentry == null) return;
+                sentry.remove();
             }
-        }.runTaskTimer(SnapshotPvpPlugin.instance, 0, 1);
+        }.runTaskLater(SnapshotPvpPlugin.instance, Engineer.SUMMON_TICKS);
 
         return sentry;
     }

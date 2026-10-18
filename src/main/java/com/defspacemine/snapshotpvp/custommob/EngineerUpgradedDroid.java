@@ -52,22 +52,12 @@ public class EngineerUpgradedDroid implements CustomMob {
         droid.setPersistent(true);
 
         new BukkitRunnable() {
-            int tick = 0;
-
             @Override
             public void run() {
-                if (droid.isDead() || droid == null) {
-                    cancel();
-                    return;
-                }
-
-                tick++;
-                if (tick >= Engineer.SUMMON_TICKS) {
-                    droid.remove();
-                    cancel();
-                }
+                if (droid.isDead() || droid == null) return;
+                droid.remove();
             }
-        }.runTaskTimer(SnapshotPvpPlugin.instance, 0, 1);
+        }.runTaskLater(SnapshotPvpPlugin.instance, Engineer.SUMMON_TICKS);
 
         return droid;
     }

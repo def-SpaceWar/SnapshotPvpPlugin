@@ -33,8 +33,8 @@ public class Streakmatch extends Gamemode {
         this.lobby = lobby;
         this.world = world;
 
-        // int[] arr = { -1, 5, 10, 20 };
-        // streakRequired = arr[(int) Math.floor(Math.random() * 4)];
+        int[] arr = { -1, 5, 10, 20 };
+        streakRequired = arr[(int) Math.floor(Math.random() * 4)];
     }
 
     @Override

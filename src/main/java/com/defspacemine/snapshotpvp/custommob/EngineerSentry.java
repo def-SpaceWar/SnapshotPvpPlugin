@@ -1,5 +1,12 @@
 package com.defspacemine.snapshotpvp.custommob;
 
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
+import com.defspacemine.snapshotpvp.customegg.CustomMob;
+import com.defspacemine.snapshotpvp.manakit.Engineer;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
@@ -13,15 +20,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
-
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
-import com.defspacemine.snapshotpvp.customegg.CustomMob;
-import com.defspacemine.snapshotpvp.manakit.Engineer;
-
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 
 public class EngineerSentry implements CustomMob {
 
@@ -83,22 +81,12 @@ public class EngineerSentry implements CustomMob {
         sentry.setPersistent(true);
 
         new BukkitRunnable() {
-            int tick = 0;
-
             @Override
             public void run() {
-                if (sentry.isDead() || sentry == null) {
-                    cancel();
-                    return;
-                }
-
-                tick++;
-                if (tick >= Engineer.SUMMON_TICKS) {
-                    sentry.remove();
-                    cancel();
-                }
+                if (sentry.isDead() || sentry == null) return;
+                sentry.remove();
             }
-        }.runTaskTimer(SnapshotPvpPlugin.instance, 0, 1);
+        }.runTaskLater(SnapshotPvpPlugin.instance, Engineer.SUMMON_TICKS);
 
         return sentry;
     }

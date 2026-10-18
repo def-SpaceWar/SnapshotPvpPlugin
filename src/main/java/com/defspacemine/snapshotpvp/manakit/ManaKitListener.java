@@ -189,6 +189,47 @@ public final class ManaKitListener implements Listener {
         "mana_kit_databool9"
     );
 
+    public static final NamespacedKey MANA_KIT_DATADBL0 = new NamespacedKey(
+        "defspacemine",
+        "mana_kit_datadbl0"
+    );
+    public static final NamespacedKey MANA_KIT_DATADBL1 = new NamespacedKey(
+        "defspacemine",
+        "mana_kit_datadbl1"
+    );
+    public static final NamespacedKey MANA_KIT_DATADBL2 = new NamespacedKey(
+        "defspacemine",
+        "mana_kit_datadbl2"
+    );
+    public static final NamespacedKey MANA_KIT_DATADBL3 = new NamespacedKey(
+        "defspacemine",
+        "mana_kit_datadbl3"
+    );
+    public static final NamespacedKey MANA_KIT_DATADBL4 = new NamespacedKey(
+        "defspacemine",
+        "mana_kit_datadbl4"
+    );
+    public static final NamespacedKey MANA_KIT_DATADBL5 = new NamespacedKey(
+        "defspacemine",
+        "mana_kit_datadbl5"
+    );
+    public static final NamespacedKey MANA_KIT_DATADBL6 = new NamespacedKey(
+        "defspacemine",
+        "mana_kit_datadbl6"
+    );
+    public static final NamespacedKey MANA_KIT_DATADBL7 = new NamespacedKey(
+        "defspacemine",
+        "mana_kit_datadbl7"
+    );
+    public static final NamespacedKey MANA_KIT_DATADBL8 = new NamespacedKey(
+        "defspacemine",
+        "mana_kit_datadbl8"
+    );
+    public static final NamespacedKey MANA_KIT_DATADBL9 = new NamespacedKey(
+        "defspacemine",
+        "mana_kit_datadbl9"
+    );
+
     public ManaKitListener(JavaPlugin plugin) {
         instance = this;
         this.plugin = plugin;
@@ -226,6 +267,7 @@ public final class ManaKitListener implements Listener {
         registerKit(new Deadeye());
         registerKit(new BuckshotViking());
         registerKit(new HeadlessHorseman());
+        registerKit(new SlimeKing());
 
         manakitGameLoop();
     }
