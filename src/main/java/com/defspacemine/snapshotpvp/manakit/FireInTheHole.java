@@ -36,12 +36,12 @@ public class FireInTheHole extends ManaKit {
     public static final double MEDIUM_BOMB_HEALTH = 20;
     public static final double MEDIUM_BOMB_SCALE = 1;
     public static final int MEDIUM_BOMB_TICKS = 45;
-    public static final int MEDIUM_BOMB_RADIUS = 6;
+    public static final int MEDIUM_BOMB_RADIUS = 5;
 
     public static final double LARGE_BOMB_HEALTH = 25;
     public static final double LARGE_BOMB_SCALE = 1.25;
     public static final int LARGE_BOMB_TICKS = 60;
-    public static final int LARGE_BOMB_RADIUS = 8;
+    public static final int LARGE_BOMB_RADIUS = 6;
 
     public static final double NUKE_HEALTH = 40;
     public static final double NUKE_SCALE = 1.5;
@@ -50,7 +50,7 @@ public class FireInTheHole extends ManaKit {
 
     final int arrowRestock = 300; // 3 arrows every 15 seconds, they auto reset
     final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;
-    final int bombersRestock = 6; // 6 melee/ranged/bomb attacks = bombs!
+    final int bombersRestock = 9; // 9 melee/ranged/bomb attacks = bombs!
     final NamespacedKey bombersRestockCounter = ManaKitListener.MANA_KIT_DATA1;
     final int nukeRestock = 3; // 3 kills = nuke!
     final NamespacedKey nukeRestockCounter = ManaKitListener.MANA_KIT_DATA2;
@@ -80,7 +80,7 @@ public class FireInTheHole extends ManaKit {
         }
 
         {
-            bomb1 = new ItemStack(Material.CREEPER_SPAWN_EGG, 4);
+            bomb1 = new ItemStack(Material.CREEPER_SPAWN_EGG, 3);
             SpawnEggMeta meta = (SpawnEggMeta) bomb1.getItemMeta();
             meta.setItemName("Small Bomb");
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
@@ -94,7 +94,7 @@ public class FireInTheHole extends ManaKit {
         }
 
         {
-            bomb2 = new ItemStack(Material.CREEPER_SPAWN_EGG, 2);
+            bomb2 = new ItemStack(Material.CREEPER_SPAWN_EGG, 3);
             SpawnEggMeta meta = (SpawnEggMeta) bomb2.getItemMeta();
             meta.setItemName("Medium Bomb");
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
@@ -108,7 +108,7 @@ public class FireInTheHole extends ManaKit {
         }
 
         {
-            bomb3 = new ItemStack(Material.CREEPER_SPAWN_EGG, 1);
+            bomb3 = new ItemStack(Material.CREEPER_SPAWN_EGG, 3);
             SpawnEggMeta meta = (SpawnEggMeta) bomb3.getItemMeta();
             meta.setItemName("Large Bomb");
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
@@ -289,6 +289,7 @@ public class FireInTheHole extends ManaKit {
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
         if (p.equals(CustomEggListener.getOwner(e.getEntity()))) return;
+        if (!(e.getEntity() instanceof Player)) return;
 
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(
