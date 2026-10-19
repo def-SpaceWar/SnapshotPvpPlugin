@@ -74,6 +74,7 @@ public class EnchantmentListener implements Listener {
     public static Enchantment LIFE_STEAL;
     public static Enchantment NON_FATAL_SMASH_CURSE;
     public static Enchantment TARGET_CHAIN;
+    public static Enchantment UNSTABLE;
 
     private final JavaPlugin plugin;
 
@@ -128,6 +129,9 @@ public class EnchantmentListener implements Listener {
         );
         TARGET_CHAIN = Registry.ENCHANTMENT.get(
             new NamespacedKey("defspacemine", "target_chain")
+        );
+        UNSTABLE = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "unstable")
         );
     }
 
@@ -382,6 +386,11 @@ public class EnchantmentListener implements Listener {
         if (weapon.containsEnchantment(UPPERCUT)) {
             int level = weapon.getEnchantmentLevel(UPPERCUT);
             performUppercut(player, target, level);
+        }
+
+        if (weapon.containsEnchantment(UNSTABLE)) {
+            int level = weapon.getEnchantmentLevel(UNSTABLE);
+            performUnstable(player, target, level);
         }
     }
 
@@ -642,5 +651,43 @@ public class EnchantmentListener implements Listener {
         }
 
         return to.clone();
+    }
+
+    private void performUnstable(Player player, LivingEntity target, int level) {
+        if (Math.random() >= 0.20) return;
+
+        double distance = 2.0 + (Math.random() * level * 1.5);
+
+        double randomAngle = Math.random() * 2 * Math.PI;
+
+        Location targetLoc = target.getLocation();
+
+        double offsetX = Math.cos(randomAngle) * distance;
+        double offsetZ = Math.sin(randomAngle) * distance;
+
+        Location idealLoc = targetLoc.clone().add(offsetX, 0, offsetZ);
+
+        Location teleportLoc = raycastToWall(target.getLocation(), idealLoc);
+        if (teleportLoc == null) return;
+
+        player.teleport(
+            teleportLoc.setDirection(player.getLocation().getDirection())
+        );
+
+        player.getWorld().spawnParticle(
+            Particle.PORTAL,
+            player.getLocation().add(0, 1, 0),
+            25,
+            0.3,
+            0.5,
+            0.3,
+            0.1
+        );
+        player.getWorld().playSound(
+            player.getLocation(),
+            Sound.ENTITY_ENDERMAN_TELEPORT,
+            0.8f,
+            1.2f
+        );
     }
 }

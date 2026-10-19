@@ -268,6 +268,7 @@ public final class ManaKitListener implements Listener {
         registerKit(new BuckshotViking());
         registerKit(new HeadlessHorseman());
         registerKit(new SlimeKing());
+        registerKit(new Hacker());
 
         manakitGameLoop();
     }

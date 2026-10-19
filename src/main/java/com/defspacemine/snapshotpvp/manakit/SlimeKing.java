@@ -231,7 +231,7 @@ public class SlimeKing extends ManaKit implements Listener {
             0
         );
 
-        int newMeter = Math.max(0, currentMeter - 5);
+        int newMeter = Math.max(0, currentMeter - 8);
         pdc.set(meterKey, PersistentDataType.INTEGER, newMeter);
 
         if (spawnTimer > 0) return;
@@ -250,8 +250,6 @@ public class SlimeKing extends ManaKit implements Listener {
         );
 
         pdc.set(spawnTimerKey, PersistentDataType.INTEGER, SPAWN_COOLDOWN);
-        newMeter = Math.max(0, currentMeter - 25);
-        pdc.set(meterKey, PersistentDataType.INTEGER, newMeter);
     }
 
     private void spawnSlimeOrMagma(
