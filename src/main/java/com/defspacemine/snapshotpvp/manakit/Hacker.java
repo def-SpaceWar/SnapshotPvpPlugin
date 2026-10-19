@@ -326,12 +326,6 @@ public class Hacker extends ManaKit implements Listener {
                 1.0f,
                 1.2f
             );
-            // p.sendMessage(
-            //     ChatColor.AQUA +
-            //         "" +
-            //         ChatColor.BOLD +
-            //         ">> FLIGHT ACTIVATED! Flying enabled for 20 seconds."
-            // );
             return;
         }
 
@@ -369,18 +363,37 @@ public class Hacker extends ManaKit implements Listener {
             p.setHealth(Math.min(p.getMaxHealth(), past.health()));
 
             PersistentDataContainer playerPdc = p.getPersistentDataContainer();
-
-            // Restore Flight Timer & Flight Status
-            playerPdc.set(
-                flightExpiryKey,
-                PersistentDataType.INTEGER,
-                past.flightExpiry()
-            );
             int currentTick = (int) p.getWorld().getGameTime();
-            if (past.flightExpiry() > currentTick) {
-                p.setAllowFlight(true);
-                p.setFlying(past.isFlying());
+
+            // Calculate how many ticks of flight time were remaining 5 seconds ago
+            // past.flightExpiry() is an absolute game tick deadline.
+            // If it was valid in the past, calculate remaining ticks and shift it to current timeline.
+            int oldExpiry = past.flightExpiry();
+            if (oldExpiry > currentTick) {
+                // fallback check if past tick was somehow ahead
+                int remainingTicks = oldExpiry - (currentTick - 100); // 100 ticks is approx 5 seconds back
+                if (remainingTicks > 0) {
+                    int restoredExpiry = currentTick + remainingTicks;
+                    playerPdc.set(
+                        flightExpiryKey,
+                        PersistentDataType.INTEGER,
+                        restoredExpiry
+                    );
+                    p.setAllowFlight(true);
+                    p.setFlying(past.isFlying());
+                } else {
+                    playerPdc.set(
+                        flightExpiryKey,
+                        PersistentDataType.INTEGER,
+                        0
+                    );
+                    if (p.getGameMode() != org.bukkit.GameMode.CREATIVE) {
+                        p.setAllowFlight(false);
+                        p.setFlying(false);
+                    }
+                }
             } else {
+                playerPdc.set(flightExpiryKey, PersistentDataType.INTEGER, 0);
                 if (p.getGameMode() != org.bukkit.GameMode.CREATIVE) {
                     p.setAllowFlight(false);
                     p.setFlying(false);
@@ -427,13 +440,6 @@ public class Hacker extends ManaKit implements Listener {
                     1.0f,
                     1.4f
                 );
-
-            // p.sendMessage(
-            //     ChatColor.LIGHT_PURPLE +
-            //         "" +
-            //         ChatColor.BOLD +
-            //         ">> REWOUND 5 SECONDS BACK IN TIME!"
-            // );
         }
     }
 
