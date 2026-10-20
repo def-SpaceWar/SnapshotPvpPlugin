@@ -262,7 +262,7 @@ public class SlimeKing extends ManaKit implements Listener {
             ? loc.getWorld().spawn(loc, MagmaCube.class)
             : loc.getWorld().spawn(loc, Slime.class);
 
-        int size = (int) Math.max(1, Math.floor(Math.sqrt(currentMeter / 4)));
+        int size = (int) Math.max(1, Math.floor(Math.sqrt(currentMeter / 4) - 1));
         if (slimeOrMagma instanceof Slime slime) {
             slime.setSize(size + 2);
         } else if (slimeOrMagma instanceof MagmaCube magma) {
