@@ -26,6 +26,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -698,5 +699,20 @@ public final class ManaKitListener implements Listener {
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBlockPlace(BlockPlaceEvent event) {
+        ItemStack item = event.getItemInHand();
+        if (item.hasItemMeta()) {
+            ItemMeta meta = item.getItemMeta();
+            if (
+                meta
+                    .getPersistentDataContainer()
+                    .has(MANA_FOOD, PersistentDataType.BOOLEAN)
+            ) {
+                event.setCancelled(true);
+            }
+        }
     }
 }

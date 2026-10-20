@@ -1,14 +1,15 @@
 package com.defspacemine.snapshotpvp.manakit;
 
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -16,10 +17,10 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
@@ -30,6 +31,8 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
+
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Hacker extends ManaKit implements Listener {
 
@@ -84,11 +87,12 @@ public class Hacker extends ManaKit implements Listener {
         pdc.set(flightAttackCountKey, PersistentDataType.INTEGER, 0);
         pdc.set(flightExpiryKey, PersistentDataType.INTEGER, 0);
 
-        // Remove creative flight
-        if (p.getGameMode() != org.bukkit.GameMode.CREATIVE) {
+        // Remove creative flight and reset fall distance so it doesn't bleed into other kits
+        if (p.getGameMode() != GameMode.CREATIVE) {
             p.setAllowFlight(false);
             p.setFlying(false);
         }
+        p.setFallDistance(0.0f);
 
         PlayerInventory inv = p.getInventory();
         SnapshotPvpPlugin.clearInv(inv, Material.CLOCK);
@@ -168,7 +172,6 @@ public class Hacker extends ManaKit implements Listener {
 
         // 3. Action bar display
         boolean hasFlightItem = hasFlightItemInInventory(p);
-        int remainingFlightSec = Math.max(0, (flightExpiry - currentTick) / 20);
 
         String flightStatus =
             (isFlyingActive
@@ -270,21 +273,10 @@ public class Hacker extends ManaKit implements Listener {
         }
     }
 
-    @EventHandler
-    public void onKill(PlayerDeathEvent e) {
-        Player killer = e.getEntity().getKiller();
-        if (killer == null) return;
-
-        PersistentDataContainer pdc = killer.getPersistentDataContainer();
-        String currentKit = pdc.get(
-            ManaKitListener.MANA_KIT,
-            PersistentDataType.STRING
-        );
-
-        if (this.id.equals(currentKit)) {
-            if (!hasFlightItemInInventory(killer)) {
-                giveFlightItem(killer);
-            }
+    @Override
+    public void onKill(Player p, PlayerDeathEvent e) {
+        if (!hasFlightItemInInventory(p)) {
+            giveFlightItem(p);
         }
     }
 
@@ -366,12 +358,9 @@ public class Hacker extends ManaKit implements Listener {
             int currentTick = (int) p.getWorld().getGameTime();
 
             // Calculate how many ticks of flight time were remaining 5 seconds ago
-            // past.flightExpiry() is an absolute game tick deadline.
-            // If it was valid in the past, calculate remaining ticks and shift it to current timeline.
             int oldExpiry = past.flightExpiry();
             if (oldExpiry > currentTick) {
-                // fallback check if past tick was somehow ahead
-                int remainingTicks = oldExpiry - (currentTick - 100); // 100 ticks is approx 5 seconds back
+                int remainingTicks = oldExpiry - (currentTick - 100);
                 if (remainingTicks > 0) {
                     int restoredExpiry = currentTick + remainingTicks;
                     playerPdc.set(
@@ -470,13 +459,6 @@ public class Hacker extends ManaKit implements Listener {
         }
 
         p.getInventory().addItem(flightItem);
-        // p.playSound(p.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1.0f, 1.5f);
-        // p.sendMessage(
-        //     ChatColor.AQUA +
-        //         "" +
-        //         ChatColor.BOLD +
-        //         ">> FLIGHT OVERRIDE OBTAINED!"
-        // );
     }
 
     private void giveRewindItem(Player p) {
@@ -504,13 +486,6 @@ public class Hacker extends ManaKit implements Listener {
         }
 
         p.getInventory().addItem(rewindItem);
-        // p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1.0f, 1.8f);
-        // p.sendMessage(
-        //     ChatColor.LIGHT_PURPLE +
-        //         "" +
-        //         ChatColor.BOLD +
-        //         ">> TIME REWIND OBTAINED!"
-        // );
     }
 
     private boolean hasRewindItemInInventory(Player p) {

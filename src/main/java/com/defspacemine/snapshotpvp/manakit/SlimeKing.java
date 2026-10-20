@@ -264,9 +264,9 @@ public class SlimeKing extends ManaKit implements Listener {
 
         int size = (int) Math.max(1, Math.floor(Math.sqrt(currentMeter / 4)));
         if (slimeOrMagma instanceof Slime slime) {
-            slime.setSize(size);
+            slime.setSize(size + 3);
         } else if (slimeOrMagma instanceof MagmaCube magma) {
-            magma.setSize(size + 1);
+            magma.setSize(size);
         }
 
         configureMinion(slimeOrMagma, p, isMagma);
