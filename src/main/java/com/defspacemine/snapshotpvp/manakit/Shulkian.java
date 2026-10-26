@@ -25,7 +25,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 
 public class Shulkian extends ManaKit {
-    final int arrowRestock = 100; // 4 arrows every 5 seconds, they auto reset
+    final int arrowRestock = 160; // 4 arrows every 8 seconds, they auto reset
     final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;
 
     private ItemStack arrows;

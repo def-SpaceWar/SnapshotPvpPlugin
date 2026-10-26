@@ -1,5 +1,9 @@
 package com.defspacemine.snapshotpvp.manakit;
 
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -24,18 +28,13 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
-
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-
 public class JapaneseGoblin extends ManaKit {
-    final static double KUNAI_DAMAGE = 2;
-    final static int KUNAI_TICKS = 0;
-    final static int KUNAI_RADIUS = 1;
 
-    final int kunaiRestock = 6; // 6 player hits for kunai
+    static final double KUNAI_DAMAGE = 8;
+    static final int KUNAI_TICKS = 80;
+    static final int KUNAI_RADIUS = 8;
+
+    final int kunaiRestock = 8; // 8 player hits for kunai
     final NamespacedKey kunaiRestockCounter = ManaKitListener.MANA_KIT_DATA0;
 
     private ItemStack kunai;
@@ -47,8 +46,11 @@ public class JapaneseGoblin extends ManaKit {
         ItemMeta meta = kunai.getItemMeta();
         meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
         meta.setItemModel(new NamespacedKey("defspacemine", "japgob_kunai"));
-        meta.itemName(Component.text("Kun").color(NamedTextColor.RED)
-                .append(Component.text("ai").color(NamedTextColor.YELLOW)));
+        meta.itemName(
+            Component.text("Kun")
+                .color(NamedTextColor.RED)
+                .append(Component.text("ai").color(NamedTextColor.YELLOW))
+        );
         kunai.setItemMeta(meta);
     }
 
@@ -56,7 +58,13 @@ public class JapaneseGoblin extends ManaKit {
     public void giveKit(Player p) {
         resetKit(p);
 
-		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -182, 7, -185);
+        ManaKitListener.giveItemsFromShulker(
+            p,
+            "goopshotpeshvp",
+            -182,
+            7,
+            -185
+        );
     }
 
     @Override
@@ -69,24 +77,49 @@ public class JapaneseGoblin extends ManaKit {
     public void onCombatTick(Player p) {
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        int kunaiRestockC = pdc.get(kunaiRestockCounter, PersistentDataType.INTEGER);
+        int kunaiRestockC = pdc.get(
+            kunaiRestockCounter,
+            PersistentDataType.INTEGER
+        );
 
-        p.sendActionBar(ChatColor.RED + "Kun" + ChatColor.YELLOW + "ai" + ChatColor.GREEN + ": " +
-                ChatColor.WHITE + kunaiRestockC + "/" + kunaiRestock +
-                ChatColor.GRAY + "  |  " +
-                ChatColor.RED + "Killstreak: " +
-                ChatColor.WHITE + killstreak + "/2");
+        p.sendActionBar(
+            ChatColor.RED +
+                "Kun" +
+                ChatColor.YELLOW +
+                "ai" +
+                ChatColor.GREEN +
+                ": " +
+                ChatColor.WHITE +
+                kunaiRestockC +
+                "/" +
+                kunaiRestock +
+                ChatColor.GRAY +
+                "  |  " +
+                ChatColor.RED +
+                "Killstreak: " +
+                ChatColor.WHITE +
+                killstreak +
+                "/2"
+        );
 
-        if (killstreak >= 1)
-            p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 0));
-        if (killstreak >= 2 && !p.hasPotionEffect(PotionEffectType.REGENERATION))
-            p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, -1, 0));
+        if (killstreak >= 1) p.addPotionEffect(
+            new PotionEffect(PotionEffectType.STRENGTH, 100, 0)
+        );
+        if (
+            killstreak >= 2 && !p.hasPotionEffect(PotionEffectType.REGENERATION)
+        ) p.addPotionEffect(
+            new PotionEffect(PotionEffectType.REGENERATION, -1, 0)
+        );
 
         PlayerInventory inv = p.getInventory();
         if (kunaiRestockC >= kunaiRestock) {
             SnapshotPvpPlugin.clearInv(inv, Material.SNOWBALL);
             inv.addItem(kunai);
-            pdc.set(kunaiRestockCounter, PersistentDataType.INTEGER, kunaiRestockC - kunaiRestock);
+            pdc.set(
+                kunaiRestockCounter,
+                PersistentDataType.INTEGER,
+                kunaiRestockC - kunaiRestock
+            );
         }
     }
 
@@ -112,36 +145,59 @@ public class JapaneseGoblin extends ManaKit {
 
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
-        if (e.getDamageSource().getDamageType() == DamageType.EXPLOSION)
+        if (e.getDamageSource().getDamageType() == DamageType.EXPLOSION) {
             return;
+        }
 
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        pdc.set(kunaiRestockCounter, PersistentDataType.INTEGER,
-                pdc.get(kunaiRestockCounter, PersistentDataType.INTEGER) + 1);
+        pdc.set(
+            kunaiRestockCounter,
+            PersistentDataType.INTEGER,
+            pdc.get(kunaiRestockCounter, PersistentDataType.INTEGER) + 1
+        );
     }
 
     @Override
     public void onProjectileHit(Player p, ProjectileHitEvent e) {
-        if (!(e.getEntity() instanceof Snowball snowball))
-            return;
+        if (!(e.getEntity() instanceof Snowball snowball)) return;
 
         Location loc = snowball.getLocation();
-        if (e.getHitEntity() instanceof LivingEntity victim)
-            victim.damage(KUNAI_DAMAGE, DamageSource.builder(DamageType.MOB_PROJECTILE)
-                    .withDirectEntity(snowball)
-                    .withCausingEntity(p)
-                    .build());
-        else
-            loc = e.getHitBlock().getRelative(e.getHitBlockFace()).getLocation().add(.5, .01, .5);
+        if (e.getHitEntity() instanceof LivingEntity victim) victim.damage(
+            KUNAI_DAMAGE,
+            DamageSource.builder(DamageType.MOB_PROJECTILE)
+                .withDirectEntity(snowball)
+                .withCausingEntity(p)
+                .build()
+        );
+        else loc = e
+            .getHitBlock()
+            .getRelative(e.getHitBlockFace())
+            .getLocation()
+            .add(.5, .01, .5);
 
         final Location l = loc;
-        Bukkit.getScheduler().runTaskLater(SnapshotPvpPlugin.instance, () -> {
-            Creeper creeper = (Creeper) l.getWorld().spawnEntity(l.add(0, 1, 0), EntityType.CREEPER);
-            CustomEggListener.injectOwner(creeper, p);
-            creeper.setCustomName(ChatColor.RED + "Kun" + ChatColor.YELLOW + "ai");
-            creeper.setCustomNameVisible(true);
-            creeper.setExplosionRadius(KUNAI_RADIUS);
-            creeper.explode();
-        }, KUNAI_TICKS);
+        Bukkit.getScheduler().runTaskLater(
+            SnapshotPvpPlugin.instance,
+            () -> {
+                Creeper creeper = (Creeper) l
+                    .getWorld()
+                    .spawnEntity(l.add(0, 1, 0), EntityType.CREEPER);
+                CustomEggListener.injectOwner(creeper, p);
+                creeper.setCustomName(
+                    ChatColor.RED + "Kun" + ChatColor.YELLOW + "ai"
+                );
+                creeper.setCustomNameVisible(true);
+                creeper.setExplosionRadius(KUNAI_RADIUS);
+                creeper
+                    .getPersistentDataContainer()
+                    .set(
+                        CustomEggListener.CUSTOM_DAMAGE,
+                        PersistentDataType.FLOAT,
+                        1f
+                    );
+                creeper.explode();
+            },
+            KUNAI_TICKS
+        );
     }
 }
