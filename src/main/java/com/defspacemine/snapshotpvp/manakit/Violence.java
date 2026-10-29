@@ -127,6 +127,7 @@ public class Violence extends ManaKit implements Listener {
             trident = new ItemStack(Material.TRIDENT);
             ItemMeta meta = trident.getItemMeta();
             meta.addEnchant(Enchantment.LOYALTY, 1, true);
+            meta.addEnchant(Enchantment.SHARPNESS, 1, true);
             meta.setUnbreakable(true);
             trident.setItemMeta(meta);
         }
