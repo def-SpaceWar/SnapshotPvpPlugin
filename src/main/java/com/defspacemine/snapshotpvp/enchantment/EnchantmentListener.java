@@ -6,9 +6,11 @@ import io.papermc.paper.entity.LookAnchor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Input;
 import org.bukkit.Location;
@@ -36,6 +38,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerFishEvent;
@@ -75,11 +78,22 @@ public class EnchantmentListener implements Listener {
     public static Enchantment NON_FATAL_SMASH_CURSE;
     public static Enchantment TARGET_CHAIN;
     public static Enchantment UNSTABLE;
+    public static Enchantment FATIGUE_CURSE;
 
     private final JavaPlugin plugin;
 
     private final Map<UUID, Integer> jumpCount = new HashMap<>();
     private final Map<UUID, Boolean> lastJumpInput = new HashMap<>();
+
+    private static final class FatigueState {
+
+        double fatigue = 0;
+        int lastTick = Bukkit.getCurrentTick();
+        int cooldownTotal = 0;
+    }
+
+    private final Map<UUID, FatigueState> bowFatigue = new HashMap<>();
+    private final Map<UUID, BossBar> fatigueBars = new HashMap<>();
 
     public EnchantmentListener(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -132,6 +146,16 @@ public class EnchantmentListener implements Listener {
         );
         UNSTABLE = Registry.ENCHANTMENT.get(
             new NamespacedKey("defspacemine", "unstable")
+        );
+        FATIGUE_CURSE = Registry.ENCHANTMENT.get(
+            new NamespacedKey("defspacemine", "fatigue_curse")
+        );
+
+        Bukkit.getScheduler().runTaskTimer(
+            plugin,
+            this::updateFatigueBars,
+            0L,
+            2L
         );
     }
 
@@ -187,6 +211,9 @@ public class EnchantmentListener implements Listener {
         UUID uuid = e.getPlayer().getUniqueId();
         jumpCount.remove(uuid);
         lastJumpInput.remove(uuid);
+        bowFatigue.remove(uuid);
+        BossBar bar = fatigueBars.remove(uuid);
+        if (bar != null) e.getPlayer().hideBossBar(bar);
     }
 
     private boolean hasTripleJump(Player p) {
@@ -653,10 +680,14 @@ public class EnchantmentListener implements Listener {
         return to.clone();
     }
 
-    private void performUnstable(Player player, LivingEntity target, int level) {
+    private void performUnstable(
+        Player player,
+        LivingEntity target,
+        int level
+    ) {
         if (Math.random() >= 0.20) return;
 
-        double distance = 2.0 + (Math.random() * level * 1.5);
+        double distance = 2.0 + Math.random() * level * 1.5;
 
         double randomAngle = Math.random() * 2 * Math.PI;
 
@@ -674,20 +705,182 @@ public class EnchantmentListener implements Listener {
             teleportLoc.setDirection(player.getLocation().getDirection())
         );
 
-        player.getWorld().spawnParticle(
-            Particle.PORTAL,
-            player.getLocation().add(0, 1, 0),
-            25,
-            0.3,
-            0.5,
-            0.3,
-            0.1
+        player
+            .getWorld()
+            .spawnParticle(
+                Particle.PORTAL,
+                player.getLocation().add(0, 1, 0),
+                25,
+                0.3,
+                0.5,
+                0.3,
+                0.1
+            );
+        player
+            .getWorld()
+            .playSound(
+                player.getLocation(),
+                Sound.ENTITY_ENDERMAN_TELEPORT,
+                0.8f,
+                1.2f
+            );
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onFatigueShoot(EntityShootBowEvent e) {
+        if (!(e.getEntity() instanceof Player p)) return;
+
+        ItemStack bow = e.getBow();
+        if (bow == null || bow.getType() != Material.BOW) return;
+        if (
+            FATIGUE_CURSE == null || !bow.containsEnchantment(FATIGUE_CURSE)
+        ) return;
+
+        int level = bow.getEnchantmentLevel(FATIGUE_CURSE);
+        int threshold = fatigueThreshold(level);
+        int decayTicksPerShot = fatigueDecayTicks(level);
+        int cooldownTicks = fatigueCooldownTicks(level);
+
+        FatigueState state = bowFatigue.computeIfAbsent(p.getUniqueId(), k ->
+            new FatigueState()
         );
-        player.getWorld().playSound(
-            player.getLocation(),
-            Sound.ENTITY_ENDERMAN_TELEPORT,
-            0.8f,
-            1.2f
+
+        int now = Bukkit.getCurrentTick();
+        state.fatigue = Math.max(
+            0,
+            state.fatigue - (now - state.lastTick) / (double) decayTicksPerShot
         );
+        state.lastTick = now;
+        state.fatigue += 1;
+
+        if (state.fatigue >= threshold) {
+            state.fatigue = 0;
+            state.cooldownTotal = cooldownTicks;
+            p.setCooldown(Material.BOW, cooldownTicks);
+
+            p.getWorld().playSound(
+                p.getLocation(),
+                Sound.ENTITY_PLAYER_BREATH,
+                1.0f,
+                0.6f
+            );
+        }
+    }
+
+    private int fatigueThreshold(int level) {
+        return Math.max(2, 6 - level);
+    }
+
+    private int fatigueDecayTicks(int level) {
+        return Math.max(20, 50 + level * 10);
+    }
+
+    private int fatigueCooldownTicks(int level) {
+        return 60 + level * 40;
+    }
+
+    /** Returns the fatigue-cursed bow in either hand, or null. */
+    private ItemStack findFatigueBow(Player p) {
+        if (FATIGUE_CURSE == null) return null;
+        ItemStack main = p.getInventory().getItemInMainHand();
+        if (
+            main.getType() == Material.BOW &&
+            main.containsEnchantment(FATIGUE_CURSE)
+        ) return main;
+        ItemStack off = p.getInventory().getItemInOffHand();
+        if (
+            off.getType() == Material.BOW &&
+            off.containsEnchantment(FATIGUE_CURSE)
+        ) return off;
+        return null;
+    }
+
+    private void hideFatigueBar(Player p) {
+        BossBar bar = fatigueBars.remove(p.getUniqueId());
+        if (bar != null) p.hideBossBar(bar);
+    }
+
+    private void updateFatigueBars() {
+        int now = Bukkit.getCurrentTick();
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            ItemStack bow = findFatigueBow(p);
+            if (bow == null) {
+                hideFatigueBar(p);
+                continue;
+            }
+
+            int level = bow.getEnchantmentLevel(FATIGUE_CURSE);
+            int threshold = fatigueThreshold(level);
+            FatigueState state = bowFatigue.get(p.getUniqueId());
+
+            BossBar bar = fatigueBars.get(p.getUniqueId());
+            if (bar == null) {
+                bar = BossBar.bossBar(
+                    Component.empty(),
+                    0f,
+                    BossBar.Color.GREEN,
+                    BossBar.Overlay.PROGRESS
+                );
+                fatigueBars.put(p.getUniqueId(), bar);
+                p.showBossBar(bar);
+            }
+
+            int cooldownLeft = p.getCooldown(Material.BOW);
+            if (cooldownLeft > 0) {
+                int total =
+                    state != null && state.cooldownTotal > 0
+                        ? state.cooldownTotal
+                        : cooldownLeft;
+                bar.progress(
+                    Math.max(0f, Math.min(1f, cooldownLeft / (float) total))
+                );
+                bar.color(BossBar.Color.RED);
+                bar.name(
+                    Component.text(
+                        "Exhausted ",
+                        NamedTextColor.RED,
+                        TextDecoration.BOLD
+                    ).append(
+                        Component.text(
+                            String.format("(%.1fs)", cooldownLeft / 20.0),
+                            NamedTextColor.GRAY
+                        )
+                    )
+                );
+                continue;
+            }
+
+            double fatigue = 0;
+            if (state != null) {
+                fatigue = Math.max(
+                    0,
+                    state.fatigue -
+                        (now - state.lastTick) /
+                            (double) fatigueDecayTicks(level)
+                );
+            }
+
+            float progress = (float) Math.max(
+                0,
+                Math.min(1, fatigue / threshold)
+            );
+            bar.progress(progress);
+            bar.color(
+                progress < 0.5f
+                    ? BossBar.Color.GREEN
+                    : progress < 0.8f
+                      ? BossBar.Color.YELLOW
+                      : BossBar.Color.RED
+            );
+            bar.name(
+                Component.text("Bow Fatigue ", NamedTextColor.GOLD).append(
+                    Component.text(
+                        (int) Math.ceil(fatigue) + "/" + threshold,
+                        NamedTextColor.WHITE
+                    )
+                )
+            );
+        }
     }
 }
