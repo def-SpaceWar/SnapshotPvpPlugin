@@ -216,7 +216,7 @@ public class Hacker extends ManaKit implements Listener {
 
         String trojanStatus = hasTrojanItem
             ? ChatColor.GREEN + "READY"
-            : ChatColor.WHITE + "" + trojanAttackCount + "/7";
+            : ChatColor.WHITE + "" + trojanAttackCount + "/12";
 
         boolean hasRewindItem = hasRewindItemInInventory(p);
         String rewindStatus = hasRewindItem
@@ -312,7 +312,7 @@ public class Hacker extends ManaKit implements Listener {
             }
         }
 
-        // 3. Trojan Horse Charge (7 hits)
+        // 3. Trojan Horse Charge (12 hits)
         if (!hasTrojanItemInInventory(p)) {
             int currentTrojanCount =
                 pdc.getOrDefault(
@@ -320,7 +320,7 @@ public class Hacker extends ManaKit implements Listener {
                     PersistentDataType.INTEGER,
                     0
                 ) + 1;
-            if (currentTrojanCount >= 7) {
+            if (currentTrojanCount >= 12) {
                 pdc.set(trojanAttackCountKey, PersistentDataType.INTEGER, 0);
                 giveTrojanItem(p);
             } else {
