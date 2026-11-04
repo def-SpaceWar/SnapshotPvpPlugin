@@ -1,8 +1,8 @@
 package com.defspacemine.snapshotpvp.manakit;
 
+import com.defspacemine.snapshotpvp.MannequinFighter;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
-import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -32,12 +32,9 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Zombie;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -48,7 +45,6 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -57,7 +53,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
-public class TwoTimer extends ManaKit implements Listener {
+public class TwoTimer extends ManaKit {
 
     private static final int SWORD_TP_HITS = 5;
     private static final double TP_DISTANCE = 3.5;
@@ -66,6 +62,7 @@ public class TwoTimer extends ManaKit implements Listener {
     private static final int SWAP_COOLDOWN_TICKS = 100; // 5 seconds between swaps
     private static final int JACK_RESTOCK_TICKS = 200; // 10 seconds per Jack in the Box
     private static final int OUT_OF_COMBAT_HEAL_TICKS = 400; // 20 seconds out of combat
+    private static final int TWIN_KILL_REGEN_TICKS = 200; // 10 seconds of regen after a twin kill
 
     private static final int BUILD_RESTOCK_TICKS = 60; // 3 seconds per block batch
     private static final int MAX_BUILD_BLOCKS = 16; // Caps at 16 planks and 16 stone
@@ -76,13 +73,15 @@ public class TwoTimer extends ManaKit implements Listener {
     private final NamespacedKey leftHitsKey = ManaKitListener.MANA_KIT_DATA0;
     private final NamespacedKey rightHitsKey = ManaKitListener.MANA_KIT_DATA1;
     private final NamespacedKey twinChargeKey = ManaKitListener.MANA_KIT_DATA2;
-    private final NamespacedKey swapCooldownKey = ManaKitListener.MANA_KIT_DATA3;
+    private final NamespacedKey swapCooldownKey =
+        ManaKitListener.MANA_KIT_DATA3;
     private final NamespacedKey jackTimerKey = ManaKitListener.MANA_KIT_DATA4;
     private final NamespacedKey outOfCombatKey = ManaKitListener.MANA_KIT_DATA5;
     private final NamespacedKey buildTimerKey = ManaKitListener.MANA_KIT_DATA6;
 
     private final NamespacedKey twinUUIDKey = ManaKitListener.MANA_KIT_DATASTR0;
-    private final NamespacedKey twinUpgradedKey = ManaKitListener.MANA_KIT_DATABOOL0;
+    private final NamespacedKey twinUpgradedKey =
+        ManaKitListener.MANA_KIT_DATABOOL0;
 
     // Item & Entity PDC tags
     private final NamespacedKey leftSwordTag = new NamespacedKey(
@@ -109,12 +108,11 @@ public class TwoTimer extends ManaKit implements Listener {
     // Tracks placed Build & Play blocks per player for cleanup and auto-breaking
     private final Map<UUID, Set<Block>> placedBlocksMap = new HashMap<>();
 
+    // Live Twin Toy fighters per owner
+    private final Map<UUID, MannequinFighter> twins = new HashMap<>();
+
     public TwoTimer() {
         super("two_timer", "Two Timer", "[Melee Damage]", 0);
-        SnapshotPvpPlugin plugin = SnapshotPvpPlugin.getPlugin(
-            SnapshotPvpPlugin.class
-        );
-        Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
     @Override
@@ -226,10 +224,8 @@ public class TwoTimer extends ManaKit implements Listener {
             0
         );
 
-        // 1. Hunger Lock & 20s Out-of-Combat Full Heal
         handleHungerAndOutOfCombatHeal(p);
 
-        // 2. Killstreak Passives (1: 75% Twin HP, 2: Stone blocks, 3: Strength I, 4: Speed II)
         if (killstreak >= 3) {
             p.addPotionEffect(
                 new PotionEffect(PotionEffectType.STRENGTH, 100, 0)
@@ -239,10 +235,10 @@ public class TwoTimer extends ManaKit implements Listener {
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 1));
         }
 
-        // 3. Manage Active Twin Toy or Charge Progress
-        Zombie twin = getTwinToy(p);
+        Mannequin twin = getTwinToy(p);
         if (twin != null) {
             syncTwinToy(p, twin, killstreak);
+            getTwinFighter(p, twin); // Ensure MannequinFighter brain is active
             if (swapCd > 0) {
                 swapCd--;
                 pdc.set(swapCooldownKey, PersistentDataType.INTEGER, swapCd);
@@ -251,7 +247,7 @@ public class TwoTimer extends ManaKit implements Listener {
                 giveTwinSwapItem(p);
             }
         } else {
-            // Remove swap item if Twin Toy died
+            twins.remove(p.getUniqueId());
             SnapshotPvpPlugin.clearInv(p.getInventory(), Material.ENDER_EYE);
             if (twinCharge >= TWIN_TOY_COST && !hasTaggedItem(p, twinItemTag)) {
                 pdc.set(twinChargeKey, PersistentDataType.INTEGER, 0);
@@ -259,7 +255,6 @@ public class TwoTimer extends ManaKit implements Listener {
             }
         }
 
-        // 4. Jack in the Box Restock (Every 10s / 200 ticks)
         if (!hasTaggedItem(p, jackItemTag)) {
             jackTimer++;
             if (jackTimer >= JACK_RESTOCK_TICKS) {
@@ -269,7 +264,6 @@ public class TwoTimer extends ManaKit implements Listener {
             pdc.set(jackTimerKey, PersistentDataType.INTEGER, jackTimer);
         }
 
-        // 5. Build and Play Restock (Oak Planks + Stone at Killstreak >= 2)
         buildTimer++;
         if (buildTimer >= BUILD_RESTOCK_TICKS) {
             buildTimer = 0;
@@ -277,7 +271,6 @@ public class TwoTimer extends ManaKit implements Listener {
         }
         pdc.set(buildTimerKey, PersistentDataType.INTEGER, buildTimer);
 
-        // 6. Action Bar Status
         String twinStatus;
         if (twin != null) {
             twinStatus =
@@ -289,12 +282,16 @@ public class TwoTimer extends ManaKit implements Listener {
         } else if (hasTaggedItem(p, twinItemTag)) {
             twinStatus = ChatColor.GREEN + "READY";
         } else {
-            twinStatus = ChatColor.WHITE + "" + twinCharge + "/" + TWIN_TOY_COST;
+            twinStatus =
+                ChatColor.WHITE + "" + twinCharge + "/" + TWIN_TOY_COST;
         }
 
         String jackStatus = hasTaggedItem(p, jackItemTag)
             ? ChatColor.GREEN + "READY"
-            : ChatColor.WHITE + "" + (jackTimer * 100) / JACK_RESTOCK_TICKS + "%";
+            : ChatColor.WHITE +
+              "" +
+              (jackTimer * 100) / JACK_RESTOCK_TICKS +
+              "%";
 
         int outOfCombat = pdc.getOrDefault(
             outOfCombatKey,
@@ -351,7 +348,6 @@ public class TwoTimer extends ManaKit implements Listener {
     }
 
     private void handleHungerAndOutOfCombatHeal(Player p) {
-        // Never need to eat
         if (p.getFoodLevel() < 20) {
             p.setFoodLevel(20);
         }
@@ -367,7 +363,6 @@ public class TwoTimer extends ManaKit implements Listener {
             outOfCombat++;
             pdc.set(outOfCombatKey, PersistentDataType.INTEGER, outOfCombat);
 
-            // Unable to gain saturation until out of combat for 20 seconds
             p.setSaturation(0f);
             p.removePotionEffect(PotionEffectType.SATURATION);
 
@@ -402,9 +397,8 @@ public class TwoTimer extends ManaKit implements Listener {
             0
         );
         if (outOfCombat < OUT_OF_COMBAT_HEAL_TICKS) {
-            Bukkit.getScheduler().runTask(
-                SnapshotPvpPlugin.instance,
-                () -> p.setSaturation(0f)
+            Bukkit.getScheduler().runTask(SnapshotPvpPlugin.instance, () ->
+                p.setSaturation(0f)
             );
         }
     }
@@ -426,22 +420,17 @@ public class TwoTimer extends ManaKit implements Listener {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(outOfCombatKey, PersistentDataType.INTEGER, 0);
 
-        // Charge Twin Toy if none is active or held
         if (
             victim instanceof Player &&
             getTwinToy(p) == null &&
             !hasTaggedItem(p, twinItemTag)
         ) {
             int twinCharge =
-                pdc.getOrDefault(
-                    twinChargeKey,
-                    PersistentDataType.INTEGER,
-                    0
-                ) + 1;
+                pdc.getOrDefault(twinChargeKey, PersistentDataType.INTEGER, 0) +
+                1;
             pdc.set(twinChargeKey, PersistentDataType.INTEGER, twinCharge);
         }
 
-        // Check Left / Right Sword Teleport
         ItemStack held = p.getInventory().getItemInMainHand();
         if (held == null || !held.hasItemMeta()) return;
 
@@ -483,7 +472,6 @@ public class TwoTimer extends ManaKit implements Listener {
         ItemStack item = e.getItem();
         if (item == null) return;
 
-        // 1. Build and Play: Place Oak Planks or Stone with Auto-Breaking Animation
         if (
             e.getAction() == Action.RIGHT_CLICK_BLOCK &&
             e.getClickedBlock() != null &&
@@ -506,7 +494,6 @@ public class TwoTimer extends ManaKit implements Listener {
             .getPersistentDataContainer();
         PersistentDataContainer pdc = p.getPersistentDataContainer();
 
-        // 2. Right-Click Sword: Make it take 1 less attack before teleporting
         if (itemPdc.has(leftSwordTag, PersistentDataType.BYTE)) {
             if (p.hasCooldown(item.getType())) return;
             int hits = pdc.getOrDefault(
@@ -517,12 +504,7 @@ public class TwoTimer extends ManaKit implements Listener {
             if (hits < SWORD_TP_HITS - 1) {
                 pdc.set(leftHitsKey, PersistentDataType.INTEGER, hits + 1);
                 p.setCooldown(item.getType(), 5);
-                p.playSound(
-                    p.getLocation(),
-                    Sound.UI_BUTTON_CLICK,
-                    0.5f,
-                    1.6f
-                );
+                p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.6f);
             }
             return;
         }
@@ -537,20 +519,14 @@ public class TwoTimer extends ManaKit implements Listener {
             if (hits < SWORD_TP_HITS - 1) {
                 pdc.set(rightHitsKey, PersistentDataType.INTEGER, hits + 1);
                 p.setCooldown(item.getType(), 5);
-                p.playSound(
-                    p.getLocation(),
-                    Sound.UI_BUTTON_CLICK,
-                    0.5f,
-                    1.4f
-                );
+                p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.4f);
             }
             return;
         }
 
-        // 3. Twin Toy Summon / Position Swap
         if (itemPdc.has(twinItemTag, PersistentDataType.BYTE)) {
             e.setCancelled(true);
-            Zombie twin = getTwinToy(p);
+            Mannequin twin = getTwinToy(p);
 
             if (twin == null) {
                 Location spawnLoc =
@@ -589,7 +565,6 @@ public class TwoTimer extends ManaKit implements Listener {
             return;
         }
 
-        // 4. Jack in the Box
         if (itemPdc.has(jackItemTag, PersistentDataType.BYTE)) {
             e.setCancelled(true);
             item.setAmount(item.getAmount() - 1);
@@ -597,9 +572,6 @@ public class TwoTimer extends ManaKit implements Listener {
         }
     }
 
-    // ------------------------------------------------------------------
-    // DUAL SWORDS & DIRECTIONAL TELEPORT
-    // ------------------------------------------------------------------
     private void ensureSwordsTagged(Player p) {
         PlayerInventory inv = p.getInventory();
         boolean hasLeft = false;
@@ -611,12 +583,12 @@ public class TwoTimer extends ManaKit implements Listener {
                 .getItemMeta()
                 .getPersistentDataContainer();
             if (pdc.has(leftSwordTag, PersistentDataType.BYTE)) hasLeft = true;
-            if (pdc.has(rightSwordTag, PersistentDataType.BYTE)) hasRight = true;
+            if (pdc.has(rightSwordTag, PersistentDataType.BYTE)) hasRight =
+                true;
         }
 
         if (hasLeft && hasRight) return;
 
-        // Tag untagged swords from shulker first
         for (ItemStack item : inv.getContents()) {
             if (
                 item == null || !item.getType().name().endsWith("_SWORD")
@@ -654,7 +626,6 @@ public class TwoTimer extends ManaKit implements Listener {
             }
         }
 
-        // Fallback if shulker had fewer than 2 swords
         if (!hasLeft) {
             ItemStack left = new ItemStack(Material.IRON_SWORD);
             ItemMeta meta = left.getItemMeta();
@@ -665,8 +636,8 @@ public class TwoTimer extends ManaKit implements Listener {
             );
             meta.setUnbreakable(true);
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
-            meta.addEnchant(Enchantment.SHARPNESS, 3, true);
-            meta.addEnchant(Enchantment.BREACH, 3, true);
+            meta.addEnchant(Enchantment.SHARPNESS, 2, true);
+            meta.addEnchant(Enchantment.BREACH, 2, true);
             meta.getPersistentDataContainer().set(
                 leftSwordTag,
                 PersistentDataType.BYTE,
@@ -686,8 +657,8 @@ public class TwoTimer extends ManaKit implements Listener {
             );
             meta.setUnbreakable(true);
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
-            meta.addEnchant(Enchantment.SHARPNESS, 3, true);
-            meta.addEnchant(Enchantment.BREACH, 3, true);
+            meta.addEnchant(Enchantment.SHARPNESS, 2, true);
+            meta.addEnchant(Enchantment.BREACH, 2, true);
             meta.getPersistentDataContainer().set(
                 rightSwordTag,
                 PersistentDataType.BYTE,
@@ -711,7 +682,6 @@ public class TwoTimer extends ManaKit implements Listener {
             forward.normalize();
         }
 
-        // In Minecraft coordinates: Left = (z, 0, -x), Right = (-z, 0, x)
         Vector sideDir = goLeft
             ? new Vector(forward.getZ(), 0, -forward.getX()).normalize()
             : new Vector(-forward.getZ(), 0, forward.getX()).normalize();
@@ -728,7 +698,6 @@ public class TwoTimer extends ManaKit implements Listener {
             dest = check;
         }
 
-        // Orient horizontally toward the target while preserving pitch
         if (target != null) {
             Vector toTarget = target
                 .getLocation()
@@ -778,9 +747,6 @@ public class TwoTimer extends ManaKit implements Listener {
         );
     }
 
-    // ------------------------------------------------------------------
-    // TWIN TOY (CLONE) & POSITION SWAP
-    // ------------------------------------------------------------------
     private void spawnTwinToy(Player owner, Location loc) {
         removeTwinToy(owner);
 
@@ -792,18 +758,13 @@ public class TwoTimer extends ManaKit implements Listener {
         double hpRatio = upgraded ? 0.75 : 0.50;
         double maxHp = Math.max(2.0, owner.getMaxHealth() * hpRatio);
 
-        Zombie twin = loc.getWorld().spawn(loc, Zombie.class, z -> {
-            z.setAdult();
-            z.setShouldBurnInDay(false);
-            z.setCanPickupItems(false);
-            z.setPersistent(true);
-            z.setRemoveWhenFarAway(false);
-            z.getPersistentDataContainer().set(
-                twinEntityOwnerTag,
-                PersistentDataType.STRING,
-                owner.getUniqueId().toString()
-            );
-        });
+        Mannequin twin = loc.getWorld().spawn(loc, Mannequin.class);
+
+        twin.getPersistentDataContainer().set(
+            twinEntityOwnerTag,
+            PersistentDataType.STRING,
+            owner.getUniqueId().toString()
+        );
 
         SnapshotPvpPlugin.addToTeam(owner, twin);
         CustomEggListener.injectOwner(twin, owner);
@@ -813,9 +774,11 @@ public class TwoTimer extends ManaKit implements Listener {
         }
         twin.setHealth(maxHp);
 
-        if (twin.getAttribute(Attribute.MOVEMENT_SPEED) != null) {
-            twin.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(0.32);
-        }
+        configureTwinToy(owner, twin);
+
+        // Initialize and track MannequinFighter
+        MannequinFighter fighter = new MannequinFighter(SnapshotPvpPlugin.instance, twin);
+        twins.put(owner.getUniqueId(), fighter);
 
         PersistentDataContainer pdc = owner.getPersistentDataContainer();
         pdc.set(
@@ -844,7 +807,23 @@ public class TwoTimer extends ManaKit implements Listener {
         );
     }
 
-    private void syncTwinToy(Player owner, Zombie twin, int killstreak) {
+    private void configureTwinToy(Player owner, Mannequin twin) {
+        twin.setImmovable(false);
+
+        EntityEquipment ownerEq = owner.getEquipment();
+        EntityEquipment twinEq = twin.getEquipment();
+
+        if (ownerEq != null && twinEq != null) {
+            twinEq.setHelmet(ownerEq.getHelmet());
+            twinEq.setChestplate(ownerEq.getChestplate());
+            twinEq.setLeggings(ownerEq.getLeggings());
+            twinEq.setBoots(ownerEq.getBoots());
+            twinEq.setItemInMainHand(ownerEq.getItemInMainHand());
+            twinEq.setItemInOffHand(ownerEq.getItemInOffHand());
+        }
+    }
+
+    private void syncTwinToy(Player owner, Mannequin twin, int killstreak) {
         PersistentDataContainer pdc = owner.getPersistentDataContainer();
         boolean wasUpgraded = pdc.getOrDefault(
             twinUpgradedKey,
@@ -852,7 +831,6 @@ public class TwoTimer extends ManaKit implements Listener {
             false
         );
 
-        // Upgrade Twin Toy HP to 75% dynamically if player reaches Killstreak 1
         if (killstreak >= 1 && !wasUpgraded) {
             pdc.set(twinUpgradedKey, PersistentDataType.BOOLEAN, true);
             double newMax = owner.getMaxHealth() * 0.75;
@@ -866,20 +844,11 @@ public class TwoTimer extends ManaKit implements Listener {
             }
         }
 
-        // Copy armor and held items
         EntityEquipment equip = twin.getEquipment();
         if (equip != null) {
-            ItemStack[] armor = owner.getInventory().getArmorContents().clone();
-            if (armor[3] == null || armor[3].getType().isAir()) {
-                ItemStack head = new ItemStack(Material.PLAYER_HEAD);
-                SkullMeta skullMeta = (SkullMeta) head.getItemMeta();
-                if (skullMeta != null) {
-                    skullMeta.setPlayerProfile(owner.getPlayerProfile());
-                    head.setItemMeta(skullMeta);
-                }
-                armor[3] = head;
-            }
-            equip.setArmorContents(armor);
+            equip.setArmorContents(
+                owner.getInventory().getArmorContents().clone()
+            );
             equip.setItemInMainHand(
                 owner.getInventory().getItemInMainHand().clone()
             );
@@ -894,75 +863,33 @@ public class TwoTimer extends ManaKit implements Listener {
             equip.setItemInOffHandDropChance(0f);
         }
 
-        // Copy player's attack damage attribute
-        AttributeInstance ownerAtk = owner.getAttribute(
-            Attribute.ATTACK_DAMAGE
-        );
-        AttributeInstance twinAtk = twin.getAttribute(Attribute.ATTACK_DAMAGE);
-        if (ownerAtk != null && twinAtk != null) {
-            twinAtk.setBaseValue(ownerAtk.getValue());
-        }
-
-        // Update name & target nearest enemy
         int hp = (int) Math.ceil(twin.getHealth());
         int maxHp = (int) Math.ceil(
             twin.getAttribute(Attribute.MAX_HEALTH) != null
                 ? twin.getAttribute(Attribute.MAX_HEALTH).getBaseValue()
                 : 10.0
         );
-        twin.setCustomName(
-            ChatColor.LIGHT_PURPLE +
-                owner.getName() +
-                "'s Twin Toy " +
-                ChatColor.RED +
-                hp +
-                "/" +
-                maxHp +
-                " HP"
+        twin.customName(
+            Component.text(
+                owner.getName() + "'s Twin Toy ",
+                NamedTextColor.LIGHT_PURPLE
+            ).append(
+                Component.text(hp + "/" + maxHp + " HP", NamedTextColor.RED)
+            )
         );
         twin.setCustomNameVisible(true);
-
-        if (owner.getTicksLived() % 10 == 0) {
-            LivingEntity nearest = findNearestEnemy(owner, twin.getLocation());
-            if (nearest != null) {
-                twin.setTarget(nearest);
-            }
-        }
     }
 
-    @EventHandler
-    public void onTwinToyCombat(EntityDamageByEntityEvent e) {
-        if (!(e.getDamager() instanceof Zombie twin)) return;
-        PersistentDataContainer twinPdc = twin.getPersistentDataContainer();
-        if (!twinPdc.has(twinEntityOwnerTag, PersistentDataType.STRING)) return;
-
-        String ownerUuidStr = twinPdc.get(
-            twinEntityOwnerTag,
-            PersistentDataType.STRING
-        );
-        if (ownerUuidStr == null) return;
-
-        Player owner = Bukkit.getPlayer(UUID.fromString(ownerUuidStr));
-        if (owner == null) return;
-
-        if (
-            e.getEntity().equals(owner) ||
-            SnapshotPvpPlugin.isSameTeam(owner, e.getEntity())
-        ) {
-            e.setCancelled(true);
-            return;
+    private MannequinFighter getTwinFighter(Player owner, Mannequin twin) {
+        MannequinFighter fighter = twins.get(owner.getUniqueId());
+        if (fighter == null || !fighter.mannequin.equals(twin)) {
+            fighter = new MannequinFighter(SnapshotPvpPlugin.instance, twin);
+            twins.put(owner.getUniqueId(), fighter);
         }
-
-        // Match player's exact attack damage without triggering sword teleports
-        AttributeInstance ownerAtk = owner.getAttribute(
-            Attribute.ATTACK_DAMAGE
-        );
-        if (ownerAtk != null) {
-            e.setDamage(ownerAtk.getValue());
-        }
+        return fighter;
     }
 
-    private void swapWithTwin(Player p, Zombie twin) {
+    private void swapWithTwin(Player p, Mannequin twin) {
         Location pLoc = p.getLocation().clone();
         Location tLoc = twin.getLocation().clone();
         Vector pVel = p.getVelocity().clone();
@@ -1006,61 +933,29 @@ public class TwoTimer extends ManaKit implements Listener {
         );
     }
 
-    private Zombie getTwinToy(Player owner) {
+    private Mannequin getTwinToy(Player owner) {
         PersistentDataContainer pdc = owner.getPersistentDataContainer();
         String uuidStr = pdc.get(twinUUIDKey, PersistentDataType.STRING);
         if (uuidStr == null || uuidStr.isEmpty()) return null;
         try {
             Entity ent = Bukkit.getEntity(UUID.fromString(uuidStr));
-            if (ent instanceof Zombie z && z.isValid() && !z.isDead()) {
-                return z;
+            if (ent instanceof Mannequin m && m.isValid() && !m.isDead()) {
+                return m;
             }
         } catch (Exception ignored) {}
         return null;
     }
 
     private void removeTwinToy(Player owner) {
-        Zombie twin = getTwinToy(owner);
+        Mannequin twin = getTwinToy(owner);
         if (twin != null) {
             twin.remove();
         }
-        owner.getPersistentDataContainer().set(
-            twinUUIDKey,
-            PersistentDataType.STRING,
-            ""
-        );
+        owner
+            .getPersistentDataContainer()
+            .set(twinUUIDKey, PersistentDataType.STRING, "");
     }
 
-    private LivingEntity findNearestEnemy(Player owner, Location origin) {
-        LivingEntity nearest = null;
-        double bestDistSq = Double.MAX_VALUE;
-        for (Entity entity : origin.getWorld().getNearbyEntities(
-            origin,
-            24,
-            24,
-            24
-        )) {
-            if (!(entity instanceof LivingEntity target)) continue;
-            if (entity instanceof ArmorStand || target.isDead()) continue;
-            if (target.equals(owner)) continue;
-            if (
-                target instanceof Player other &&
-                other.getGameMode() == GameMode.SPECTATOR
-            ) continue;
-            if (SnapshotPvpPlugin.isSameTeam(owner, target)) continue;
-
-            double dSq = origin.distanceSquared(target.getLocation());
-            if (dSq < bestDistSq) {
-                bestDistSq = dSq;
-                nearest = target;
-            }
-        }
-        return nearest;
-    }
-
-    // ------------------------------------------------------------------
-    // JACK IN THE BOX (EVERY 10 SECONDS)
-    // ------------------------------------------------------------------
     private void activateJackInTheBox(Player p) {
         Location loc = p.getLocation().add(0, 1, 0);
         World world = p.getWorld();
@@ -1085,7 +980,10 @@ public class TwoTimer extends ManaKit implements Listener {
                     new PotionEffect(PotionEffectType.SPEED, 120, 0)
                 );
                 p.sendMessage(
-                    ChatColor.YELLOW + "Jack in the Box: " + ChatColor.AQUA + "Speed I (6s)!"
+                    ChatColor.YELLOW +
+                        "Jack in the Box: " +
+                        ChatColor.AQUA +
+                        "Speed I (6s)!"
                 );
             }
             case 1 -> {
@@ -1093,7 +991,10 @@ public class TwoTimer extends ManaKit implements Listener {
                     new PotionEffect(PotionEffectType.HASTE, 120, 0)
                 );
                 p.sendMessage(
-                    ChatColor.YELLOW + "Jack in the Box: " + ChatColor.GOLD + "Haste I (6s)!"
+                    ChatColor.YELLOW +
+                        "Jack in the Box: " +
+                        ChatColor.GOLD +
+                        "Haste I (6s)!"
                 );
             }
             case 2 -> {
@@ -1101,7 +1002,10 @@ public class TwoTimer extends ManaKit implements Listener {
                     new PotionEffect(PotionEffectType.REGENERATION, 100, 0)
                 );
                 p.sendMessage(
-                    ChatColor.YELLOW + "Jack in the Box: " + ChatColor.LIGHT_PURPLE + "Regeneration I (5s)!"
+                    ChatColor.YELLOW +
+                        "Jack in the Box: " +
+                        ChatColor.LIGHT_PURPLE +
+                        "Regeneration I (5s)!"
                 );
             }
             case 3 -> {
@@ -1109,7 +1013,10 @@ public class TwoTimer extends ManaKit implements Listener {
                     new PotionEffect(PotionEffectType.RESISTANCE, 100, 0)
                 );
                 p.sendMessage(
-                    ChatColor.YELLOW + "Jack in the Box: " + ChatColor.BLUE + "Resistance I (5s)!"
+                    ChatColor.YELLOW +
+                        "Jack in the Box: " +
+                        ChatColor.BLUE +
+                        "Resistance I (5s)!"
                 );
             }
             case 4 -> {
@@ -1117,7 +1024,10 @@ public class TwoTimer extends ManaKit implements Listener {
                     new PotionEffect(PotionEffectType.ABSORPTION, 160, 0)
                 );
                 p.sendMessage(
-                    ChatColor.YELLOW + "Jack in the Box: " + ChatColor.GREEN + "Absorption I (8s)!"
+                    ChatColor.YELLOW +
+                        "Jack in the Box: " +
+                        ChatColor.GREEN +
+                        "Absorption I (8s)!"
                 );
             }
             case 5 -> {
@@ -1125,15 +1035,15 @@ public class TwoTimer extends ManaKit implements Listener {
                     new PotionEffect(PotionEffectType.JUMP_BOOST, 120, 1)
                 );
                 p.sendMessage(
-                    ChatColor.YELLOW + "Jack in the Box: " + ChatColor.WHITE + "Jump Boost II (6s)!"
+                    ChatColor.YELLOW +
+                        "Jack in the Box: " +
+                        ChatColor.WHITE +
+                        "Jump Boost II (6s)!"
                 );
             }
         }
     }
 
-    // ------------------------------------------------------------------
-    // BUILD AND PLAY (AUTO-BREAKING BLOCKS)
-    // ------------------------------------------------------------------
     private void restockBuildBlocks(Player p, boolean includeStone) {
         PlayerInventory inv = p.getInventory();
         int planks = countMaterial(inv, Material.OAK_PLANKS);
@@ -1179,7 +1089,9 @@ public class TwoTimer extends ManaKit implements Listener {
             !world
                 .getNearbyEntities(
                     box,
-                    ent -> ent instanceof LivingEntity && !(ent instanceof ArmorStand)
+                    ent ->
+                        ent instanceof LivingEntity &&
+                        !(ent instanceof ArmorStand)
                 )
                 .isEmpty()
         ) {
@@ -1208,9 +1120,10 @@ public class TwoTimer extends ManaKit implements Listener {
         );
         playerBlocks.add(targetBlock);
 
-        final int totalTicks = placedType == Material.STONE
-            ? STONE_BREAK_TICKS
-            : PLANK_BREAK_TICKS;
+        final int totalTicks =
+            placedType == Material.STONE
+                ? STONE_BREAK_TICKS
+                : PLANK_BREAK_TICKS;
         final int sourceId = ThreadLocalRandom.current().nextInt(
             1_000_000,
             2_000_000
@@ -1294,9 +1207,6 @@ public class TwoTimer extends ManaKit implements Listener {
         }
     }
 
-    // ------------------------------------------------------------------
-    // ITEM BUILDERS & INVENTORY HELPERS
-    // ------------------------------------------------------------------
     private void giveTwinSummonItem(Player p) {
         SnapshotPvpPlugin.clearInv(p.getInventory(), Material.ARMOR_STAND);
         ItemStack item = new ItemStack(Material.ARMOR_STAND, 1);
@@ -1334,7 +1244,10 @@ public class TwoTimer extends ManaKit implements Listener {
             meta.setLore(
                 List.of(
                     ChatColor.GRAY + "Right-click to swap positions with your",
-                    ChatColor.LIGHT_PURPLE + "Twin Toy " + ChatColor.GRAY + "(5s cooldown)."
+                    ChatColor.LIGHT_PURPLE +
+                        "Twin Toy " +
+                        ChatColor.GRAY +
+                        "(5s cooldown)."
                 )
             );
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);

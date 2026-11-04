@@ -264,9 +264,9 @@ public class Hacker extends ManaKit implements Listener {
 
     @Override
     public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {
-        if (e.getDamager() instanceof Player) {
-            handleAttackCharges(p);
-        }
+        // if (e.getDamager() instanceof Player) {
+        //     handleAttackCharges(p);
+        // }
     }
 
     private void handleAttackCharges(Player p) {
