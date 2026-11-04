@@ -3,6 +3,9 @@ package com.defspacemine.snapshotpvp.manakit;
 import com.defspacemine.snapshotpvp.MannequinFighter;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
+
+import io.papermc.paper.datacomponent.item.ResolvableProfile;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -26,7 +29,6 @@ import org.bukkit.Particle.DustOptions;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.enchantments.Enchantment;
@@ -777,7 +779,10 @@ public class TwoTimer extends ManaKit {
         configureTwinToy(owner, twin);
 
         // Initialize and track MannequinFighter
-        MannequinFighter fighter = new MannequinFighter(SnapshotPvpPlugin.instance, twin);
+        MannequinFighter fighter = new MannequinFighter(
+            SnapshotPvpPlugin.instance,
+            twin
+        );
         twins.put(owner.getUniqueId(), fighter);
 
         PersistentDataContainer pdc = owner.getPersistentDataContainer();
@@ -809,6 +814,7 @@ public class TwoTimer extends ManaKit {
 
     private void configureTwinToy(Player owner, Mannequin twin) {
         twin.setImmovable(false);
+        twin.setProfile(ResolvableProfile.resolvableProfile().name(owner.getName()).build());
 
         EntityEquipment ownerEq = owner.getEquipment();
         EntityEquipment twinEq = twin.getEquipment();
@@ -855,12 +861,12 @@ public class TwoTimer extends ManaKit {
             equip.setItemInOffHand(
                 owner.getInventory().getItemInOffHand().clone()
             );
-            equip.setHelmetDropChance(0f);
-            equip.setChestplateDropChance(0f);
-            equip.setLeggingsDropChance(0f);
-            equip.setBootsDropChance(0f);
-            equip.setItemInMainHandDropChance(0f);
-            equip.setItemInOffHandDropChance(0f);
+            // equip.setHelmetDropChance(0f);
+            // equip.setChestplateDropChance(0f);
+            // equip.setLeggingsDropChance(0f);
+            // equip.setBootsDropChance(0f);
+            // equip.setItemInMainHandDropChance(0f);
+            // equip.setItemInOffHandDropChance(0f);
         }
 
         int hp = (int) Math.ceil(twin.getHealth());
@@ -977,13 +983,13 @@ public class TwoTimer extends ManaKit {
         switch (roll) {
             case 0 -> {
                 p.addPotionEffect(
-                    new PotionEffect(PotionEffectType.SPEED, 120, 0)
+                    new PotionEffect(PotionEffectType.SATURATION, 120, 0)
                 );
                 p.sendMessage(
                     ChatColor.YELLOW +
                         "Jack in the Box: " +
                         ChatColor.AQUA +
-                        "Speed I (6s)!"
+                        "Saturation (6s)!"
                 );
             }
             case 1 -> {
