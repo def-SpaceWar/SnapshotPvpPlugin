@@ -272,6 +272,8 @@ public final class ManaKitListener implements Listener {
         registerKit(new Hacker());
         registerKit(new Violence());
         registerKit(new Monk());
+        registerKit(new TwoTimer());
+        registerKit(new GodOfStories());
 
         manakitGameLoop();
     }

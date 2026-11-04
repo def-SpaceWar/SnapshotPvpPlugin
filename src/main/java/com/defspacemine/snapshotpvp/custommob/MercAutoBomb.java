@@ -37,6 +37,7 @@ public class MercAutoBomb implements CustomMob {
         creeper.setCustomNameVisible(true);
         creeper.setMaxFuseTicks(Mercenary.AUTO_BOMB_TICKS);
         creeper.setExplosionRadius(Mercenary.AUTO_BOMB_RADIUS);
+        cPdc.set(CustomEggListener.CUSTOM_DAMAGE, PersistentDataType.FLOAT, Mercenary.AUTO_BOMB_DAMAGE);
         creeper.ignite();
 
         return creeper;

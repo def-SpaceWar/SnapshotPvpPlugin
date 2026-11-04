@@ -25,11 +25,14 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 public class Mercenary extends ManaKit {
-    public static final int LAUNCHER_TICKS = 15;
+    public static final int LAUNCHER_TICKS = 20;
     public static final int LAUNCHER_RADIUS = -3;
-    public static final int AUTO_BOMB_TICKS = 20;
+    public static final float LAUNCHER_DAMAGE = -15;
+    public static final int AUTO_BOMB_TICKS = 25;
     public static final int AUTO_BOMB_RADIUS = 3;
+    public static final float AUTO_BOMB_DAMAGE = 30;
     public static final int GOOD_SHOT_BHAIYA_RADIUS = -64;
+    public static final float GSB_DAMAGE = -25;
 
     final int mercRestock = 300; // bomb restock every 15 seconds, they auto reset
     final NamespacedKey mercRestockCounter = ManaKitListener.MANA_KIT_DATA0;

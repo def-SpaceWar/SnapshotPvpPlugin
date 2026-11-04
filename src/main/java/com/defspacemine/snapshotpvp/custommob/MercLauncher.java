@@ -25,7 +25,7 @@ public class MercLauncher implements CustomMob {
         PersistentDataContainer cPdc = creeper.getPersistentDataContainer();
         String owner = pdc.get(CustomEggListener.OWNER, PersistentDataType.STRING);
         if (owner != null) {
-            // cPdc.set(CustomEggListener.OWNER, PersistentDataType.STRING, owner);
+            cPdc.set(CustomEggListener.OWNER, PersistentDataType.STRING, owner);
         }
 
         creeper.customName(Component.text("Launcher")
@@ -35,6 +35,7 @@ public class MercLauncher implements CustomMob {
         creeper.setCustomNameVisible(true);
         creeper.setMaxFuseTicks(Mercenary.LAUNCHER_TICKS);
         creeper.setExplosionRadius(Mercenary.LAUNCHER_RADIUS);
+        cPdc.set(CustomEggListener.CUSTOM_DAMAGE, PersistentDataType.FLOAT, Mercenary.LAUNCHER_DAMAGE);
         creeper.ignite();
 
         return creeper;

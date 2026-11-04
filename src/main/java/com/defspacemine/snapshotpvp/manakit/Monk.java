@@ -461,7 +461,7 @@ public class Monk extends ManaKit {
             0.8f,
             1.4f
         );
-        p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 30, 1));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 60, 2));
         return true;
     }
 
@@ -626,7 +626,7 @@ public class Monk extends ManaKit {
             new PotionEffect(PotionEffectType.WEAKNESS, 100, 1)
         );
         target.addPotionEffect(
-            new PotionEffect(PotionEffectType.SLOWNESS, 40, 1)
+            new PotionEffect(PotionEffectType.SLOWNESS, 40, 5)
         );
         impact(target);
         p.getWorld().playSound(
@@ -639,8 +639,7 @@ public class Monk extends ManaKit {
     }
 
     private boolean stoneGuard(Player p) {
-        p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 60, 2));
-        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 0));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 80, 2));
         p.getWorld().spawnParticle(
             Particle.CRIT,
             p.getLocation().add(0, 1, 0),
@@ -832,15 +831,9 @@ public class Monk extends ManaKit {
         }.runTaskTimer(SnapshotPvpPlugin.instance, 0L, 1L);
     }
 
-    /**
-     * Damage for a move: the move's base plus the monk's attack damage times
-     * the move's multiplier. The monk's attack damage is 7, and Strength adds
-     * 20% per level on top (I = 8.4, II = 9.8, III = 11.2), so the bonus
-     * ranges from ~5 (weakest move, no Strength) to ~10 (Palm Strike, Strength II).
-     */
     private double moveDamage(Player p, double base, double multiplier) {
         AttributeInstance attribute = p.getAttribute(Attribute.ATTACK_DAMAGE);
-        double attack = attribute == null ? 7.0 : attribute.getValue();
+        double attack = attribute == null ? 6.0 : attribute.getValue();
         return base + attack * multiplier;
     }
 

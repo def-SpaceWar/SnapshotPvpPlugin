@@ -25,13 +25,14 @@ public class MercGoodShotBhaiya implements CustomMob {
         PersistentDataContainer cPdc = creeper.getPersistentDataContainer();
         String owner = pdc.get(CustomEggListener.OWNER, PersistentDataType.STRING);
         if (owner != null) {
-            // cPdc.set(CustomEggListener.OWNER, PersistentDataType.STRING, owner);
+            cPdc.set(CustomEggListener.OWNER, PersistentDataType.STRING, owner);
         }
 
         creeper.setCustomName("good shot bhaiya");
         creeper.setCustomNameVisible(true);
         creeper.setMaxFuseTicks(0);
         creeper.setExplosionRadius(Mercenary.GOOD_SHOT_BHAIYA_RADIUS);
+        cPdc.set(CustomEggListener.CUSTOM_DAMAGE, PersistentDataType.FLOAT, Mercenary.GSB_DAMAGE);
         creeper.ignite();
 
         return creeper;
