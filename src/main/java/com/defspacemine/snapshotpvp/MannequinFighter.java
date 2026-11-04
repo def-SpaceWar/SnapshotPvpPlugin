@@ -283,9 +283,7 @@ public class MannequinFighter {
         if (
             entity == null || !entity.isValid() || entity.isDead()
         ) return false;
-        if (
-            entity.equals(mannequin) || entity instanceof Mannequin
-        ) return false;
+        if (entity.equals(mannequin)) return false;
         if (entity.isInvulnerable()) return false;
         if (
             entity instanceof Player p &&
