@@ -24,7 +24,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -384,11 +383,8 @@ public class Violence extends ManaKit implements Listener {
     }
 
     public void onDeath(Player p, PlayerDeathEvent e) {
-        PlayerInventory inv = p.getInventory();
-        if (
-            !inv.contains(Material.TRIDENT) &&
-            inv.getItemInOffHand().getType() != Material.TRIDENT
-        ) retrieveTrident(p);
+        if (SnapshotPvpPlugin.countInv(p, Material.TRIDENT) == 0)
+            retrieveTrident(p);
     }
 
     private void retrieveTrident(Player p) {

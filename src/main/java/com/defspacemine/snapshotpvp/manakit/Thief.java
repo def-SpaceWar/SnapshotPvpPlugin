@@ -14,7 +14,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -137,15 +136,13 @@ public class Thief extends ManaKit {
             killstreak +
             "/4";
 
-        PlayerInventory inv = p.getInventory();
         if (p.getHealth() >= 12) pdc.set(
             smokeRestockCounter,
             PersistentDataType.INTEGER,
             0
         );
         if (
-            inv.contains(Material.CHORUS_FRUIT) ||
-            inv.getItemInOffHand().getType() == Material.CHORUS_FRUIT
+            SnapshotPvpPlugin.countInv(p, Material.CHORUS_FRUIT) > 0
         ) {
             displayMessage =
                 ChatColor.LIGHT_PURPLE +
@@ -265,10 +262,8 @@ public class Thief extends ManaKit {
     public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {
         if (p.getHealth() >= 12) return;
 
-        PlayerInventory inv = p.getInventory();
         if (
-            inv.contains(Material.CHORUS_FRUIT) ||
-            inv.getItemInOffHand().getType() == Material.CHORUS_FRUIT
+            SnapshotPvpPlugin.countInv(p, Material.CHORUS_FRUIT) > 0
         ) return;
 
         if (e.getDamageSource().getCausingEntity() instanceof Player) {

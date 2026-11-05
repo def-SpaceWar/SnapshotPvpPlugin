@@ -164,6 +164,51 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         return t1 != null && t1.equals(t2);
     }
 
+    public static int countInv(Player player, Material type) {
+        return countInv(player, item -> item.getType() == type);
+    }
+
+    public static int countInv(Player player, ItemStack type) {
+        return countInv(player, item -> item.isSimilar(type));
+    }
+
+    private static int countInv(
+        Player player,
+        Predicate<ItemStack> matches
+    ) {
+        int count = 0;
+        PlayerInventory inv = player.getInventory();
+        for (ItemStack item : inv.getStorageContents()) {
+            count += countMatchingStack(item, matches);
+        }
+        for (ItemStack item : inv.getArmorContents()) {
+            count += countMatchingStack(item, matches);
+        }
+        count += countMatchingStack(inv.getItemInOffHand(), matches);
+        count += countMatchingStack(player.getItemOnCursor(), matches);
+
+        Inventory top = player.getOpenInventory().getTopInventory();
+        InventoryType topType = top.getType();
+        if (
+            topType == InventoryType.CRAFTING ||
+            topType == InventoryType.WORKBENCH
+        ) {
+            for (int i = 1; i < top.getSize(); i++) {
+                count += countMatchingStack(top.getItem(i), matches);
+            }
+        }
+        return count;
+    }
+
+    private static int countMatchingStack(
+        ItemStack item,
+        Predicate<ItemStack> matches
+    ) {
+        return item != null && !item.getType().isAir() && matches.test(item)
+            ? item.getAmount()
+            : 0;
+    }
+
     public static void clearInv(Player player, Material type) {
         PlayerInventory inv = player.getInventory();
         inv.remove(type);

@@ -9,7 +9,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Trident;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -58,9 +57,7 @@ public class Tridentite extends ManaKit {
 
         String displayMessage = ChatColor.RED + "Killstreak: " + ChatColor.WHITE + killstreak + "/2";
 
-        PlayerInventory inv = p.getInventory();
-        if (inv.contains(Material.TRIDENT) ||
-                inv.getItemInOffHand().getType() == Material.TRIDENT) {
+        if (SnapshotPvpPlugin.countInv(p, Material.TRIDENT) > 0) {
             displayMessage = ChatColor.AQUA + "Trident!"
                     + ChatColor.GRAY + " | " + displayMessage;
             pdc.set(tridentReturnCounter, PersistentDataType.INTEGER, 0);
@@ -98,9 +95,7 @@ public class Tridentite extends ManaKit {
     }
 
     public void onDeath(Player p, PlayerDeathEvent e) {
-        PlayerInventory inv = p.getInventory();
-        if (!inv.contains(Material.TRIDENT) &&
-                inv.getItemInOffHand().getType() != Material.TRIDENT)
+        if (SnapshotPvpPlugin.countInv(p, Material.TRIDENT) == 0)
             retrieveTrident(p);
     }
 

@@ -29,7 +29,6 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -695,9 +694,8 @@ public class Monk extends ManaKit {
 
     private Set<Move> heldMoves(Player p) {
         Set<Move> held = EnumSet.noneOf(Move.class);
-        PlayerInventory inv = p.getInventory();
         for (Move move : Move.values())
-            if (inv.contains(move.material)) held.add(move);
+            if (SnapshotPvpPlugin.countInv(p, move.material) > 0) held.add(move);
         return held;
     }
 

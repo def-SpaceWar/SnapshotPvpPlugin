@@ -117,19 +117,33 @@ public class Cultist extends ManaKit {
             p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 40, 1, false, false));
 
         PlayerInventory inv = p.getInventory();
-        if (power >= COST_NECRO && !inv.contains(Material.ROTTEN_FLESH))
+        if (
+            power >= COST_NECRO &&
+            SnapshotPvpPlugin.countInv(p, Material.ROTTEN_FLESH) == 0
+        )
             inv.addItem(ritualNecro);
-        if (power >= COST_DARK && !inv.contains(Material.COOKIE))
+        if (
+            power >= COST_DARK &&
+            SnapshotPvpPlugin.countInv(p, Material.COOKIE) == 0
+        )
             inv.addItem(ritualDark);
-        if (power >= COST_DOOM && !inv.contains(Material.DRIED_KELP))
+        if (
+            power >= COST_DOOM &&
+            SnapshotPvpPlugin.countInv(p, Material.DRIED_KELP) == 0
+        )
             inv.addItem(ritualDoom);
-        if (power >= COST_DIVINE && !inv.contains(Material.GOLDEN_APPLE))
+        if (
+            power >= COST_DIVINE &&
+            SnapshotPvpPlugin.countInv(p, Material.GOLDEN_APPLE) == 0
+        )
             inv.addItem(ritualDivine);
     }
 
-    private boolean hasAnyRitual(PlayerInventory inv) {
-        return inv.contains(Material.ROTTEN_FLESH) || inv.contains(Material.DRIED_KELP) ||
-                inv.contains(Material.COOKIE) || inv.contains(Material.GOLDEN_APPLE);
+    private boolean hasAnyRitual(Player p) {
+        return SnapshotPvpPlugin.countInv(p, Material.ROTTEN_FLESH) > 0 ||
+            SnapshotPvpPlugin.countInv(p, Material.DRIED_KELP) > 0 ||
+            SnapshotPvpPlugin.countInv(p, Material.COOKIE) > 0 ||
+            SnapshotPvpPlugin.countInv(p, Material.GOLDEN_APPLE) > 0;
     }
 
     @Override

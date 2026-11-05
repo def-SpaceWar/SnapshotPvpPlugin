@@ -165,7 +165,10 @@ public class SculkWarrior extends ManaKit {
                 PersistentDataType.INTEGER,
                 sonicBoomShardC - sonicBoomShard
             );
-            if (countEchoShards(p) < MAX_ECHO_SHARDS) inv.addItem(
+            if (
+                SnapshotPvpPlugin.countInv(p, Material.ECHO_SHARD) <
+                MAX_ECHO_SHARDS
+            ) inv.addItem(
                 getEchoShard()
             );
         }
@@ -534,16 +537,6 @@ public class SculkWarrior extends ManaKit {
                 }
             }
         }
-    }
-
-    private int countEchoShards(Player p) {
-        int count = 0;
-        for (ItemStack item : p.getInventory().getContents()) {
-            if (item != null && item.getType() == Material.ECHO_SHARD) {
-                count += item.getAmount();
-            }
-        }
-        return count;
     }
 
     private Entity getEntityFromPDC(

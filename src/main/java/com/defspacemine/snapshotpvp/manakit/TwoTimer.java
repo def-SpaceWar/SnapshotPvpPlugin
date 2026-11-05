@@ -1051,7 +1051,7 @@ public class TwoTimer extends ManaKit {
 
     private void restockBuildBlocks(Player p, boolean includeStone) {
         PlayerInventory inv = p.getInventory();
-        int planks = countMaterial(inv, Material.OAK_PLANKS);
+        int planks = SnapshotPvpPlugin.countInv(p, Material.OAK_PLANKS);
         if (planks < MAX_BUILD_BLOCKS) {
             int toAdd = Math.min(2, MAX_BUILD_BLOCKS - planks);
             ItemStack plankStack = new ItemStack(Material.OAK_PLANKS, toAdd);
@@ -1062,7 +1062,7 @@ public class TwoTimer extends ManaKit {
         }
 
         if (includeStone) {
-            int stones = countMaterial(inv, Material.STONE);
+            int stones = SnapshotPvpPlugin.countInv(p, Material.STONE);
             if (stones < MAX_BUILD_BLOCKS) {
                 int toAdd = Math.min(2, MAX_BUILD_BLOCKS - stones);
                 ItemStack stoneStack = new ItemStack(Material.STONE, toAdd);
@@ -1306,15 +1306,5 @@ public class TwoTimer extends ManaKit {
             }
         }
         return false;
-    }
-
-    private int countMaterial(PlayerInventory inv, Material mat) {
-        int total = 0;
-        for (ItemStack item : inv.getContents()) {
-            if (item != null && item.getType() == mat) {
-                total += item.getAmount();
-            }
-        }
-        return total;
     }
 }

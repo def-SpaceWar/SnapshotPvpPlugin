@@ -66,12 +66,7 @@ public class Deadeye extends ManaKit {
 
     private void capAndRestockArrows(Player p) {
         PlayerInventory inv = p.getInventory();
-        int currentArrows = 0;
-        for (ItemStack item : inv.getContents()) {
-            if (item != null && item.getType() == Material.ARROW) {
-                currentArrows += item.getAmount();
-            }
-        }
+        int currentArrows = SnapshotPvpPlugin.countInv(p, Material.ARROW);
 
         if (currentArrows < maxArrows) {
             ItemStack arrowsToAdd = normalArrowItem.clone();
@@ -81,12 +76,10 @@ public class Deadeye extends ManaKit {
     }
 
     private void capAndRestockArrows(PlayerInventory inv) {
-        int currentArrows = 0;
-        for (ItemStack item : inv.getContents()) {
-            if (item != null && item.getType() == Material.ARROW) {
-                currentArrows += item.getAmount();
-            }
-        }
+        int currentArrows = SnapshotPvpPlugin.countInv(
+            (Player) inv.getHolder(),
+            Material.ARROW
+        );
 
         if (currentArrows < maxArrows) {
             ItemStack arrowsToAdd = normalArrowItem.clone();

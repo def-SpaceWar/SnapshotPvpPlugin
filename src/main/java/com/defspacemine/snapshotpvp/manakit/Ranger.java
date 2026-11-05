@@ -94,7 +94,7 @@ public class Ranger extends ManaKit {
             "/2";
 
         PlayerInventory inv = p.getInventory();
-        if (!inv.contains(Material.SPECTRAL_ARROW)) {
+        if (SnapshotPvpPlugin.countInv(p, Material.SPECTRAL_ARROW) == 0) {
             displayMessage =
                 ChatColor.YELLOW +
                 "Arrow: " +
@@ -140,7 +140,7 @@ public class Ranger extends ManaKit {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         PlayerInventory inv = p.getInventory();
-        int arrowCount = countArrows(inv);
+        int arrowCount = SnapshotPvpPlugin.countInv(p, Material.SPECTRAL_ARROW);
         while (arrowCount < MAX_ARROWS) {
             inv.addItem(arrow);
             arrowCount++;
@@ -150,7 +150,7 @@ public class Ranger extends ManaKit {
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
         PlayerInventory inv = p.getInventory();
-        int arrowCount = countArrows(inv);
+        int arrowCount = SnapshotPvpPlugin.countInv(p, Material.SPECTRAL_ARROW);
         while (arrowCount < MAX_ARROWS) {
             inv.addItem(arrow);
             arrowCount++;
@@ -166,21 +166,11 @@ public class Ranger extends ManaKit {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         PlayerInventory inv = p.getInventory();
-        int arrowCount = countArrows(inv);
+        int arrowCount = SnapshotPvpPlugin.countInv(p, Material.SPECTRAL_ARROW);
         if (arrowCount >= MAX_ARROWS) return;
         inv.addItem(this.arrow);
         arrowCount++;
         if (arrowCount >= MAX_ARROWS) return;
         inv.addItem(this.arrow);
-    }
-
-    private int countArrows(PlayerInventory inv) {
-        int count = 0;
-        for (ItemStack item : inv.getContents()) {
-            if (item != null && item.getType() == Material.SPECTRAL_ARROW) {
-                count += item.getAmount();
-            }
-        }
-        return count;
     }
 }

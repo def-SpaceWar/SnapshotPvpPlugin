@@ -109,9 +109,8 @@ public class HeadlessHorseman extends ManaKit {
             midnightRideCounter,
             PersistentDataType.INTEGER
         );
-        boolean hasEgg = p
-            .getInventory()
-            .contains(Material.ZOMBIE_HORSE_SPAWN_EGG);
+        boolean hasEgg =
+            SnapshotPvpPlugin.countInv(p, Material.ZOMBIE_HORSE_SPAWN_EGG) > 0;
         ZombieHorse horse = getTrackedHorse(p);
 
         String rideStatus;
@@ -165,9 +164,8 @@ public class HeadlessHorseman extends ManaKit {
         ZombieHorse horse = getTrackedHorse(p);
         if (horse != null) return;
 
-        boolean hasEgg = p
-            .getInventory()
-            .contains(Material.ZOMBIE_HORSE_SPAWN_EGG);
+        boolean hasEgg =
+            SnapshotPvpPlugin.countInv(p, Material.ZOMBIE_HORSE_SPAWN_EGG) > 0;
         if (hasEgg) return;
 
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");

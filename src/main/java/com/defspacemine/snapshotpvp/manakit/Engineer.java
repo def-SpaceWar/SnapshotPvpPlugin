@@ -227,7 +227,7 @@ public class Engineer extends ManaKit {
             SnapshotPvpPlugin.clearInv(p, Material.BEACON);
             inv.addItem(teleporterItem);
             pdc.set(tpRestockCounter, PersistentDataType.INTEGER, 0);
-        } else if (!inv.contains(Material.BEACON)) pdc.set(
+        } else if (SnapshotPvpPlugin.countInv(p, Material.BEACON) == 0) pdc.set(
             tpRestockCounter,
             PersistentDataType.INTEGER,
             tpRestockC + 1 * (killstreak >= 2 ? 2 : 1)
@@ -272,7 +272,7 @@ public class Engineer extends ManaKit {
                       "TP: " +
                       cdDisplay
                     : "") +
-                (inv.contains(Material.BEACON)
+                (SnapshotPvpPlugin.countInv(p, Material.BEACON) > 0
                     ? ""
                     : ChatColor.GRAY +
                       " | " +
@@ -490,10 +490,8 @@ public class Engineer extends ManaKit {
     public void onDeath(Player p, PlayerDeathEvent e) {
         PlayerInventory inv = p.getInventory();
         cleanupNodes(p);
-        if (
-            !inv.contains(Material.TRIDENT) &&
-            inv.getItemInOffHand().getType() != Material.TRIDENT
-        ) retrieveTrident(p);
+        if (SnapshotPvpPlugin.countInv(p, Material.TRIDENT) == 0)
+            retrieveTrident(p);
         for (Entity entity : p.getWorld().getEntities())
             if (p.equals(CustomEggListener.getOwner(entity))) entity.remove();
     }
