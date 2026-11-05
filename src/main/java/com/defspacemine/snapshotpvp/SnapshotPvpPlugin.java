@@ -44,6 +44,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.PluginManager;
@@ -185,9 +186,10 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
             count += countMatchingStack(item, matches);
         }
         count += countMatchingStack(inv.getItemInOffHand(), matches);
-        count += countMatchingStack(player.getItemOnCursor(), matches);
 
-        Inventory top = player.getOpenInventory().getTopInventory();
+        InventoryView view = player.getOpenInventory();
+        count += countMatchingStack(view.getCursor(), matches);
+        Inventory top = view.getTopInventory();
         InventoryType topType = top.getType();
         if (
             topType == InventoryType.CRAFTING ||
