@@ -257,21 +257,21 @@ public class MannequinFighter {
         }
 
         // Apply knockback to the victim
-        victim.knockback(knockbackStrength, dir.getX(), dir.getZ());
+        victim.knockback(knockbackStrength, -dir.getX(), -dir.getZ());
 
-        if (sprintHit) {
-            // Vanilla sprint hit: attacker drops sprint and loses 40% of its horizontal speed (w-tap)
-            Vector vel = mannequin.getVelocity();
-            mannequin.setVelocity(
-                new Vector(
-                    vel.getX() * SPRINT_HIT_SLOWDOWN,
-                    vel.getY(),
-                    vel.getZ() * SPRINT_HIT_SLOWDOWN
-                )
-            );
-            sprinting = false;
-            sprintResetTicks = SPRINT_RESET_TICKS;
-        }
+        // if (sprintHit) {
+        //     // Vanilla sprint hit: attacker drops sprint and loses 40% of its horizontal speed (w-tap)
+        //     Vector vel = mannequin.getVelocity();
+        //     mannequin.setVelocity(
+        //         new Vector(
+        //             vel.getX() * SPRINT_HIT_SLOWDOWN,
+        //             vel.getY(),
+        //             vel.getZ() * SPRINT_HIT_SLOWDOWN
+        //         )
+        //     );
+        //     sprinting = false;
+        //     sprintResetTicks = SPRINT_RESET_TICKS;
+        // }
     }
 
     /** Weapon-adjusted attack damage plus sharpness. */
