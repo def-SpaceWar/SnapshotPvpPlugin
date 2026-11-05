@@ -202,6 +202,7 @@ public class MannequinFighter {
             distance <= reach &&
             aimError <= MAX_AIM_ERROR &&
             attackCooldownTicks <= 0 &&
+            target.getNoDamageTicks() <= 0 && // Ensure target has no active i-frames
             mannequin.hasLineOfSight(target)
         ) {
             performAttack(target);
@@ -220,11 +221,7 @@ public class MannequinFighter {
             .build();
 
         boolean sprintHit = sprinting;
-        double before = victim.getHealth() + victim.getAbsorptionAmount();
         victim.damage(calculateDamage(), source);
-        double after = victim.getHealth() + victim.getAbsorptionAmount();
-
-        if (after >= before) return; // No damage dealt
 
         // 1. Base player attack knockback (0.4 blocks)
         double knockbackStrength = 0.4;
