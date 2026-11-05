@@ -33,8 +33,10 @@ import org.bukkit.util.Vector;
 /**
  * Drives a Mannequin so it fights the way a player does: it presses
  * forward / strafe / sprint / jump and the entity's own tick does the physics,
- * it hits at the weapon's real full-charge cadence, and sprint hits get the
- * vanilla extra knockback and sprint reset.
+ * sprint hits get the vanilla extra knockback and sprint reset, and it tries
+ * to stay out of the void: it won't walk or jump off a ledge it can't survive,
+ * brakes when knocked toward one, reverses its strafe at one, and air-strafes
+ * back to the nearest ground if it ends up falling.
  *
  * A Mannequin isn't a player, so it starts with the generic entity attribute
  * defaults (movement speed 0.7, no attack attributes). The constructor sets the
@@ -66,7 +68,6 @@ public class MannequinFighter {
     private static final double MAX_AIM_ERROR = 25.0;
 
     // ---- attack timing / knockback (vanilla)
-    private static final int REACTION_JITTER_TICKS = 3; // a human clicks a touch after the charge is full
     private static final double SPRINT_KNOCKBACK = 0.5; // extra knockback strength on a sprint hit
     private static final double SPRINT_HIT_SLOWDOWN = 0.6; // attacker keeps 60% of horizontal speed
     private static final int SPRINT_RESET_TICKS = 3; // the w-tap after a sprint hit
@@ -97,6 +98,15 @@ public class MannequinFighter {
     private static final double EPS = 1.0E-3;
     private static final double[] LATERAL_SAMPLES = { 0.0, -0.25, 0.25 };
 
+    // ---- void avoidance
+    private static final double MOMENTUM_BRAKE_SPEED = 0.1; // blocks/tick of slide worth reacting to
+    private static final double RECOVERY_SCAN_RADIUS = 6.0;
+    private static final double RECOVERY_RING_STEP = 1.0;
+    private static final int RECOVERY_SAMPLES = 12;
+    private static final double RECOVERY_FALL_BUDGET = 12.0; // ground within this far down counts as "not the void"
+    private static final int RECOVERY_REFRESH_TICKS = 4;
+    private static final int JUMP_TRUST_TICKS = 14; // don't second-guess a planned jump mid-air
+
     // ---- unstick
     private static final int STUCK_TICKS = 12;
     private static final int SIDESTEP_TICKS = 25;
@@ -118,6 +128,9 @@ public class MannequinFighter {
     private boolean wantsToMove = false;
     private boolean sprinting = false;
     private int sprintResetTicks = 0;
+    private Vector recoveryDir;
+    private int recoveryRefresh = 0;
+    private int recoverySuppressTicks = 0;
     private int stuckTicks = 0;
     private int sidestepTicks = 0;
     private double sidestepDir = 1;
@@ -159,6 +172,7 @@ public class MannequinFighter {
                 if (attackCooldownTicks > 0) attackCooldownTicks--;
                 if (jumpCooldown > 0) jumpCooldown--;
                 if (sprintResetTicks > 0) sprintResetTicks--;
+                if (recoverySuppressTicks > 0) recoverySuppressTicks--;
 
                 if (
                     ++ticksSinceRetarget >= RETARGET_INTERVAL_TICKS ||
@@ -209,23 +223,58 @@ public class MannequinFighter {
         double before = victim.getHealth() + victim.getAbsorptionAmount();
         victim.damage(calculateDamage(), source);
         double after = victim.getHealth() + victim.getAbsorptionAmount();
-        if (!sprintHit || after >= before) return;
 
-        // Vanilla sprint hit: extra knockback on the target, and the attacker
-        // drops sprint and loses 40% of its horizontal speed (a "w-tap").
-        double yaw = Math.toRadians(mannequin.getLocation().getYaw());
-        victim.knockback(SPRINT_KNOCKBACK, Math.sin(yaw), -Math.cos(yaw));
+        if (after >= before) return; // No damage dealt
 
-        Vector vel = mannequin.getVelocity();
-        mannequin.setVelocity(
-            new Vector(
-                vel.getX() * SPRINT_HIT_SLOWDOWN,
-                vel.getY(),
-                vel.getZ() * SPRINT_HIT_SLOWDOWN
-            )
-        );
-        sprinting = false;
-        sprintResetTicks = SPRINT_RESET_TICKS;
+        // 1. Base player attack knockback (0.4 blocks)
+        double knockbackStrength = 0.4;
+
+        // 2. Add Knockback enchantment levels from the held weapon (+0.5 per level)
+        EntityEquipment equipment = mannequin.getEquipment();
+        if (equipment != null) {
+            ItemStack held = equipment.getItemInMainHand();
+            if (held != null && !held.getType().isAir()) {
+                int kbLevel = held.getEnchantmentLevel(Enchantment.KNOCKBACK);
+                if (kbLevel > 0) {
+                    knockbackStrength += 0.5 * kbLevel;
+                }
+            }
+        }
+
+        // 3. Add extra knockback if it's a sprint hit
+        if (sprintHit) {
+            knockbackStrength += SPRINT_KNOCKBACK;
+        }
+
+        // Calculate direction vector from attacker to victim
+        Vector dir = victim
+            .getLocation()
+            .toVector()
+            .subtract(mannequin.getLocation().toVector())
+            .setY(0);
+        if (dir.lengthSquared() > 1.0E-4) {
+            dir.normalize();
+        } else {
+            double yaw = Math.toRadians(mannequin.getLocation().getYaw());
+            dir = new Vector(Math.sin(yaw), 0, -Math.cos(yaw));
+        }
+
+        // Apply knockback to the victim
+        victim.knockback(knockbackStrength, dir.getX(), dir.getZ());
+
+        if (sprintHit) {
+            // Vanilla sprint hit: attacker drops sprint and loses 40% of its horizontal speed (w-tap)
+            Vector vel = mannequin.getVelocity();
+            mannequin.setVelocity(
+                new Vector(
+                    vel.getX() * SPRINT_HIT_SLOWDOWN,
+                    vel.getY(),
+                    vel.getZ() * SPRINT_HIT_SLOWDOWN
+                )
+            );
+            sprinting = false;
+            sprintResetTicks = SPRINT_RESET_TICKS;
+        }
     }
 
     /** Weapon-adjusted attack damage plus sharpness. */
@@ -377,6 +426,15 @@ public class MannequinFighter {
             }
         }
 
+        // Knocked off an edge or fell short of a jump: air-strafe back toward ground
+        Vector recovery = airRecoveryDirection();
+        if (recovery != null) {
+            double[] input = inputToward(recovery);
+            forward = input[0];
+            strafe = input[1];
+            sprint = true;
+        }
+
         wantsToMove = forward != 0 || strafe != 0;
 
         boolean onGround = mannequin.isOnGround();
@@ -388,10 +446,25 @@ public class MannequinFighter {
             if (dir != null) {
                 Plan plan = planParkour(dir, sprint && forward > 0);
                 if (plan == Plan.BRAKE) {
+                    if (forward == 0) reverseStrafe(); // walk the other way along the ledge
                     forward = 0;
                     strafe = 0;
                 } else if (plan == Plan.JUMP && jumpCooldown <= 0) {
                     jump = true;
+                }
+            }
+        }
+
+        // Sliding or knocked toward an edge: hold the opposite key
+        if (onGround && !inFluid && !jump) {
+            Vector momentum = mannequin.getVelocity().setY(0);
+            if (momentum.length() > MOMENTUM_BRAKE_SPEED) {
+                Vector heading = momentum.normalize();
+                if (planParkour(heading, false) == Plan.BRAKE) {
+                    double[] counter = inputToward(heading.multiply(-1));
+                    forward = counter[0];
+                    strafe = counter[1];
+                    sprint = false;
                 }
             }
         }
@@ -422,6 +495,89 @@ public class MannequinFighter {
             strafeDir = rng.nextBoolean() ? 1 : -1;
         }
         return strafeDir;
+    }
+
+    private void reverseStrafe() {
+        strafeDir = -strafeDir;
+        sidestepDir = -sidestepDir;
+        strafeTicksLeft = ThreadLocalRandom.current().nextInt(12, 35);
+    }
+
+    /** The (forward, strafe) key presses that move us along a world direction at our current yaw. */
+    private double[] inputToward(Vector dir) {
+        double yaw = Math.toRadians(mannequin.getLocation().getYaw());
+        double sin = Math.sin(yaw);
+        double cos = Math.cos(yaw);
+        return new double[] {
+            -dir.getX() * sin + dir.getZ() * cos,
+            dir.getX() * cos + dir.getZ() * sin,
+        };
+    }
+
+    /**
+     * Airborne with nothing solid within RECOVERY_FALL_BUDGET below (knocked off an
+     * edge, a jump that fell short): the direction to air-strafe toward the nearest
+     * ground, or null when there's nothing to fix. Refreshed every few ticks.
+     */
+    private Vector airRecoveryDirection() {
+        if (
+            mannequin.isOnGround() ||
+            mannequin.isInWater() ||
+            mannequin.isInLava() ||
+            isClimbing() ||
+            recoverySuppressTicks > 0
+        ) {
+            recoveryDir = null;
+            recoveryRefresh = 0;
+            return null;
+        }
+
+        if (--recoveryRefresh <= 0) {
+            recoveryRefresh = RECOVERY_REFRESH_TICKS;
+            recoveryDir = findLandingDirection();
+        }
+        return recoveryDir;
+    }
+
+    private Vector findLandingDirection() {
+        Location loc = mannequin.getLocation();
+        double y = loc.getY();
+
+        // ground right below us (even a long fall): not the void, nothing to fix
+        double below = floorAhead(
+            new Vector(1, 0, 0),
+            0.0,
+            y + EPS,
+            y - RECOVERY_FALL_BUDGET
+        );
+        if (!Double.isNaN(below)) return null;
+
+        // otherwise the nearest ring around us that has ground, preferring the highest
+        for (
+            double r = RECOVERY_RING_STEP;
+            r <= RECOVERY_SCAN_RADIUS;
+            r += RECOVERY_RING_STEP
+        ) {
+            Vector best = null;
+            double bestTop = Double.NEGATIVE_INFINITY;
+            for (int i = 0; i < RECOVERY_SAMPLES; i++) {
+                double angle = (2 * Math.PI * i) / RECOVERY_SAMPLES;
+                double dx = Math.cos(angle);
+                double dz = Math.sin(angle);
+                double top = standY(
+                    loc.getX() + dx * r,
+                    loc.getZ() + dz * r,
+                    y + EPS,
+                    y - RECOVERY_FALL_BUDGET
+                );
+                if (!Double.isNaN(top) && top > bestTop) {
+                    bestTop = top;
+                    best = new Vector(dx, 0, dz);
+                }
+            }
+            if (best != null) return best;
+        }
+        return null; // open void, nothing in reach
     }
 
     private void updateStuckDetection() {
@@ -553,6 +709,7 @@ public class MannequinFighter {
             vel.setZ(vel.getZ() + Math.cos(yaw) * SPRINT_JUMP_BOOST);
         }
         jumpCooldown = JUMP_COOLDOWN_TICKS;
+        recoverySuppressTicks = JUMP_TRUST_TICKS;
     }
 
     private double getMaxJumpHeight() {
