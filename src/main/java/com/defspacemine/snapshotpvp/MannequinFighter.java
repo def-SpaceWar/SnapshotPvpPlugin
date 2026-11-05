@@ -69,7 +69,6 @@ public class MannequinFighter {
 
     // ---- attack timing / knockback (vanilla)
     private static final double SPRINT_KNOCKBACK = 0.5; // extra knockback strength on a sprint hit
-    private static final double SPRINT_HIT_SLOWDOWN = 0.6; // attacker keeps 60% of horizontal speed
     private static final int SPRINT_RESET_TICKS = 3; // the w-tap after a sprint hit
 
     // ---- aiming (smooth turning instead of snapping)
@@ -202,7 +201,7 @@ public class MannequinFighter {
             distance <= reach &&
             aimError <= MAX_AIM_ERROR &&
             attackCooldownTicks <= 0 &&
-            target.getNoDamageTicks() <= 0 && // Ensure target has no active i-frames
+            target.getNoDamageTicks() <= 0 && // Wait for target i-frames to clear
             mannequin.hasLineOfSight(target)
         ) {
             performAttack(target);
@@ -238,17 +237,47 @@ public class MannequinFighter {
             }
         }
 
+        // 4. Account for the enemy's Knockback Resistance attribute (0.0 to 1.0+)
+        AttributeInstance kbResistAttr = victim.getAttribute(
+            Attribute.KNOCKBACK_RESISTANCE
+        );
+        if (kbResistAttr != null) {
+            double resistance = kbResistAttr.getValue();
+            knockbackStrength *= Math.max(0.0, 1.0 - resistance);
+        }
+
+        // Only apply knockback if resistance hasn't completely negated it
+        if (knockbackStrength > 0) {
+            // Calculate direction vector from attacker to victim (pushing away)
+            Vector dir = victim
+                .getLocation()
+                .toVector()
+                .subtract(mannequin.getLocation().toVector())
+                .setY(0);
+
+            if (dir.lengthSquared() > 1.0E-4) {
+                dir.normalize();
+            } else {
+                double yaw = Math.toRadians(mannequin.getLocation().getYaw());
+                dir = new Vector(Math.sin(yaw), 0, -Math.cos(yaw));
+            }
+
+            // Apply knockback to the victim
+            victim.knockback(knockbackStrength, dir.getX(), dir.getZ());
+        }
+
         // 3. Add extra knockback if it's a sprint hit
         if (sprintHit) {
             knockbackStrength += SPRINT_KNOCKBACK;
         }
 
-        // Calculate direction vector from attacker to victim
+        // Calculate vector pointing strictly AWAY from the mannequin
         Vector dir = victim
             .getLocation()
             .toVector()
             .subtract(mannequin.getLocation().toVector())
             .setY(0);
+
         if (dir.lengthSquared() > 1.0E-4) {
             dir.normalize();
         } else {
@@ -256,8 +285,13 @@ public class MannequinFighter {
             dir = new Vector(Math.sin(yaw), 0, -Math.cos(yaw));
         }
 
-        // Apply knockback to the victim
-        victim.knockback(knockbackStrength, -dir.getX(), -dir.getZ());
+        // Apply knockback via vanilla method, but if it pulls, negate the direction vector:
+        // victim.knockback(knockbackStrength, dir.getX(), dir.getZ());
+
+        // OR apply velocity directly if knockback() is overridden/buggy on your server setup:
+        Vector knockbackVelocity = dir.multiply(knockbackStrength);
+        knockbackVelocity.setY(0.2); // slight vertical lift like vanilla
+        victim.setVelocity(victim.getVelocity().add(knockbackVelocity));
 
         // if (sprintHit) {
         //     // Vanilla sprint hit: attacker drops sprint and loses 40% of its horizontal speed (w-tap)
