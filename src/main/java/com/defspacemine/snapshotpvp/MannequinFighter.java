@@ -30,6 +30,17 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
+/**
+ * Drives a Mannequin so it fights the way a player does: it presses
+ * forward / strafe / sprint / jump and the entity's own tick does the physics,
+ * it hits at the weapon's real full-charge cadence, and sprint hits get the
+ * vanilla extra knockback and sprint reset.
+ *
+ * A Mannequin isn't a player, so it starts with the generic entity attribute
+ * defaults (movement speed 0.7, no attack attributes). The constructor sets the
+ * base movement speed to the player's 0.1, and the attack numbers fall back to
+ * player defaults below.
+ */
 public class MannequinFighter {
 
     public final Mannequin mannequin;
@@ -53,6 +64,12 @@ public class MannequinFighter {
     private static final double STRAFE_RANGE = 2.0;
     // Only swing when we're actually looking at the target (degrees)
     private static final double MAX_AIM_ERROR = 25.0;
+
+    // ---- attack timing / knockback (vanilla)
+    private static final int REACTION_JITTER_TICKS = 3; // a human clicks a touch after the charge is full
+    private static final double SPRINT_KNOCKBACK = 0.5; // extra knockback strength on a sprint hit
+    private static final double SPRINT_HIT_SLOWDOWN = 0.6; // attacker keeps 60% of horizontal speed
+    private static final int SPRINT_RESET_TICKS = 3; // the w-tap after a sprint hit
 
     // ---- aiming (smooth turning instead of snapping)
     private static final float TURN_SMOOTHING = 0.4f;
@@ -99,6 +116,8 @@ public class MannequinFighter {
     private int strafeTicksLeft = 0;
     private double strafeDir = 1;
     private boolean wantsToMove = false;
+    private boolean sprinting = false;
+    private int sprintResetTicks = 0;
     private int stuckTicks = 0;
     private int sidestepTicks = 0;
     private double sidestepDir = 1;
@@ -114,6 +133,14 @@ public class MannequinFighter {
     private void configureMannequin() {
         mannequin.setImmovable(false);
         mannequin.setMainHand(MainHand.RIGHT);
+
+        // Mannequins start with the generic entity movement speed (0.7), which is
+        // 7x a player's 0.1 and was making this run at ~30 blocks/s. Speed and
+        // Slowness effects are modifiers on this base, so they still scale it.
+        AttributeInstance speed = mannequin.getAttribute(
+            Attribute.MOVEMENT_SPEED
+        );
+        if (speed != null) speed.setBaseValue(DEFAULT_MOVEMENT_SPEED);
     }
 
     public void stop() {
@@ -131,6 +158,7 @@ public class MannequinFighter {
 
                 if (attackCooldownTicks > 0) attackCooldownTicks--;
                 if (jumpCooldown > 0) jumpCooldown--;
+                if (sprintResetTicks > 0) sprintResetTicks--;
 
                 if (
                     ++ticksSinceRetarget >= RETARGET_INTERVAL_TICKS ||
@@ -177,12 +205,32 @@ public class MannequinFighter {
             .withDirectEntity(mannequin)
             .build();
 
+        boolean sprintHit = sprinting;
+        double before = victim.getHealth() + victim.getAbsorptionAmount();
         victim.damage(calculateDamage(), source);
+        double after = victim.getHealth() + victim.getAbsorptionAmount();
+        if (!sprintHit || after >= before) return;
+
+        // Vanilla sprint hit: extra knockback on the target, and the attacker
+        // drops sprint and loses 40% of its horizontal speed (a "w-tap").
+        double yaw = Math.toRadians(mannequin.getLocation().getYaw());
+        victim.knockback(SPRINT_KNOCKBACK, Math.sin(yaw), -Math.cos(yaw));
+
+        Vector vel = mannequin.getVelocity();
+        mannequin.setVelocity(
+            new Vector(
+                vel.getX() * SPRINT_HIT_SLOWDOWN,
+                vel.getY(),
+                vel.getZ() * SPRINT_HIT_SLOWDOWN
+            )
+        );
+        sprinting = false;
+        sprintResetTicks = SPRINT_RESET_TICKS;
     }
 
-    /** Base attribute + held item's attack damage modifiers + sharpness. */
+    /** Weapon-adjusted attack damage plus sharpness. */
     private double calculateDamage() {
-        double damage = getAttributeValue(
+        double damage = getHeldValue(
             Attribute.ATTACK_DAMAGE,
             DEFAULT_ATTACK_DAMAGE
         );
@@ -190,8 +238,38 @@ public class MannequinFighter {
         EntityEquipment equipment = mannequin.getEquipment();
         if (equipment == null) return damage;
 
+        int sharpness = equipment
+            .getItemInMainHand()
+            .getEnchantmentLevel(Enchantment.SHARPNESS);
+        if (sharpness > 0) damage += 0.5 * sharpness + 0.5;
+
+        return damage;
+    }
+
+    private int getAttackCooldownTicks() {
+        double attackSpeed = getAttributeValue(
+            Attribute.ATTACK_SPEED,
+            DEFAULT_ATTACK_SPEED
+        );
+        if (attackSpeed <= 0) return 20;
+        return Math.max(1, (int) Math.ceil(20.0 / attackSpeed)) * 2;
+    }
+
+    /**
+     * An attribute with the held item's modifiers folded in. A mannequin has no
+     * attack attributes of its own, so the entity can't apply the weapon for us
+     * and it's done by hand here. If the attribute does exist, the entity has
+     * already applied the weapon and its value is used as-is.
+     */
+    private double getHeldValue(Attribute attribute, double base) {
+        AttributeInstance instance = mannequin.getAttribute(attribute);
+        if (instance != null) return instance.getValue();
+
+        EntityEquipment equipment = mannequin.getEquipment();
+        if (equipment == null) return base;
+
         ItemStack held = equipment.getItemInMainHand();
-        if (held.getType().isAir()) return damage;
+        if (held.getType().isAir()) return base;
 
         Multimap<Attribute, AttributeModifier> mods = null;
         ItemMeta meta = held.getItemMeta();
@@ -207,28 +285,14 @@ public class MannequinFighter {
         double add = 0,
             mulBase = 0,
             mulTotal = 1;
-        for (AttributeModifier mod : mods.get(Attribute.ATTACK_DAMAGE)) {
+        for (AttributeModifier mod : mods.get(attribute)) {
             switch (mod.getOperation()) {
                 case ADD_NUMBER -> add += mod.getAmount();
                 case ADD_SCALAR -> mulBase += mod.getAmount();
                 case MULTIPLY_SCALAR_1 -> mulTotal *= 1 + mod.getAmount();
             }
         }
-        damage = (damage + add) * (1 + mulBase) * mulTotal;
-
-        int sharpness = held.getEnchantmentLevel(Enchantment.SHARPNESS);
-        if (sharpness > 0) damage += 0.5 * sharpness + 0.5;
-
-        return damage;
-    }
-
-    private int getAttackCooldownTicks() {
-        double attackSpeed = getAttributeValue(
-            Attribute.ATTACK_SPEED,
-            DEFAULT_ATTACK_SPEED
-        );
-        if (attackSpeed <= 0) return 20;
-        return Math.max(1, (int) Math.ceil(20.0 / attackSpeed)) * 2;
+        return (base + add) * (1 + mulBase) * mulTotal;
     }
 
     // ------------------------------------------------------------------ aiming
@@ -331,7 +395,8 @@ public class MannequinFighter {
                 }
             }
         }
-        sprint = sprint && forward > 0;
+        sprint = sprint && forward > 0 && sprintResetTicks <= 0;
+        sprinting = sprint;
 
         Vector vel = mannequin.getVelocity();
 
