@@ -111,10 +111,9 @@ public class GodOfStories extends ManaKit {
         pdc.set(loomCountKey, PersistentDataType.INTEGER, 0);
         pdc.set(loomExpiryKey, PersistentDataType.INTEGER, 0);
 
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.CLOCK);
-        SnapshotPvpPlugin.clearInv(inv, Material.RECOVERY_COMPASS);
-        SnapshotPvpPlugin.clearInv(inv, Material.NETHER_STAR);
+        SnapshotPvpPlugin.clearInv(p, Material.CLOCK);
+        SnapshotPvpPlugin.clearInv(p, Material.RECOVERY_COMPASS);
+        SnapshotPvpPlugin.clearInv(p, Material.NETHER_STAR);
 
         anchoredPlayersPerCaster.remove(p.getUniqueId());
     }

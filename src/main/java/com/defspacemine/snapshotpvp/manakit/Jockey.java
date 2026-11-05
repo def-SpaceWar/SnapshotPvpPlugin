@@ -217,7 +217,7 @@ public class Jockey extends ManaKit implements Listener {
 
         if (arrowRestockC >= arrowRestock) {
             PlayerInventory inv = p.getInventory();
-            SnapshotPvpPlugin.clearInv(inv, Material.ARROW);
+            SnapshotPvpPlugin.clearInv(p, Material.ARROW);
             inv.addItem(arrows.clone());
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
@@ -403,7 +403,7 @@ public class Jockey extends ManaKit implements Listener {
 
     @Override
     public void onLeaveCombat(Player p) {
-        SnapshotPvpPlugin.clearInv(p.getInventory(), Material.ARROW);
+        SnapshotPvpPlugin.clearInv(p, Material.ARROW);
         resetKit(p);
     }
 

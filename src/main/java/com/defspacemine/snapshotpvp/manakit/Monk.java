@@ -383,7 +383,7 @@ public class Monk extends ManaKit {
             case INNER_PEACE -> innerPeace(p);
         };
 
-        if (used) SnapshotPvpPlugin.clearInv(p.getInventory(), move.material);
+        if (used) SnapshotPvpPlugin.clearInv(p, move.material);
     }
 
     // ---------------------------------------------------------------- moves
@@ -702,9 +702,8 @@ public class Monk extends ManaKit {
     }
 
     private void clearMoves(Player p) {
-        PlayerInventory inv = p.getInventory();
         for (Move move : Move.values())
-            SnapshotPvpPlugin.clearInv(inv, move.material);
+            SnapshotPvpPlugin.clearInv(p, move.material);
     }
 
     private void giveRandomMove(Player p, Set<Move> held) {

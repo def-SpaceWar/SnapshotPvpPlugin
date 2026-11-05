@@ -155,7 +155,7 @@ public class LightPaladin extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (holyShieldRestockC >= holyShieldRestock) {
-            SnapshotPvpPlugin.clearInv(inv, Material.SPLASH_POTION);
+            SnapshotPvpPlugin.clearInv(p, Material.SPLASH_POTION);
             p.getInventory().addItem(holyShield);
             pdc.set(holyShieldRestockCounter, PersistentDataType.INTEGER, 0);
         }
@@ -168,15 +168,14 @@ public class LightPaladin extends ManaKit {
         if (
             potionEffect != null && potionEffect.getAmplifier() < 1
         ) p.removePotionEffect(PotionEffectType.REGENERATION);
-        SnapshotPvpPlugin.clearInv(p.getInventory(), Material.CROSSBOW);
+        SnapshotPvpPlugin.clearInv(p, Material.CROSSBOW);
         p.getInventory().addItem(blindingLight);
     }
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.CROSSBOW);
-        SnapshotPvpPlugin.clearInv(inv, Material.SPLASH_POTION);
+        SnapshotPvpPlugin.clearInv(p, Material.CROSSBOW);
+        SnapshotPvpPlugin.clearInv(p, Material.SPLASH_POTION);
         p.clearActivePotionEffects();
         resetKit(p);
     }

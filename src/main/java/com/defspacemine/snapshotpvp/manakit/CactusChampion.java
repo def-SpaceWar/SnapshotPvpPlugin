@@ -147,7 +147,7 @@ public class CactusChampion extends ManaKit {
         }
 
         if (cactusTotemC >= cactusTotem) {
-            SnapshotPvpPlugin.clearInv(inv, Material.CACTUS);
+            SnapshotPvpPlugin.clearInv(p, Material.CACTUS);
             inv.addItem(cactusTotemItem);
             pdc.set(cactusTotemCounter, PersistentDataType.INTEGER, 0);
         }
@@ -473,8 +473,7 @@ public class CactusChampion extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.CACTUS);
+        SnapshotPvpPlugin.clearInv(p, Material.CACTUS);
 
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         Entity kitEntity = getEntityFromPDC(pdc, cactusTotemUUID);

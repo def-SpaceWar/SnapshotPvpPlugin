@@ -113,7 +113,7 @@ public class JapaneseGoblin extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (kunaiRestockC >= kunaiRestock) {
-            SnapshotPvpPlugin.clearInv(inv, Material.SNOWBALL);
+            SnapshotPvpPlugin.clearInv(p, Material.SNOWBALL);
             inv.addItem(kunai);
             pdc.set(
                 kunaiRestockCounter,
@@ -132,8 +132,7 @@ public class JapaneseGoblin extends ManaKit {
     @Override
     public void onLeaveCombat(Player p) {
         p.clearActivePotionEffects();
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.SNOWBALL);
+        SnapshotPvpPlugin.clearInv(p, Material.SNOWBALL);
         resetKit(p);
     }
 

@@ -147,8 +147,8 @@ public class Deadeye extends ManaKit {
     @Override
     public void onLeaveCombat(Player p) {
         PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.ARROW);
-        SnapshotPvpPlugin.clearInv(inv, Material.SPECTRAL_ARROW);
+        SnapshotPvpPlugin.clearInv(p, Material.ARROW);
+        SnapshotPvpPlugin.clearInv(p, Material.SPECTRAL_ARROW);
         resetKit(p);
     }
 
@@ -220,7 +220,7 @@ public class Deadeye extends ManaKit {
         PlayerInventory inv = p.getInventory();
         if (attackC >= requiredAttacks) {
             capAndRestockArrows(inv);
-            SnapshotPvpPlugin.clearInv(inv, Material.SPECTRAL_ARROW);
+            SnapshotPvpPlugin.clearInv(p, Material.SPECTRAL_ARROW);
             inv.addItem(spectralArrowItem);
             pdc.set(attackCounter, PersistentDataType.INTEGER, 0);
         }

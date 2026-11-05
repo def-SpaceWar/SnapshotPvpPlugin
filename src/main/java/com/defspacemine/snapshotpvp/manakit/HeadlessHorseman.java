@@ -95,8 +95,7 @@ public class HeadlessHorseman extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.ZOMBIE_HORSE_SPAWN_EGG);
+        SnapshotPvpPlugin.clearInv(p, Material.ZOMBIE_HORSE_SPAWN_EGG);
         resetKit(p);
     }
 

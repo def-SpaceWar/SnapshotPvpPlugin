@@ -174,7 +174,7 @@ public class BuckshotViking extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (ammoRestockC >= ammoRestock) {
-            SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
+            SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
             inv.addItem(ammo);
             pdc.set(ammoRestockCounter, PersistentDataType.INTEGER, 0);
         }
@@ -187,9 +187,8 @@ public class BuckshotViking extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
-        SnapshotPvpPlugin.clearInv(inv, Material.POTION);
+        SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
+        SnapshotPvpPlugin.clearInv(p, Material.POTION);
         resetKit(p);
     }
 

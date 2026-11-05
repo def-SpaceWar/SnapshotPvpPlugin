@@ -137,16 +137,16 @@ public class ICBM extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (ammoRestockC >= ammoRestock) {
-            SnapshotPvpPlugin.clearInv(inv, avgMissiles);
-            SnapshotPvpPlugin.clearInv(inv, antimatterMissiles);
-            p.getInventory().addItem(avgMissiles);
-            p.getInventory().addItem(antimatterMissiles);
+            SnapshotPvpPlugin.clearInv(p, avgMissiles);
+            SnapshotPvpPlugin.clearInv(p, antimatterMissiles);
+            inv.addItem(avgMissiles);
+            inv.addItem(antimatterMissiles);
             pdc.set(ammoRestockCounter, PersistentDataType.INTEGER, 0);
         }
 
         if (terrorismC >= terrorism) {
-            SnapshotPvpPlugin.clearInv(inv, redTerrors);
-            p.getInventory().addItem(redTerrors);
+            SnapshotPvpPlugin.clearInv(p, redTerrors);
+            inv.addItem(redTerrors);
             pdc.set(terrorismCounter, PersistentDataType.INTEGER, terrorismC - terrorism);
         }
     }
@@ -160,8 +160,7 @@ public class ICBM extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.FIREWORK_ROCKET);
+        SnapshotPvpPlugin.clearInv(p, Material.FIREWORK_ROCKET);
         p.clearActivePotionEffects();
         resetKit(p);
     }

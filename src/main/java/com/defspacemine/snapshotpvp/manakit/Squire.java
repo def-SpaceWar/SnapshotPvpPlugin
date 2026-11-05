@@ -107,7 +107,7 @@ public class Squire extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (arrowRestockC >= arrowRestock) {
-            SnapshotPvpPlugin.clearInv(inv, Material.ARROW);
+            SnapshotPvpPlugin.clearInv(p, Material.ARROW);
             inv.addItem(arrows);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
@@ -120,9 +120,8 @@ public class Squire extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.ARROW);
-        SnapshotPvpPlugin.clearInv(inv, Material.POTION);
+        SnapshotPvpPlugin.clearInv(p, Material.ARROW);
+        SnapshotPvpPlugin.clearInv(p, Material.POTION);
         resetKit(p);
     }
 

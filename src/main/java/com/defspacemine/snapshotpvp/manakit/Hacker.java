@@ -109,10 +109,9 @@ public class Hacker extends ManaKit implements Listener {
         }
         p.setFallDistance(0.0f);
 
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.CLOCK);
-        SnapshotPvpPlugin.clearInv(inv, Material.FEATHER);
-        SnapshotPvpPlugin.clearInv(inv, Material.ZOMBIE_HORSE_SPAWN_EGG);
+        SnapshotPvpPlugin.clearInv(p, Material.CLOCK);
+        SnapshotPvpPlugin.clearInv(p, Material.FEATHER);
+        SnapshotPvpPlugin.clearInv(p, Material.ZOMBIE_HORSE_SPAWN_EGG);
 
         historyMap.remove(p.getUniqueId());
     }

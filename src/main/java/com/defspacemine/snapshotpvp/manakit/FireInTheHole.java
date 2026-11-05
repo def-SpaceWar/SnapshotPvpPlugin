@@ -222,8 +222,8 @@ public class FireInTheHole extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (arrowRestockC >= arrowRestock) {
-            SnapshotPvpPlugin.clearInv(inv, Material.SPECTRAL_ARROW);
-            SnapshotPvpPlugin.clearInv(inv, Material.ENDER_PEARL);
+            SnapshotPvpPlugin.clearInv(p, Material.SPECTRAL_ARROW);
+            SnapshotPvpPlugin.clearInv(p, Material.ENDER_PEARL);
             inv.addItem(arrows);
             inv.addItem(enderpearl);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
@@ -268,9 +268,9 @@ public class FireInTheHole extends ManaKit {
     @Override
     public void onLeaveCombat(Player p) {
         PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.SPECTRAL_ARROW);
-        SnapshotPvpPlugin.clearInv(inv, Material.ENDER_PEARL);
-        SnapshotPvpPlugin.clearInv(inv, Material.CREEPER_SPAWN_EGG);
+        SnapshotPvpPlugin.clearInv(p, Material.SPECTRAL_ARROW);
+        SnapshotPvpPlugin.clearInv(p, Material.ENDER_PEARL);
+        SnapshotPvpPlugin.clearInv(p, Material.CREEPER_SPAWN_EGG);
         resetKit(p);
     }
 

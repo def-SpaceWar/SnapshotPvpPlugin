@@ -154,13 +154,13 @@ public class Gambler extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (arrowRestockC >= arrowRestock) {
-            SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
+            SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
             inv.addItem(bettingArrow);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
 
         if (cardC >= card) {
-            SnapshotPvpPlugin.clearInv(inv, Material.SNOWBALL);
+            SnapshotPvpPlugin.clearInv(p, Material.SNOWBALL);
             p.getInventory().addItem(wildCard);
             pdc.set(cardCounter, PersistentDataType.INTEGER, 0);
         }
@@ -183,9 +183,8 @@ public class Gambler extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
-        SnapshotPvpPlugin.clearInv(inv, Material.SNOWBALL);
+        SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
+        SnapshotPvpPlugin.clearInv(p, Material.SNOWBALL);
         resetKit(p);
     }
 

@@ -195,8 +195,8 @@ public class Thief extends ManaKit {
         );
 
         if (ammoRestockC >= ammoRestock) {
-            SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
-            p.getInventory().addItem(ammo);
+            SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
+            inv.addItem(ammo);
             pdc.set(
                 ammoRestockCounter,
                 PersistentDataType.INTEGER,
@@ -205,14 +205,14 @@ public class Thief extends ManaKit {
         }
 
         if (smokeRestockC >= smokeRestock) {
-            SnapshotPvpPlugin.clearInv(inv, Material.CHORUS_FRUIT);
-            p.getInventory().addItem(smokeBomb);
+            SnapshotPvpPlugin.clearInv(p, Material.CHORUS_FRUIT);
+            inv.addItem(smokeBomb);
             pdc.set(smokeRestockCounter, PersistentDataType.INTEGER, 0);
         }
 
         if (pearlRestockC >= pearlRestock) {
-            SnapshotPvpPlugin.clearInv(inv, Material.ENDER_PEARL);
-            p.getInventory().addItem(enderPearl);
+            SnapshotPvpPlugin.clearInv(p, Material.ENDER_PEARL);
+            inv.addItem(enderPearl);
             pdc.set(pearlRestockCounter, PersistentDataType.INTEGER, 0);
         }
 
@@ -225,10 +225,9 @@ public class Thief extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
-        SnapshotPvpPlugin.clearInv(inv, Material.CHORUS_FRUIT);
-        SnapshotPvpPlugin.clearInv(inv, Material.ENDER_PEARL);
+        SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
+        SnapshotPvpPlugin.clearInv(p, Material.CHORUS_FRUIT);
+        SnapshotPvpPlugin.clearInv(p, Material.ENDER_PEARL);
         resetKit(p);
     }
 

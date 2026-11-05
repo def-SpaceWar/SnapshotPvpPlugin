@@ -152,12 +152,11 @@ public class TwoTimer extends ManaKit {
         removeTwinToy(p);
         cleanupPlacedBlocks(p);
 
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.ARMOR_STAND);
-        SnapshotPvpPlugin.clearInv(inv, Material.ENDER_EYE);
-        SnapshotPvpPlugin.clearInv(inv, Material.JUKEBOX);
-        SnapshotPvpPlugin.clearInv(inv, Material.OAK_PLANKS);
-        SnapshotPvpPlugin.clearInv(inv, Material.STONE);
+        SnapshotPvpPlugin.clearInv(p, Material.ARMOR_STAND);
+        SnapshotPvpPlugin.clearInv(p, Material.ENDER_EYE);
+        SnapshotPvpPlugin.clearInv(p, Material.JUKEBOX);
+        SnapshotPvpPlugin.clearInv(p, Material.OAK_PLANKS);
+        SnapshotPvpPlugin.clearInv(p, Material.STONE);
     }
 
     @Override
@@ -250,7 +249,7 @@ public class TwoTimer extends ManaKit {
             }
         } else {
             twins.remove(p.getUniqueId());
-            SnapshotPvpPlugin.clearInv(p.getInventory(), Material.ENDER_EYE);
+            SnapshotPvpPlugin.clearInv(p, Material.ENDER_EYE);
             if (twinCharge >= TWIN_TOY_COST && !hasTaggedItem(p, twinItemTag)) {
                 pdc.set(twinChargeKey, PersistentDataType.INTEGER, 0);
                 giveTwinSummonItem(p);
@@ -1214,7 +1213,7 @@ public class TwoTimer extends ManaKit {
     }
 
     private void giveTwinSummonItem(Player p) {
-        SnapshotPvpPlugin.clearInv(p.getInventory(), Material.ARMOR_STAND);
+        SnapshotPvpPlugin.clearInv(p, Material.ARMOR_STAND);
         ItemStack item = new ItemStack(Material.ARMOR_STAND, 1);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -1240,7 +1239,7 @@ public class TwoTimer extends ManaKit {
     }
 
     private void giveTwinSwapItem(Player p) {
-        SnapshotPvpPlugin.clearInv(p.getInventory(), Material.ENDER_EYE);
+        SnapshotPvpPlugin.clearInv(p, Material.ENDER_EYE);
         ItemStack item = new ItemStack(Material.ENDER_EYE, 1);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -1268,7 +1267,7 @@ public class TwoTimer extends ManaKit {
     }
 
     private void giveJackInTheBox(Player p) {
-        SnapshotPvpPlugin.clearInv(p.getInventory(), Material.JUKEBOX);
+        SnapshotPvpPlugin.clearInv(p, Material.JUKEBOX);
         ItemStack item = new ItemStack(Material.JUKEBOX, 1);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {

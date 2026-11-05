@@ -374,8 +374,7 @@ public class Violence extends ManaKit implements Listener {
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.POTION);
+        SnapshotPvpPlugin.clearInv(p, Material.POTION);
         resetKit(p);
     }
 

@@ -96,7 +96,7 @@ public class Shulkian extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (arrowRestockC >= arrowRestock) {
-            SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
+            SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
             inv.addItem(arrows);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
@@ -104,8 +104,7 @@ public class Shulkian extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
+        SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
         p.clearActivePotionEffects();
         resetKit(p);
     }

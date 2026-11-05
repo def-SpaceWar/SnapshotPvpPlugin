@@ -130,9 +130,8 @@ public class Ranger extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.SPECTRAL_ARROW);
-        SnapshotPvpPlugin.clearInv(inv, Material.IRON_SWORD);
+        SnapshotPvpPlugin.clearInv(p, Material.SPECTRAL_ARROW);
+        SnapshotPvpPlugin.clearInv(p, Material.IRON_SWORD);
         resetKit(p);
     }
 
@@ -156,7 +155,7 @@ public class Ranger extends ManaKit {
             inv.addItem(arrow);
             arrowCount++;
         }
-        SnapshotPvpPlugin.clearInv(inv, Material.IRON_SWORD);
+        SnapshotPvpPlugin.clearInv(p, Material.IRON_SWORD);
         inv.addItem(kbSword);
     }
 

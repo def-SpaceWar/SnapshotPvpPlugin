@@ -65,7 +65,7 @@ public class Frog extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (chargeRestockC >= chargeRestock) {
-            SnapshotPvpPlugin.clearInv(inv, Material.WIND_CHARGE);
+            SnapshotPvpPlugin.clearInv(p, Material.WIND_CHARGE);
             inv.addItem(windCharges);
             pdc.set(chargeRestockCounter, PersistentDataType.INTEGER, 0);
         }
@@ -79,8 +79,7 @@ public class Frog extends ManaKit {
     @Override
     public void onLeaveCombat(Player p) {
         p.clearActivePotionEffects();
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.WIND_CHARGE);
+        SnapshotPvpPlugin.clearInv(p, Material.WIND_CHARGE);
         resetKit(p);
 
         ItemStack chestplate = p.getInventory().getChestplate();

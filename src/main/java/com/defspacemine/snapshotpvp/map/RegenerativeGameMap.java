@@ -545,11 +545,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
         Block initialBlock,
         BlockState initialOriginalState
     ) {
-        recordBlockAndDependents(
-            initialBlock,
-            initialOriginalState,
-            Map.of()
-        );
+        recordBlockAndDependents(initialBlock, initialOriginalState, Map.of());
     }
 
     /**

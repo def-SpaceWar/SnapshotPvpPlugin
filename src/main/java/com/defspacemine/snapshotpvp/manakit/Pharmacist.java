@@ -119,35 +119,35 @@ public class Pharmacist extends ManaKit {
         PlayerInventory inv = p.getInventory();
         switch (currentPotion) {
             case TA_SEDATIVE_SHOT:
-                SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
+                SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
                 inv.addItem(sedativeShot);
                 break;
             case P_ANABOLIC_STEROIDS:
-                SnapshotPvpPlugin.clearInv(inv, Material.POTION);
+                SnapshotPvpPlugin.clearInv(p, Material.POTION);
                 inv.addItem(anabolicSteroids);
                 break;
             case SP_PANACEA_RUSH:
-                SnapshotPvpPlugin.clearInv(inv, Material.SPLASH_POTION);
+                SnapshotPvpPlugin.clearInv(p, Material.SPLASH_POTION);
                 inv.addItem(panaceaRush);
                 break;
             case LP_MUSTARD_GAS:
-                SnapshotPvpPlugin.clearInv(inv, Material.LINGERING_POTION);
+                SnapshotPvpPlugin.clearInv(p, Material.LINGERING_POTION);
                 inv.addItem(mustardGas);
                 break;
             case TA_LETHAL_INJECTION:
-                SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
+                SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
                 inv.addItem(lethalInjection);
                 break;
             case SP_CONTRAINDICTION:
-                SnapshotPvpPlugin.clearInv(inv, Material.SPLASH_POTION);
+                SnapshotPvpPlugin.clearInv(p, Material.SPLASH_POTION);
                 inv.addItem(contraindiction);
                 break;
             case P_UNSTABLE_OVERCLOCK:
-                SnapshotPvpPlugin.clearInv(inv, Material.POTION);
+                SnapshotPvpPlugin.clearInv(p, Material.POTION);
                 inv.addItem(unstableOverclock);
                 break;
             case LP_SARIN:
-                SnapshotPvpPlugin.clearInv(inv, Material.LINGERING_POTION);
+                SnapshotPvpPlugin.clearInv(p, Material.LINGERING_POTION);
                 inv.addItem(sarin);
                 break;
         }
@@ -482,11 +482,10 @@ public class Pharmacist extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
-        SnapshotPvpPlugin.clearInv(inv, Material.POTION);
-        SnapshotPvpPlugin.clearInv(inv, Material.SPLASH_POTION);
-        SnapshotPvpPlugin.clearInv(inv, Material.LINGERING_POTION);
+        SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
+        SnapshotPvpPlugin.clearInv(p, Material.POTION);
+        SnapshotPvpPlugin.clearInv(p, Material.SPLASH_POTION);
+        SnapshotPvpPlugin.clearInv(p, Material.LINGERING_POTION);
         resetKit(p);
     }
 

@@ -119,16 +119,15 @@ public class Poacher extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (killShotC >= killShot) {
-            SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
-            p.getInventory().addItem(powerfulToxin);
+            SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
+            inv.addItem(powerfulToxin);
             pdc.set(killShotCounter, PersistentDataType.INTEGER, 0);
         }
     }
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.TIPPED_ARROW);
+        SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
         resetKit(p);
     }
 

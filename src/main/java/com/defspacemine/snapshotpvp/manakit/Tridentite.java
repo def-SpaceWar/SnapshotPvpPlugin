@@ -91,7 +91,7 @@ public class Tridentite extends ManaKit {
             p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 0));
 
         if (tridentReturnC >= tridentReturn) {
-            SnapshotPvpPlugin.clearInv(inv, Material.CHORUS_FRUIT);
+            SnapshotPvpPlugin.clearInv(p, Material.CHORUS_FRUIT);
             retrieveTrident(p);
             pdc.set(tridentReturnCounter, PersistentDataType.INTEGER, 0);
         }

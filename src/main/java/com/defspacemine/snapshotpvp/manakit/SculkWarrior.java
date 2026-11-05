@@ -102,9 +102,8 @@ public class SculkWarrior extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.ECHO_SHARD);
-        SnapshotPvpPlugin.clearInv(inv, Material.SCULK_SHRIEKER);
+        SnapshotPvpPlugin.clearInv(p, Material.ECHO_SHARD);
+        SnapshotPvpPlugin.clearInv(p, Material.SCULK_SHRIEKER);
 
         p.clearActivePotionEffects();
         resetKit(p);
@@ -177,7 +176,7 @@ public class SculkWarrior extends ManaKit {
                 PersistentDataType.INTEGER,
                 shriekerRestockC - shriekerRestock
             );
-            SnapshotPvpPlugin.clearInv(inv, Material.SCULK_SHRIEKER);
+            SnapshotPvpPlugin.clearInv(p, Material.SCULK_SHRIEKER);
             inv.addItem(getSculkShrieker());
         }
     }

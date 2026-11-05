@@ -235,11 +235,10 @@ public class Cultist extends ManaKit {
 
     private void resetRitualProgress(Player p) {
         p.getPersistentDataContainer().set(SOUL_POWER, PersistentDataType.INTEGER, 0);
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.ROTTEN_FLESH);
-        SnapshotPvpPlugin.clearInv(inv, Material.DRIED_KELP);
-        SnapshotPvpPlugin.clearInv(inv, Material.COOKIE);
-        SnapshotPvpPlugin.clearInv(inv, Material.GOLDEN_APPLE);
+        SnapshotPvpPlugin.clearInv(p, Material.ROTTEN_FLESH);
+        SnapshotPvpPlugin.clearInv(p, Material.DRIED_KELP);
+        SnapshotPvpPlugin.clearInv(p, Material.COOKIE);
+        SnapshotPvpPlugin.clearInv(p, Material.GOLDEN_APPLE);
     }
 
     private void applyDoomBuffs(Player p) {

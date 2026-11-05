@@ -216,15 +216,15 @@ public class Engineer extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (botChargeC >= bot) {
-            SnapshotPvpPlugin.clearInv(inv, CustomEggListener.injectOwner(droid, p));
-            SnapshotPvpPlugin.clearInv(inv, CustomEggListener.injectOwner(sentry, p));
+            SnapshotPvpPlugin.clearInv(p, CustomEggListener.injectOwner(droid, p));
+            SnapshotPvpPlugin.clearInv(p, CustomEggListener.injectOwner(sentry, p));
             inv.addItem(CustomEggListener.injectOwner(droid, p));
             inv.addItem(CustomEggListener.injectOwner(sentry, p));
             pdc.set(botChargeCounter, PersistentDataType.INTEGER, 0);
         }
 
         if (tpRestockC >= tpRestockTimer) {
-            SnapshotPvpPlugin.clearInv(inv, Material.BEACON);
+            SnapshotPvpPlugin.clearInv(p, Material.BEACON);
             inv.addItem(teleporterItem);
             pdc.set(tpRestockCounter, PersistentDataType.INTEGER, 0);
         } else if (!inv.contains(Material.BEACON)) pdc.set(
@@ -480,8 +480,8 @@ public class Engineer extends ManaKit {
         // pdc.set(fuelCounter, PersistentDataType.INTEGER, 100);
         // pdc.set(botChargeCounter, PersistentDataType.INTEGER, bot);
         PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, CustomEggListener.injectOwner(upgradedDroid, p));
-        SnapshotPvpPlugin.clearInv(inv, CustomEggListener.injectOwner(upgradedSentry, p));
+        SnapshotPvpPlugin.clearInv(p, CustomEggListener.injectOwner(upgradedDroid, p));
+        SnapshotPvpPlugin.clearInv(p, CustomEggListener.injectOwner(upgradedSentry, p));
         inv.addItem(CustomEggListener.injectOwner(upgradedDroid, p));
         inv.addItem(CustomEggListener.injectOwner(upgradedSentry, p));
     }
@@ -501,9 +501,9 @@ public class Engineer extends ManaKit {
     @Override
     public void onLeaveCombat(Player p) {
         PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.BEACON);
-        SnapshotPvpPlugin.clearInv(inv, Material.WITHER_SKELETON_SPAWN_EGG);
-        SnapshotPvpPlugin.clearInv(inv, Material.SKELETON_SPAWN_EGG);
+        SnapshotPvpPlugin.clearInv(p, Material.BEACON);
+        SnapshotPvpPlugin.clearInv(p, Material.WITHER_SKELETON_SPAWN_EGG);
+        SnapshotPvpPlugin.clearInv(p, Material.SKELETON_SPAWN_EGG);
         p.clearActivePotionEffects();
         resetKit(p);
     }

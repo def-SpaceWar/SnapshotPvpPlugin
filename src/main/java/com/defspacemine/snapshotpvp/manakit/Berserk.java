@@ -105,8 +105,7 @@ public class Berserk extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.POTION);
+        SnapshotPvpPlugin.clearInv(p, Material.POTION);
         resetKit(p);
     }
 

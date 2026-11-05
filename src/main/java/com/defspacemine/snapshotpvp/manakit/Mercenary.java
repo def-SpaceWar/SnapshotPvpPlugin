@@ -129,8 +129,8 @@ public class Mercenary extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (mercRestockC >= mercRestock) {
-            SnapshotPvpPlugin.clearInv(inv, Material.CREEPER_SPAWN_EGG);
-            SnapshotPvpPlugin.clearInv(inv, Material.ENDER_PEARL);
+            SnapshotPvpPlugin.clearInv(p, Material.CREEPER_SPAWN_EGG);
+            SnapshotPvpPlugin.clearInv(p, Material.ENDER_PEARL);
             inv.addItem(launchers);
             inv.addItem(CustomEggListener.injectOwner(autoBombs, p));
             inv.addItem(enderpearl);
@@ -140,10 +140,9 @@ public class Mercenary extends ManaKit {
 
     @Override
     public void onLeaveCombat(Player p) {
-        PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.CREEPER_SPAWN_EGG);
-        SnapshotPvpPlugin.clearInv(inv, Material.ENDER_PEARL);
-        SnapshotPvpPlugin.clearInv(inv, Material.OCELOT_SPAWN_EGG);
+        SnapshotPvpPlugin.clearInv(p, Material.CREEPER_SPAWN_EGG);
+        SnapshotPvpPlugin.clearInv(p, Material.ENDER_PEARL);
+        SnapshotPvpPlugin.clearInv(p, Material.OCELOT_SPAWN_EGG);
         resetKit(p);
     }
 
@@ -156,7 +155,7 @@ public class Mercenary extends ManaKit {
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
         PlayerInventory inv = p.getInventory();
-        SnapshotPvpPlugin.clearInv(inv, Material.OCELOT_SPAWN_EGG);
+        SnapshotPvpPlugin.clearInv(p, Material.OCELOT_SPAWN_EGG);
         inv.addItem(goodShotBhaiyas);
     }
 }
