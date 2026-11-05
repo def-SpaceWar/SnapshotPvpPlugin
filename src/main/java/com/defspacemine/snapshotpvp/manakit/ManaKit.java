@@ -9,6 +9,7 @@ import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.inventory.ItemStack;
 
 public abstract class ManaKit {
 
@@ -72,6 +73,23 @@ public abstract class ManaKit {
     public void onProjectileHit(Player p, ProjectileHitEvent e) {}
 
     public void onShootBow(Player p, EntityShootBowEvent e) {}
+
+    /**
+     * Whether a player using this kit may drop the given item.
+     * Defaults to false; override to allow specific items.
+     */
+    public boolean canDropItem(Player p, ItemStack item) {
+        return false;
+    }
+
+    /**
+     * Whether a player using this kit may craft the given result item.
+     * Defaults to false (nothing is craftable). Kits such as a Soup kit can
+     * override this, e.g. {@code return result.getType() == Material.MUSHROOM_STEW;}
+     */
+    public boolean canCraft(Player p, ItemStack result) {
+        return false;
+    }
 
     // add more later
 }

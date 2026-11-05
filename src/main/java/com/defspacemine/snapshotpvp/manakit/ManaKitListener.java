@@ -1,15 +1,10 @@
 package com.defspacemine.snapshotpvp.manakit;
 
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -21,7 +16,6 @@ import org.bukkit.block.ShulkerBox;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LightningStrike;
-import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -31,6 +25,9 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.inventory.PrepareItemCraftEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
@@ -42,12 +39,9 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scoreboard.Criteria;
-import org.bukkit.scoreboard.DisplaySlot;
-import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Score;
-import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
+
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public final class ManaKitListener implements Listener {
 
@@ -717,6 +711,42 @@ public final class ManaKitListener implements Listener {
             ) {
                 event.setCancelled(true);
             }
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onDrop(PlayerDropItemEvent e) {
+        Player p = e.getPlayer();
+        ManaKit kit = getPlayerKit(p);
+        if (kit == null) return;
+
+        if (!kit.canDropItem(p, e.getItemDrop().getItemStack())) {
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onPrepareCraft(PrepareItemCraftEvent e) {
+        if (!(e.getView().getPlayer() instanceof Player p)) return;
+        ManaKit kit = getPlayerKit(p);
+        if (kit == null) return;
+
+        ItemStack result = e.getInventory().getResult();
+        if (result == null) return;
+
+        if (!kit.canCraft(p, result)) {
+            e.getInventory().setResult(null);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onCraft(CraftItemEvent e) {
+        if (!(e.getWhoClicked() instanceof Player p)) return;
+        ManaKit kit = getPlayerKit(p);
+        if (kit == null) return;
+
+        if (!kit.canCraft(p, e.getRecipe().getResult())) {
+            e.setCancelled(true);
         }
     }
 }

@@ -22,6 +22,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.FaceAttachable;
 import org.bukkit.block.data.Powerable;
+import org.bukkit.block.data.type.Bed;
 import org.bukkit.block.data.type.Lantern;
 import org.bukkit.block.data.type.PointedDripstone;
 import org.bukkit.damage.DamageSource;
@@ -39,6 +40,7 @@ import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFadeEvent;
 import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.SpongeAbsorbEvent;
@@ -543,6 +545,23 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
         Block initialBlock,
         BlockState initialOriginalState
     ) {
+        recordBlockAndDependents(
+            initialBlock,
+            initialOriginalState,
+            Map.of()
+        );
+    }
+
+    /**
+     * @param knownOriginals pre-change states for additional blocks that are
+     *     part of the same change (e.g. the other half of a placed door).
+     *     These are used instead of the block's current state.
+     */
+    private void recordBlockAndDependents(
+        Block initialBlock,
+        BlockState initialOriginalState,
+        Map<Block, BlockState> knownOriginals
+    ) {
         if (
             this.world == null || !initialBlock.getWorld().equals(this.world)
         ) return;
@@ -552,6 +571,9 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
 
         toScan.add(initialBlock);
         visited.add(initialBlock);
+        for (Block extra : knownOriginals.keySet()) {
+            if (visited.add(extra)) toScan.add(extra);
+        }
 
         long baseDelay =
             minDelayTicks >= maxDelayTicks
@@ -566,9 +588,13 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             Location loc = current.getLocation();
 
             if (!originalBlockStates.containsKey(loc)) {
-                BlockState stateToSave = current.equals(initialBlock)
-                    ? initialOriginalState
-                    : current.getState();
+                BlockState stateToSave;
+                if (current.equals(initialBlock)) {
+                    stateToSave = initialOriginalState;
+                } else {
+                    BlockState known = knownOriginals.get(current);
+                    stateToSave = known != null ? known : current.getState();
+                }
                 originalBlockStates.put(loc, stateToSave);
 
                 Material type = stateToSave.getType();
@@ -619,8 +645,47 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
         }
     }
 
+    /** The second half of a door, bed or tall plant, or null if this isn't one. */
+    private Block getOtherHalf(Block block) {
+        BlockData data = block.getBlockData();
+        Block other = null;
+
+        if (data instanceof Bed bed) {
+            other = block.getRelative(
+                bed.getPart() == Bed.Part.FOOT
+                    ? bed.getFacing()
+                    : bed.getFacing().getOppositeFace()
+            );
+        } else if (data instanceof Bisected bisected) {
+            String name = block.getType().name();
+            if (name.contains("TRAPDOOR") || name.contains("STAIRS")) {
+                return null;
+            }
+            other = block.getRelative(
+                bisected.getHalf() == Bisected.Half.BOTTOM
+                    ? BlockFace.UP
+                    : BlockFace.DOWN
+            );
+        }
+
+        return other != null && other.getType() == block.getType()
+            ? other
+            : null;
+    }
+
+    /** A snapshot of this position as air, used as the "before" state of a placed second half. */
+    private BlockState asAir(Block block) {
+        BlockState state = block.getState();
+        state.setBlockData(Material.AIR.createBlockData());
+        return state;
+    }
+
     private Set<Block> findConnectedDependents(Block block) {
         Set<Block> neighbors = new HashSet<>();
+
+        Block otherHalf = getOtherHalf(block);
+        if (otherHalf != null) neighbors.add(otherHalf);
+
         for (BlockFace face : CARDINAL_PLUS_UP_DOWN) {
             Block relative = block.getRelative(face);
             Material type = relative.getType();
@@ -683,9 +748,24 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             this.world == null ||
             !event.getBlock().getWorld().equals(this.world)
         ) return;
+        Block placed = event.getBlock();
+        Map<Block, BlockState> originals = new HashMap<>();
+
+        // Real pre-placement snapshots when the server reports a multi-block placement
+        if (event instanceof BlockMultiPlaceEvent multi) {
+            for (BlockState replaced : multi.getReplacedBlockStates()) {
+                originals.put(replaced.getBlock(), replaced);
+            }
+        }
+
+        // Fallback: the other half (door top, bed head, ...) was empty before placement
+        Block other = getOtherHalf(placed);
+        if (other != null) originals.putIfAbsent(other, asAir(other));
+
         recordBlockAndDependents(
-            event.getBlock(),
-            event.getBlockReplacedState()
+            placed,
+            event.getBlockReplacedState(),
+            originals
         );
     }
 

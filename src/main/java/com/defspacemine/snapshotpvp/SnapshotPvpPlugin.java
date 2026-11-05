@@ -15,6 +15,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -39,8 +40,10 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.PluginManager;
@@ -161,16 +164,52 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         return t1 != null && t1.equals(t2);
     }
 
-    public static void clearInv(PlayerInventory inv, Material type) {
+    public static void clearInv(Player player, Material type) {
+        PlayerInventory inv = player.getInventory();
         inv.remove(type);
-        ItemStack offhand = inv.getItemInOffHand();
-        if (offhand.getType() == type) inv.setItemInOffHand(null);
+        if (inv.getItemInOffHand().getType() == type) {
+            inv.setItemInOffHand(null);
+        }
+        clearHeldElsewhere(player, item -> item.getType() == type);
     }
 
-    public static void clearInv(PlayerInventory inv, ItemStack type) {
+    public static void clearInv(Player player, ItemStack type) {
         ItemStack stack = type.clone();
         stack.setAmount(type.getAmount() * 99);
-        inv.removeItemAnySlot(stack);
+        player.getInventory().removeItemAnySlot(stack);
+        clearHeldElsewhere(player, item -> item.isSimilar(type));
+    }
+
+    /** Clears matching items on the cursor and in the player's crafting grid. */
+    private static void clearHeldElsewhere(
+        Player player,
+        Predicate<ItemStack> matches
+    ) {
+        ItemStack cursor = player.getItemOnCursor();
+        if (!cursor.getType().isAir() && matches.test(cursor)) {
+            player.setItemOnCursor(null);
+        }
+
+        Inventory top = player.getOpenInventory().getTopInventory();
+        InventoryType topType = top.getType();
+        if (
+            topType == InventoryType.CRAFTING ||
+            topType == InventoryType.WORKBENCH
+        ) {
+            // slot 0 is the result slot, it recalculates on its own
+            for (int i = 1; i < top.getSize(); i++) {
+                ItemStack item = top.getItem(i);
+                if (
+                    item != null &&
+                    !item.getType().isAir() &&
+                    matches.test(item)
+                ) {
+                    top.setItem(i, null);
+                }
+            }
+        }
+
+        player.updateInventory();
     }
 
     @Override

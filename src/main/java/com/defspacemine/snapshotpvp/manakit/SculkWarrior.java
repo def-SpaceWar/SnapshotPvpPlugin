@@ -411,9 +411,9 @@ public class SculkWarrior extends ManaKit {
                     currentLoc.getYaw() != lockedYaw ||
                     currentLoc.getPitch() != lockedPitch
                 ) {
-                    currentLoc.setYaw(lockedYaw);
-                    currentLoc.setPitch(lockedPitch);
-                    player.teleport(currentLoc);
+                    //currentLoc.setYaw(lockedYaw);
+                    //currentLoc.setPitch(lockedPitch);
+                    //player.teleport(currentLoc);
                 }
 
                 Location center = player.getLocation().add(0, 1.0, 0);

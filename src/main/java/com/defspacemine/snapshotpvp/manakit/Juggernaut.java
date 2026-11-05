@@ -63,7 +63,7 @@ public class Juggernaut extends ManaKit {
             new PotionEffect(PotionEffectType.HEALTH_BOOST, -1, 1)
         );
         if (killstreak >= 2) p.addPotionEffect(
-            new PotionEffect(PotionEffectType.RESISTANCE, 100, 1)
+            new PotionEffect(PotionEffectType.RESISTANCE, 100, 0)
         );
     }
 

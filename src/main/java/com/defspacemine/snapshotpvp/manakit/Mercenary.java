@@ -30,7 +30,7 @@ public class Mercenary extends ManaKit {
     public static final float LAUNCHER_DAMAGE = -15;
     public static final int AUTO_BOMB_TICKS = 25;
     public static final int AUTO_BOMB_RADIUS = 3;
-    public static final float AUTO_BOMB_DAMAGE = 30;
+    public static final float AUTO_BOMB_DAMAGE = 15;
     public static final int GOOD_SHOT_BHAIYA_RADIUS = -64;
     public static final float GSB_DAMAGE = -25;
 
