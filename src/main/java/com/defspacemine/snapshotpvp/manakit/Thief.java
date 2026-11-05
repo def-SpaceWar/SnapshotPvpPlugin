@@ -14,6 +14,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -191,6 +192,7 @@ public class Thief extends ManaKit {
             pearlRestockC + 1
         );
 
+        PlayerInventory inv = p.getInventory();
         if (ammoRestockC >= ammoRestock) {
             SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
             inv.addItem(ammo);
