@@ -94,14 +94,6 @@ public class TwoTimer extends ManaKit {
         "defspacemine",
         "twotimer_right_sword"
     );
-    private final NamespacedKey twinItemTag = new NamespacedKey(
-        "defspacemine",
-        "twotimer_twin_item"
-    );
-    private final NamespacedKey jackItemTag = new NamespacedKey(
-        "defspacemine",
-        "twotimer_jack_item"
-    );
     private final NamespacedKey twinEntityOwnerTag = new NamespacedKey(
         "defspacemine",
         "twotimer_twin_owner"
@@ -244,19 +236,19 @@ public class TwoTimer extends ManaKit {
                 swapCd--;
                 pdc.set(swapCooldownKey, PersistentDataType.INTEGER, swapCd);
             }
-            if (!hasTaggedItem(p, twinItemTag)) {
+            if (!hasTwinItem(p)) {
                 giveTwinSwapItem(p);
             }
         } else {
             twins.remove(p.getUniqueId());
             SnapshotPvpPlugin.clearInv(p, Material.ENDER_EYE);
-            if (twinCharge >= TWIN_TOY_COST && !hasTaggedItem(p, twinItemTag)) {
+            if (twinCharge >= TWIN_TOY_COST && !hasTwinItem(p)) {
                 pdc.set(twinChargeKey, PersistentDataType.INTEGER, 0);
                 giveTwinSummonItem(p);
             }
         }
 
-        if (!hasTaggedItem(p, jackItemTag)) {
+        if (SnapshotPvpPlugin.countInv(p, Material.JUKEBOX) == 0) {
             jackTimer++;
             if (jackTimer >= JACK_RESTOCK_TICKS) {
                 jackTimer = 0;
@@ -280,14 +272,14 @@ public class TwoTimer extends ManaKit {
                     : ChatColor.YELLOW +
                       "Swap " +
                       String.format("%.1fs", swapCd / 20.0);
-        } else if (hasTaggedItem(p, twinItemTag)) {
+        } else if (hasTwinItem(p)) {
             twinStatus = ChatColor.GREEN + "READY";
         } else {
             twinStatus =
                 ChatColor.WHITE + "" + twinCharge + "/" + TWIN_TOY_COST;
         }
 
-        String jackStatus = hasTaggedItem(p, jackItemTag)
+        String jackStatus = SnapshotPvpPlugin.countInv(p, Material.JUKEBOX) > 0
             ? ChatColor.GREEN + "READY"
             : ChatColor.WHITE +
               "" +
@@ -424,7 +416,7 @@ public class TwoTimer extends ManaKit {
         if (
             victim instanceof Player &&
             getTwinToy(p) == null &&
-            !hasTaggedItem(p, twinItemTag)
+            !hasTwinItem(p)
         ) {
             int twinCharge =
                 pdc.getOrDefault(twinChargeKey, PersistentDataType.INTEGER, 0) +
@@ -489,43 +481,13 @@ public class TwoTimer extends ManaKit {
             return;
         }
 
-        if (!item.hasItemMeta()) return;
-        PersistentDataContainer itemPdc = item
-            .getItemMeta()
-            .getPersistentDataContainer();
         PersistentDataContainer pdc = p.getPersistentDataContainer();
+        Material itemType = item.getType();
 
-        if (itemPdc.has(leftSwordTag, PersistentDataType.BYTE)) {
-            if (p.hasCooldown(item.getType())) return;
-            int hits = pdc.getOrDefault(
-                leftHitsKey,
-                PersistentDataType.INTEGER,
-                0
-            );
-            if (hits < SWORD_TP_HITS - 1) {
-                pdc.set(leftHitsKey, PersistentDataType.INTEGER, hits + 1);
-                p.setCooldown(item.getType(), 5);
-                p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.6f);
-            }
-            return;
-        }
-
-        if (itemPdc.has(rightSwordTag, PersistentDataType.BYTE)) {
-            if (p.hasCooldown(item.getType())) return;
-            int hits = pdc.getOrDefault(
-                rightHitsKey,
-                PersistentDataType.INTEGER,
-                0
-            );
-            if (hits < SWORD_TP_HITS - 1) {
-                pdc.set(rightHitsKey, PersistentDataType.INTEGER, hits + 1);
-                p.setCooldown(item.getType(), 5);
-                p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.4f);
-            }
-            return;
-        }
-
-        if (itemPdc.has(twinItemTag, PersistentDataType.BYTE)) {
+        if (
+            itemType == Material.ARMOR_STAND ||
+            itemType == Material.ENDER_EYE
+        ) {
             e.setCancelled(true);
             Mannequin twin = getTwinToy(p);
 
@@ -566,11 +528,48 @@ public class TwoTimer extends ManaKit {
             return;
         }
 
-        if (itemPdc.has(jackItemTag, PersistentDataType.BYTE)) {
+        if (itemType == Material.JUKEBOX) {
             e.setCancelled(true);
             item.setAmount(item.getAmount() - 1);
             activateJackInTheBox(p);
+            return;
         }
+
+        if (!item.hasItemMeta()) return;
+        PersistentDataContainer itemPdc = item
+            .getItemMeta()
+            .getPersistentDataContainer();
+
+        if (itemPdc.has(leftSwordTag, PersistentDataType.BYTE)) {
+            if (p.hasCooldown(item.getType())) return;
+            int hits = pdc.getOrDefault(
+                leftHitsKey,
+                PersistentDataType.INTEGER,
+                0
+            );
+            if (hits < SWORD_TP_HITS - 1) {
+                pdc.set(leftHitsKey, PersistentDataType.INTEGER, hits + 1);
+                p.setCooldown(item.getType(), 5);
+                p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.6f);
+            }
+            return;
+        }
+
+        if (itemPdc.has(rightSwordTag, PersistentDataType.BYTE)) {
+            if (p.hasCooldown(item.getType())) return;
+            int hits = pdc.getOrDefault(
+                rightHitsKey,
+                PersistentDataType.INTEGER,
+                0
+            );
+            if (hits < SWORD_TP_HITS - 1) {
+                pdc.set(rightHitsKey, PersistentDataType.INTEGER, hits + 1);
+                p.setCooldown(item.getType(), 5);
+                p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.4f);
+            }
+            return;
+        }
+
     }
 
     private void ensureSwordsTagged(Player p) {
@@ -1227,11 +1226,6 @@ public class TwoTimer extends ManaKit {
                 )
             );
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
-            meta.getPersistentDataContainer().set(
-                twinItemTag,
-                PersistentDataType.BYTE,
-                (byte) 1
-            );
             item.setItemMeta(meta);
         }
         p.getInventory().addItem(item);
@@ -1256,11 +1250,6 @@ public class TwoTimer extends ManaKit {
                 )
             );
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
-            meta.getPersistentDataContainer().set(
-                twinItemTag,
-                PersistentDataType.BYTE,
-                (byte) 1
-            );
             item.setItemMeta(meta);
         }
         p.getInventory().addItem(item);
@@ -1281,30 +1270,14 @@ public class TwoTimer extends ManaKit {
                 )
             );
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
-            meta.getPersistentDataContainer().set(
-                jackItemTag,
-                PersistentDataType.BYTE,
-                (byte) 1
-            );
             item.setItemMeta(meta);
         }
         p.getInventory().addItem(item);
         p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.7f, 1.6f);
     }
 
-    private boolean hasTaggedItem(Player p, NamespacedKey tagKey) {
-        for (ItemStack item : p.getInventory().getContents()) {
-            if (item != null && item.hasItemMeta()) {
-                if (
-                    item
-                        .getItemMeta()
-                        .getPersistentDataContainer()
-                        .has(tagKey, PersistentDataType.BYTE)
-                ) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    private boolean hasTwinItem(Player p) {
+        return SnapshotPvpPlugin.countInv(p, Material.ARMOR_STAND) > 0 ||
+            SnapshotPvpPlugin.countInv(p, Material.ENDER_EYE) > 0;
     }
 }
