@@ -173,7 +173,7 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         return countInv(player, item -> item.isSimilar(type));
     }
 
-    private static int countInv(
+    public static int countInv(
         Player player,
         Predicate<ItemStack> matches
     ) {
