@@ -168,9 +168,7 @@ public class SculkWarrior extends ManaKit {
             if (
                 SnapshotPvpPlugin.countInv(p, Material.ECHO_SHARD) <
                 MAX_ECHO_SHARDS
-            ) inv.addItem(
-                getEchoShard()
-            );
+            ) inv.addItem(getEchoShard());
         }
 
         if (shriekerRestockC >= shriekerRestock) {
@@ -365,9 +363,9 @@ public class SculkWarrior extends ManaKit {
         PersistentDataContainer pdc = player.getPersistentDataContainer();
         pdc.set(isChargingKey, PersistentDataType.BOOLEAN, true);
 
-        final float lockedYaw = player.getLocation().getYaw();
-        final float lockedPitch = player.getLocation().getPitch();
-
+        // final float lockedYaw = player.getLocation().getYaw();
+        // final float lockedPitch = player.getLocation().getPitch();
+        //
         //  player.addPotionEffect(
         //      new PotionEffect(
         //          PotionEffectType.SLOWNESS,
@@ -409,14 +407,14 @@ public class SculkWarrior extends ManaKit {
                 }
 
                 Location currentLoc = player.getLocation();
-                if (
-                    currentLoc.getYaw() != lockedYaw ||
-                    currentLoc.getPitch() != lockedPitch
-                ) {
-                    //currentLoc.setYaw(lockedYaw);
-                    //currentLoc.setPitch(lockedPitch);
-                    //player.teleport(currentLoc);
-                }
+                //if (
+                //    currentLoc.getYaw() != lockedYaw ||
+                //    currentLoc.getPitch() != lockedPitch
+                //) {
+                //    currentLoc.setYaw(lockedYaw);
+                //    currentLoc.setPitch(lockedPitch);
+                //    player.teleport(currentLoc);
+                //}
 
                 Location center = player.getLocation().add(0, 1.0, 0);
 
@@ -462,7 +460,8 @@ public class SculkWarrior extends ManaKit {
                     player.removePotionEffect(PotionEffectType.JUMP_BOOST);
                     player.removePotionEffect(PotionEffectType.MINING_FATIGUE);
 
-                    fireSonicBoomBeam(player, lockedYaw, lockedPitch);
+                    // fireSonicBoomBeam(player, lockedYaw, lockedPitch);
+                    fireSonicBoomBeam(player, currentLoc.getYaw(), currentLoc.getPitch());
                     cancel();
                 }
             }

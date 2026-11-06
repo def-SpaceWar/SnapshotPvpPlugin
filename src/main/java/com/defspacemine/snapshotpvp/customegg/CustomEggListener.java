@@ -66,6 +66,7 @@ import com.defspacemine.snapshotpvp.custommob.FITHBomb1;
 import com.defspacemine.snapshotpvp.custommob.FITHBomb2;
 import com.defspacemine.snapshotpvp.custommob.FITHBomb3;
 import com.defspacemine.snapshotpvp.custommob.FITHNuke;
+import com.defspacemine.snapshotpvp.custommob.FighterDummy;
 import com.defspacemine.snapshotpvp.custommob.MercAutoBomb;
 import com.defspacemine.snapshotpvp.custommob.MercGoodShotBhaiya;
 import com.defspacemine.snapshotpvp.custommob.MercLauncher;
@@ -166,6 +167,7 @@ public class CustomEggListener implements Listener {
         register(new EngineerUpgradedDroid());
         register(new EngineerSentry());
         register(new EngineerUpgradedSentry());
+        register(new FighterDummy());
 
         startGlobalAggroTask();
         startSlimeDamageTask();

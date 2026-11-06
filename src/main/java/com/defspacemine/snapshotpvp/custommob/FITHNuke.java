@@ -8,6 +8,8 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 import com.defspacemine.snapshotpvp.customegg.CustomMob;
@@ -34,6 +36,7 @@ public class FITHNuke implements CustomMob {
         creeper.getAttribute(Attribute.SCALE).setBaseValue(FireInTheHole.NUKE_SCALE);
         creeper.setMaxFuseTicks(FireInTheHole.NUKE_TICKS);
         creeper.setExplosionRadius(FireInTheHole.NUKE_RADIUS);
+        creeper.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, -1, 0));
         creeper.setPowered(true);
 
         loc.getWorld().playSound(loc, Sound.ENTITY_CREEPER_PRIMED, 1, 0.7f);

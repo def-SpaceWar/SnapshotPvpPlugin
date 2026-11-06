@@ -4,6 +4,8 @@ import com.google.common.collect.Multimap;
 import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
@@ -52,24 +54,35 @@ public class MannequinFighter {
     private static final double SEARCH_RADIUS = 16.0;
     private static final int RETARGET_INTERVAL_TICKS = 10;
 
-    private static final double DEFAULT_INTERACTION_RANGE = 3.0;
+    private static final double DEFAULT_INTERACTION_RANGE = 2.5;
+    // Held back for this many attack cooldowns: the next hit gets bonus reach
+    private static final int CHARGED_REACH_COOLDOWNS = 2;
+    private static final double CHARGED_REACH_BONUS = 1.0;
     private static final double DEFAULT_ATTACK_SPEED = 4.0;
-    private static final double DEFAULT_ATTACK_DAMAGE = 1.0;
+    private static final double DEFAULT_ATTACK_DAMAGE = 2.0;
 
     // Close the gap until we're this fraction of reach away, then hold position and strafe
     private static final double APPROACH_FACTOR = 0.85;
     // Back off a little if we end up standing inside the target
     private static final double BACK_OFF_FACTOR = 0.4;
-    // Sprint when the target is further than reach + this
-    private static final double SPRINT_DISTANCE = 1.5;
     // Start strafing once the target is within reach + this
     private static final double STRAFE_RANGE = 2.0;
     // Only swing when we're actually looking at the target (degrees)
     private static final double MAX_AIM_ERROR = 25.0;
 
-    // ---- attack timing / knockback (vanilla)
-    private static final double SPRINT_KNOCKBACK = 0.5; // extra knockback strength on a sprint hit
+    // ---- knockback (vanilla)
+    private static final double BASE_KNOCKBACK = 0.4; // applied by damage() itself
+    private static final double KNOCKBACK_PER_LEVEL = 0.5; // sprint hit / Knockback enchant, each count as one level
+    private static final double SPRINT_HIT_SLOWDOWN = 0.6; // attacker keeps 60% of horizontal speed
     private static final int SPRINT_RESET_TICKS = 3; // the w-tap after a sprint hit
+
+    // ---- criticals
+    private static final double CRIT_MULTIPLIER = 1.5;
+    // Hop so the swing lands on the way down. Chance per attack, 0 disables hopping.
+    private static final double CRIT_HOP_CHANCE = 0.7;
+    private static final double CRIT_HOP_RANGE = 2.5; // start hopping this far outside reach
+    private static final int CRIT_HOP_LEAD_TICKS = 8; // hop when the swing is this close to ready
+    private static final int CRIT_WAIT_MAX_TICKS = 20; // never hold a swing longer than this
 
     // ---- aiming (smooth turning instead of snapping)
     private static final float TURN_SMOOTHING = 0.4f;
@@ -120,6 +133,7 @@ public class MannequinFighter {
     private LivingEntity target;
     private int ticksSinceRetarget = RETARGET_INTERVAL_TICKS;
     private int attackCooldownTicks = 0;
+    private int ticksSinceAttack = 0;
 
     private int jumpCooldown = 0;
     private int strafeTicksLeft = 0;
@@ -127,6 +141,8 @@ public class MannequinFighter {
     private boolean wantsToMove = false;
     private boolean sprinting = false;
     private int sprintResetTicks = 0;
+    private boolean hopForCrit = false;
+    private int critWaitTicks = 0;
     private Vector recoveryDir;
     private int recoveryRefresh = 0;
     private int recoverySuppressTicks = 0;
@@ -153,6 +169,12 @@ public class MannequinFighter {
             Attribute.MOVEMENT_SPEED
         );
         if (speed != null) speed.setBaseValue(DEFAULT_MOVEMENT_SPEED);
+
+        // Base reach is 2.5; modifiers on the attribute still apply on top
+        AttributeInstance reach = mannequin.getAttribute(
+            Attribute.ENTITY_INTERACTION_RANGE
+        );
+        if (reach != null) reach.setBaseValue(DEFAULT_INTERACTION_RANGE);
     }
 
     public void stop() {
@@ -169,6 +191,7 @@ public class MannequinFighter {
                 }
 
                 if (attackCooldownTicks > 0) attackCooldownTicks--;
+                ticksSinceAttack = Math.min(ticksSinceAttack + 1, 100_000);
                 if (jumpCooldown > 0) jumpCooldown--;
                 if (sprintResetTicks > 0) sprintResetTicks--;
                 if (recoverySuppressTicks > 0) recoverySuppressTicks--;
@@ -192,20 +215,40 @@ public class MannequinFighter {
             Attribute.ENTITY_INTERACTION_RANGE,
             DEFAULT_INTERACTION_RANGE
         );
+        // Positioning (approach / strafe distances) uses the normal reach; only the
+        // swing itself gets the bonus, so a held-back mannequin lunges in from further out
+        double attackReach =
+            reach + (hasChargedReach() ? CHARGED_REACH_BONUS : 0.0);
         double distance = distanceToBoundingBox(target);
 
         double aimError = lookAt(target.getBoundingBox().getCenter());
         steer(target, reach, distance);
 
-        if (
-            distance <= reach &&
+        boolean ready =
+            distance <= attackReach &&
             aimError <= MAX_AIM_ERROR &&
             attackCooldownTicks <= 0 &&
-            target.getNoDamageTicks() <= 0 && // Wait for target i-frames to clear
-            mannequin.hasLineOfSight(target)
+            !hasDamageImmunity(target) &&
+            mannequin.hasLineOfSight(target);
+
+        // Hopping for a crit: hold the swing until we're actually falling
+        if (
+            ready &&
+            hopForCrit &&
+            !isCriticalHit() &&
+            critWaitTicks < CRIT_WAIT_MAX_TICKS
         ) {
+            critWaitTicks++;
+            ready = false;
+        }
+
+        if (ready) {
             performAttack(target);
             attackCooldownTicks = getAttackCooldownTicks();
+            critWaitTicks = 0;
+            ticksSinceAttack = 0;
+            hopForCrit =
+                ThreadLocalRandom.current().nextDouble() < CRIT_HOP_CHANCE;
         }
     }
 
@@ -214,116 +257,179 @@ public class MannequinFighter {
     private void performAttack(LivingEntity victim) {
         mannequin.swingMainHand();
 
+        boolean sprintHit = sprinting;
+        // Custom rules: unlike vanilla, sprinting does NOT cancel a critical hit
+        boolean crit = isCriticalHit();
+
         DamageSource source = DamageSource.builder(DamageType.MOB_ATTACK)
             .withCausingEntity(mannequin)
             .withDirectEntity(mannequin)
             .build();
 
-        boolean sprintHit = sprinting;
-        victim.damage(calculateDamage(), source);
+        Vector velBefore = victim.getVelocity();
+        double before = victim.getHealth() + victim.getAbsorptionAmount();
+        victim.damage(calculateDamage(crit), source);
+        double after = victim.getHealth() + victim.getAbsorptionAmount();
 
-        // 1. Base player attack knockback (0.4 blocks)
-        double knockbackStrength = 0.4;
+        // if (after >= before) return; // No damage dealt
 
-        // 2. Add Knockback enchantment levels from the held weapon (+0.5 per level)
-        EntityEquipment equipment = mannequin.getEquipment();
-        if (equipment != null) {
-            ItemStack held = equipment.getItemInMainHand();
-            if (held != null && !held.getType().isAir()) {
-                int kbLevel = held.getEnchantmentLevel(Enchantment.KNOCKBACK);
-                if (kbLevel > 0) {
-                    knockbackStrength += 0.5 * kbLevel;
-                }
-            }
-        }
-
-        // 4. Account for the enemy's Knockback Resistance attribute (0.0 to 1.0+)
-        AttributeInstance kbResistAttr = victim.getAttribute(
-            Attribute.KNOCKBACK_RESISTANCE
-        );
-        if (kbResistAttr != null) {
-            double resistance = kbResistAttr.getValue();
-            knockbackStrength *= Math.max(0.0, 1.0 - resistance);
-        }
-
-        // Only apply knockback if resistance hasn't completely negated it
-        if (knockbackStrength > 0) {
-            // Calculate direction vector from attacker to victim (pushing away)
-            Vector dir = victim
-                .getLocation()
-                .toVector()
-                .subtract(mannequin.getLocation().toVector())
-                .setY(0);
-
-            if (dir.lengthSquared() > 1.0E-4) {
-                dir.normalize();
-            } else {
-                double yaw = Math.toRadians(mannequin.getLocation().getYaw());
-                dir = new Vector(Math.sin(yaw), 0, -Math.cos(yaw));
-            }
-
-            // Apply knockback to the victim
-            victim.knockback(knockbackStrength, dir.getX(), dir.getZ());
-        }
-
-        // 3. Add extra knockback if it's a sprint hit
-        if (sprintHit) {
-            knockbackStrength += SPRINT_KNOCKBACK;
-        }
-
-        // Calculate vector pointing strictly AWAY from the mannequin
-        Vector dir = victim
+        World world = victim.getWorld();
+        Location hitPoint = victim
             .getLocation()
-            .toVector()
-            .subtract(mannequin.getLocation().toVector())
-            .setY(0);
+            .add(0, victim.getHeight() * 0.5, 0);
 
-        if (dir.lengthSquared() > 1.0E-4) {
-            dir.normalize();
-        } else {
-            double yaw = Math.toRadians(mannequin.getLocation().getYaw());
-            dir = new Vector(Math.sin(yaw), 0, -Math.cos(yaw));
+        if (crit) {
+            world.playSound(hitPoint, Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
+            world.spawnParticle(Particle.CRIT, hitPoint, 15, 0.3, 0.3, 0.3, 0.2);
         }
 
-        // Apply knockback via vanilla method, but if it pulls, negate the direction vector:
-        // victim.knockback(knockbackStrength, dir.getX(), dir.getZ());
+        // Vanilla shows the enchanted-hit sparkles whenever an enchantment added damage
+        if (getSharpnessLevel() > 0) {
+            world.spawnParticle(
+                Particle.ENCHANTED_HIT,
+                hitPoint,
+                15,
+                0.3,
+                0.3,
+                0.3,
+                0.2
+            );
+        }
 
-        // OR apply velocity directly if knockback() is overridden/buggy on your server setup:
-        Vector knockbackVelocity = dir.multiply(knockbackStrength);
-        knockbackVelocity.setY(0.2); // slight vertical lift like vanilla
-        victim.setVelocity(victim.getVelocity().add(knockbackVelocity));
+        // NOTE: LivingEntity#knockback takes the direction of the knockback SOURCE
+        // (victim -> attacker); the victim is pushed the opposite way. The old code
+        // passed attacker -> victim, which pulled the victim toward the mannequin.
 
-        // if (sprintHit) {
-        //     // Vanilla sprint hit: attacker drops sprint and loses 40% of its horizontal speed (w-tap)
-        //     Vector vel = mannequin.getVelocity();
-        //     mannequin.setVelocity(
-        //         new Vector(
-        //             vel.getX() * SPRINT_HIT_SLOWDOWN,
-        //             vel.getY(),
-        //             vel.getZ() * SPRINT_HIT_SLOWDOWN
-        //         )
-        //     );
-        //     sprinting = false;
-        //     sprintResetTicks = SPRINT_RESET_TICKS;
-        // }
+        // 1. Base 0.4 knockback. damage() normally applies it itself, but if the
+        // server swallowed it (victim velocity untouched) apply it here.
+        Location from = mannequin.getLocation();
+        Location to = victim.getLocation();
+        if (victim.getVelocity().distanceSquared(velBefore) < 1.0E-6) {
+            victim.knockback(
+                BASE_KNOCKBACK,
+                from.getX() - to.getX(),
+                from.getZ() - to.getZ()
+            );
+        }
+
+        // 2. Extra knockback like Player#attack: (sprint + Knockback enchant + attribute) * 0.5,
+        // pushed along the direction the attacker is facing
+        double level =
+            getAttributeValue(Attribute.ATTACK_KNOCKBACK, 0.0) +
+            getKnockbackEnchantLevel() +
+            (sprintHit ? 1 : 0);
+        if (level <= 0) return;
+
+        if (sprintHit) {
+            world.playSound(
+                from,
+                Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK,
+                1f,
+                1f
+            );
+        }
+
+        double yaw = Math.toRadians(from.getYaw());
+        victim.knockback(
+            level * KNOCKBACK_PER_LEVEL,
+            Math.sin(yaw),
+            -Math.cos(yaw)
+        );
+
+        // Vanilla: any extra-knockback hit costs the attacker 40% of its horizontal
+        // speed and drops its sprint (the w-tap)
+        Vector vel = mannequin.getVelocity();
+        mannequin.setVelocity(
+            new Vector(
+                vel.getX() * SPRINT_HIT_SLOWDOWN,
+                vel.getY(),
+                vel.getZ() * SPRINT_HIT_SLOWDOWN
+            )
+        );
+        sprinting = false;
+        sprintResetTicks = SPRINT_RESET_TICKS;
     }
 
-    /** Weapon-adjusted attack damage plus sharpness. */
-    private double calculateDamage() {
+    /**
+     * Vanilla critical conditions (falling, off the ground, not climbing / swimming /
+     * blind / riding) minus the "not sprinting" rule, so crit + sprint hits stack.
+     */
+    private boolean isCriticalHit() {
+        return (
+            mannequin.getFallDistance() > 0.0f &&
+            !mannequin.isOnGround() &&
+            !isClimbing() &&
+            !mannequin.isInWater() &&
+            !mannequin.isInsideVehicle() &&
+            !mannequin.hasPotionEffect(PotionEffectType.BLINDNESS)
+        );
+    }
+
+    /**
+     * True while the victim is still inside its post-hit invulnerability window
+     * (noDamageTicks above half of maximumNoDamageTicks, the same threshold vanilla
+     * uses to ignore incoming damage). We skip the swing entirely then, so there's
+     * no wasted attack and no knockback. The swing isn't put on cooldown either,
+     * so it fires on the first tick the window ends.
+     */
+    private boolean hasDamageImmunity(LivingEntity victim) {
+        return (
+            victim.getNoDamageTicks() > victim.getMaximumNoDamageTicks() / 2.0
+        );
+    }
+
+    /**
+     * True once it has gone CHARGED_REACH_COOLDOWNS full attack cooldowns without
+     * swinging. The next hit then gets CHARGED_REACH_BONUS extra reach, and the
+     * timer resets as soon as it attacks.
+     */
+    private boolean hasChargedReach() {
+        return (
+            ticksSinceAttack >=
+            CHARGED_REACH_COOLDOWNS * getAttackCooldownTicks()
+        );
+    }
+
+    /** Whether to start a hop now so the next swing lands on the way down. */
+    private boolean shouldCritHop(double distance, double reach) {
+        return (
+            hopForCrit &&
+            attackCooldownTicks <= CRIT_HOP_LEAD_TICKS &&
+            distance <= reach + CRIT_HOP_RANGE
+        );
+    }
+
+    private int getKnockbackEnchantLevel() {
+        EntityEquipment equipment = mannequin.getEquipment();
+        if (equipment == null) return 0;
+        return equipment
+            .getItemInMainHand()
+            .getEnchantmentLevel(Enchantment.KNOCKBACK);
+    }
+
+    /**
+     * Weapon-adjusted attack damage plus sharpness. Like vanilla, a crit multiplies
+     * the base damage only; the sharpness bonus is added afterwards.
+     */
+    private double calculateDamage(boolean crit) {
         double damage = getHeldValue(
             Attribute.ATTACK_DAMAGE,
             DEFAULT_ATTACK_DAMAGE
         );
+        if (crit) damage *= CRIT_MULTIPLIER;
 
-        EntityEquipment equipment = mannequin.getEquipment();
-        if (equipment == null) return damage;
-
-        int sharpness = equipment
-            .getItemInMainHand()
-            .getEnchantmentLevel(Enchantment.SHARPNESS);
+        int sharpness = getSharpnessLevel();
         if (sharpness > 0) damage += 0.5 * sharpness + 0.5;
 
         return damage;
+    }
+
+    private int getSharpnessLevel() {
+        EntityEquipment equipment = mannequin.getEquipment();
+        if (equipment == null) return 0;
+        return equipment
+            .getItemInMainHand()
+            .getEnchantmentLevel(Enchantment.SHARPNESS);
     }
 
     private int getAttackCooldownTicks() {
@@ -448,7 +554,9 @@ public class MannequinFighter {
         } else {
             if (distance > reach * APPROACH_FACTOR) {
                 forward = 1;
-                sprint = distance > reach + SPRINT_DISTANCE;
+                // Hold sprint while closing in. It used to turn off beyond
+                // reach, so by the time a swing landed it was never sprinting.
+                sprint = true;
             } else if (distance < reach * BACK_OFF_FACTOR) {
                 forward = -0.6;
             }
@@ -482,6 +590,12 @@ public class MannequinFighter {
                     strafe = 0;
                 } else if (plan == Plan.JUMP && jumpCooldown <= 0) {
                     jump = true;
+                } else if (
+                    plan == Plan.WALK &&
+                    jumpCooldown <= 0 &&
+                    shouldCritHop(distance, reach)
+                ) {
+                    jump = true; // hop so the swing lands as a crit
                 }
             }
         }
