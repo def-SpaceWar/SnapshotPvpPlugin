@@ -20,6 +20,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
+import org.bukkit.Difficulty;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -779,7 +780,8 @@ public class TwoTimer extends ManaKit {
         // Initialize and track MannequinFighter
         MannequinFighter fighter = new MannequinFighter(
             SnapshotPvpPlugin.instance,
-            twin
+            twin,
+            MannequinFighter.Difficulty.EASY
         );
         twins.put(owner.getUniqueId(), fighter);
 
