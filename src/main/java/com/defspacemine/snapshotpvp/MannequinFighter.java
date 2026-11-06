@@ -4,6 +4,7 @@ import com.google.common.collect.Multimap;
 import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.Tag;
@@ -15,6 +16,8 @@ import org.bukkit.block.Block;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.AbstractArrow;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mannequin;
@@ -38,7 +41,14 @@ import org.bukkit.util.Vector;
  * sprint hits get the vanilla extra knockback and sprint reset, and it tries
  * to stay out of the void: it won't walk or jump off a ledge it can't survive,
  * brakes when knocked toward one, reverses its strafe at one, and air-strafes
- * back to the nearest ground if it ends up falling.
+ * back to the nearest ground if it ends up falling. A bow or crossbow in its main
+ * hand makes it a pure archer that keeps its distance. A bow or crossbow in its
+ * OFFHAND (with something else in the main hand) makes it a hybrid: it shoots the
+ * offhand weapon from range and switches to its main-hand weapon up close.
+ *
+ * Difficulty only adds openings (sloppier spacing, an occasional missed swing,
+ * slower aim, less accurate arrows); it never lowers damage, speed or knockback.
+ * HARD is the default and is the full-strength behaviour described above.
  *
  * A Mannequin isn't a player, so it starts with the generic entity attribute
  * defaults (movement speed 0.7, no attack attributes). The constructor sets the
@@ -49,6 +59,9 @@ public class MannequinFighter {
 
     public final Mannequin mannequin;
     private final Plugin plugin;
+    private final Difficulty difficulty;
+    // How close it closes in before holding position; re-rolled after every swing
+    private double approachFactor;
 
     // ---- targeting / combat
     private static final double SEARCH_RADIUS = 16.0;
@@ -61,8 +74,6 @@ public class MannequinFighter {
     private static final double DEFAULT_ATTACK_SPEED = 4.0;
     private static final double DEFAULT_ATTACK_DAMAGE = 2.0;
 
-    // Close the gap until we're this fraction of reach away, then hold position and strafe
-    private static final double APPROACH_FACTOR = 0.85;
     // Back off a little if we end up standing inside the target
     private static final double BACK_OFF_FACTOR = 0.4;
     // Start strafing once the target is within reach + this
@@ -83,6 +94,26 @@ public class MannequinFighter {
     private static final double CRIT_HOP_RANGE = 2.5; // start hopping this far outside reach
     private static final int CRIT_HOP_LEAD_TICKS = 8; // hop when the swing is this close to ready
     private static final int CRIT_WAIT_MAX_TICKS = 20; // never hold a swing longer than this
+
+    // ---- fluid crit rule
+    private static final int CRIT_FLUID_GRACE_TICKS = 20; // no crits this soon after leaving water/lava
+
+    // ---- ranged weapons (bow / crossbow)
+    private static final double RANGED_SEARCH_RADIUS = 32.0; // sees targets from further away than melee
+    private static final double RANGED_BACK_OFF_DISTANCE = 8.0; // retreat when closer than this
+    private static final double RANGED_APPROACH_DISTANCE = 24.0; // close in when further than this (or no line of sight)
+    private static final double RANGED_SHOOT_DISTANCE = 30.0;
+    // Hybrid (ranged weapon in the offhand): melee below the first distance, shoot beyond the second
+    private static final double HYBRID_MELEE_DISTANCE = 5.0;
+    private static final double HYBRID_RANGED_DISTANCE = 7.0;
+    private static final int RANGED_RECOVERY_TICKS = 4;
+    private static final int BOW_DRAW_TICKS = 20;
+    private static final int CROSSBOW_CHARGE_TICKS = 25; // minus 5 per Quick Charge level
+    private static final double BOW_ARROW_SPEED = 3.0;
+    private static final double CROSSBOW_ARROW_SPEED = 3.15;
+    private static final double ITEM_USE_SLOWDOWN = 0.2; // vanilla slows you to 20% while drawing
+    private static final double ARROW_GRAVITY = 0.05;
+    private static final double ARROW_DRAG = 0.99;
 
     // ---- aiming (smooth turning instead of snapping)
     private static final float TURN_SMOOTHING = 0.4f;
@@ -123,10 +154,64 @@ public class MannequinFighter {
     private static final int STUCK_TICKS = 12;
     private static final int SIDESTEP_TICKS = 25;
 
+    /**
+     * HARD is the full-strength bot. EASY and MEDIUM keep the same damage, speed and
+     * knockback but leave it more openings: it closes in further than it needs to,
+     * sometimes whiffs a swing because its aim is off, turns more slowly, and its
+     * bow / crossbow aim wobbles, is released more sloppily, is spread wider and
+     * leads moving targets less.
+     */
+    public enum Difficulty {
+        //   approach range   melee miss   aim turn   arrow    arrow   archer     aim      release
+        //   (x reach)        chance       speed      spread   lead    back-off   wobble   tolerance
+        //                                                                         (deg)    (deg)
+        EASY(0.50, 0.70, 0.25, 0.6, 6.0, 0.4, 0.5, 4.0, 10.0),
+        MEDIUM(0.65, 0.80, 0.10, 0.8, 3.0, 0.7, 0.75, 2.0, 8.0),
+        HARD(0.85, 0.85, 0.00, 1.0, 1.0, 1.0, 1.0, 0.0, 6.0);
+
+        final double approachMin;
+        final double approachMax;
+        final double meleeMissChance;
+        final double turnScale;
+        final double rangedInaccuracy;
+        final double leadScale;
+        final double backOffScale;
+        final double rangedAimWobble;
+        final double rangedReleaseTolerance;
+
+        Difficulty(
+            double approachMin,
+            double approachMax,
+            double meleeMissChance,
+            double turnScale,
+            double rangedInaccuracy,
+            double leadScale,
+            double backOffScale,
+            double rangedAimWobble,
+            double rangedReleaseTolerance
+        ) {
+            this.approachMin = approachMin;
+            this.approachMax = approachMax;
+            this.meleeMissChance = meleeMissChance;
+            this.turnScale = turnScale;
+            this.rangedInaccuracy = rangedInaccuracy;
+            this.leadScale = leadScale;
+            this.backOffScale = backOffScale;
+            this.rangedAimWobble = rangedAimWobble;
+            this.rangedReleaseTolerance = rangedReleaseTolerance;
+        }
+    }
+
     private enum Plan {
         WALK,
         JUMP,
         BRAKE,
+    }
+
+    private enum RangedWeapon {
+        NONE,
+        BOW,
+        CROSSBOW,
     }
 
     private BukkitTask task;
@@ -143,6 +228,22 @@ public class MannequinFighter {
     private int sprintResetTicks = 0;
     private boolean hopForCrit = false;
     private int critWaitTicks = 0;
+    private int ticksSinceFluid = 1000;
+
+    private RangedWeapon rangedMode = RangedWeapon.NONE;
+    private boolean targetVisible = false;
+    private boolean aimSolved = false;
+    private int drawTicks = 0;
+    private int shotCooldown = 0;
+    private EquipmentSlot rangedHand = EquipmentSlot.HAND;
+    private boolean hybrid = false;
+    private double wobbleYaw = 0;
+    private double wobblePitch = 0;
+    private int wobbleTicks = 0;
+    private double lastAimPitchError = 0;
+    private LivingEntity velTarget;
+    private Vector lastTargetPos;
+    private Vector targetVel = new Vector();
     private Vector recoveryDir;
     private int recoveryRefresh = 0;
     private int recoverySuppressTicks = 0;
@@ -151,9 +252,20 @@ public class MannequinFighter {
     private double sidestepDir = 1;
     private double lastX, lastZ;
 
+    /** Full-strength bot (HARD). */
     public MannequinFighter(Plugin plugin, Mannequin mannequin) {
+        this(plugin, mannequin, Difficulty.HARD);
+    }
+
+    public MannequinFighter(
+        Plugin plugin,
+        Mannequin mannequin,
+        Difficulty difficulty
+    ) {
         this.plugin = plugin;
         this.mannequin = mannequin;
+        this.difficulty = difficulty == null ? Difficulty.HARD : difficulty;
+        this.approachFactor = rollApproachFactor();
         configureMannequin();
         startCombatLoop();
     }
@@ -194,6 +306,11 @@ public class MannequinFighter {
                 ticksSinceAttack = Math.min(ticksSinceAttack + 1, 100_000);
                 if (jumpCooldown > 0) jumpCooldown--;
                 if (sprintResetTicks > 0) sprintResetTicks--;
+                if (mannequin.isInWater() || mannequin.isInLava()) {
+                    ticksSinceFluid = 0;
+                } else {
+                    ticksSinceFluid = Math.min(ticksSinceFluid + 1, 1000);
+                }
                 if (recoverySuppressTicks > 0) recoverySuppressTicks--;
 
                 if (
@@ -203,7 +320,11 @@ public class MannequinFighter {
                     ticksSinceRetarget = 0;
                     target = findTarget();
                 }
-                if (target == null) return;
+                if (target == null) {
+                    velTarget = null;
+                    drawTicks = 0;
+                    return;
+                }
 
                 tickCombat(target);
             }
@@ -221,8 +342,28 @@ public class MannequinFighter {
             reach + (hasChargedReach() ? CHARGED_REACH_BONUS : 0.0);
         double distance = distanceToBoundingBox(target);
 
-        double aimError = lookAt(target.getBoundingBox().getCenter());
+        updateCombatMode(distance);
+        trackTargetVelocity(target);
+
+        Vector aimPoint = target.getBoundingBox().getCenter();
+        if (rangedMode != RangedWeapon.NONE) {
+            targetVisible = mannequin.hasLineOfSight(target);
+            Vector solved = rangedAimPoint(target);
+            aimSolved = solved != null;
+            if (solved != null) aimPoint = solved;
+        } else {
+            drawTicks = 0;
+            shotCooldown = 0;
+        }
+
+        double aimError = lookAt(aimPoint);
         steer(target, reach, distance);
+
+        // Bow / crossbow: shoot instead of meleeing
+        if (rangedMode != RangedWeapon.NONE) {
+            tickRanged(distance, aimError);
+            return;
+        }
 
         boolean ready =
             distance <= attackReach &&
@@ -236,6 +377,7 @@ public class MannequinFighter {
             ready &&
             hopForCrit &&
             !isCriticalHit() &&
+            ticksSinceFluid >= CRIT_FLUID_GRACE_TICKS &&
             critWaitTicks < CRIT_WAIT_MAX_TICKS
         ) {
             critWaitTicks++;
@@ -243,13 +385,37 @@ public class MannequinFighter {
         }
 
         if (ready) {
-            performAttack(target);
+            if (rollsMiss(aimError)) {
+                // Whiffed: the swing animation plays and the cooldown is spent,
+                // but no damage or knockback is dealt
+                mannequin.swingMainHand();
+            } else {
+                performAttack(target);
+            }
             attackCooldownTicks = getAttackCooldownTicks();
             critWaitTicks = 0;
             ticksSinceAttack = 0;
             hopForCrit =
                 ThreadLocalRandom.current().nextDouble() < CRIT_HOP_CHANCE;
+            approachFactor = rollApproachFactor();
         }
+    }
+
+    /** Picks how close it will close in this time. HARD is always the same tight spacing. */
+    private double rollApproachFactor() {
+        double min = difficulty.approachMin;
+        double max = difficulty.approachMax;
+        return max <= min
+            ? min
+            : ThreadLocalRandom.current().nextDouble(min, max);
+    }
+
+    /** Lower difficulties occasionally whiff; being further off-target at the swing makes it likelier. */
+    private boolean rollsMiss(double aimError) {
+        double base = difficulty.meleeMissChance;
+        if (base <= 0) return false;
+        double chance = Math.min(0.9, base * (0.5 + aimError / MAX_AIM_ERROR));
+        return ThreadLocalRandom.current().nextDouble() < chance;
     }
 
     // ------------------------------------------------------------------ attack
@@ -353,6 +519,8 @@ public class MannequinFighter {
     /**
      * Vanilla critical conditions (falling, off the ground, not climbing / swimming /
      * blind / riding) minus the "not sprinting" rule, so crit + sprint hits stack.
+     * Also no crits in water/lava or for CRIT_FLUID_GRACE_TICKS after leaving it, so
+     * swimming up out of water can't be turned into a crit.
      */
     private boolean isCriticalHit() {
         return (
@@ -360,6 +528,8 @@ public class MannequinFighter {
             !mannequin.isOnGround() &&
             !isClimbing() &&
             !mannequin.isInWater() &&
+            !mannequin.isInLava() &&
+            ticksSinceFluid >= CRIT_FLUID_GRACE_TICKS &&
             !mannequin.isInsideVehicle() &&
             !mannequin.hasPotionEffect(PotionEffectType.BLINDNESS)
         );
@@ -393,6 +563,7 @@ public class MannequinFighter {
     /** Whether to start a hop now so the next swing lands on the way down. */
     private boolean shouldCritHop(double distance, double reach) {
         return (
+            rangedMode == RangedWeapon.NONE &&
             hopForCrit &&
             attackCooldownTicks <= CRIT_HOP_LEAD_TICKS &&
             distance <= reach + CRIT_HOP_RANGE
@@ -481,6 +652,300 @@ public class MannequinFighter {
         return (base + add) * (1 + mulBase) * mulTotal;
     }
 
+    // ------------------------------------------------------------------ ranged
+
+    /** The bow / crossbow (if any) held in the given hand. */
+    private RangedWeapon weaponIn(EquipmentSlot slot) {
+        EntityEquipment equipment = mannequin.getEquipment();
+        if (equipment == null) return RangedWeapon.NONE;
+        return switch (equipment.getItem(slot).getType()) {
+            case BOW -> RangedWeapon.BOW;
+            case CROSSBOW -> RangedWeapon.CROSSBOW;
+            default -> RangedWeapon.NONE;
+        };
+    }
+
+    /** A bow / crossbow in either hand (used for how far it can see targets). */
+    private RangedWeapon getRangedWeapon() {
+        RangedWeapon off = weaponIn(EquipmentSlot.OFF_HAND);
+        return off != RangedWeapon.NONE ? off : weaponIn(EquipmentSlot.HAND);
+    }
+
+    /** The item in the hand that holds the bow / crossbow being used. */
+    private ItemStack getRangedItem() {
+        EntityEquipment equipment = mannequin.getEquipment();
+        if (equipment == null) return new ItemStack(Material.AIR);
+        return rangedHand == EquipmentSlot.OFF_HAND
+            ? equipment.getItemInOffHand()
+            : equipment.getItemInMainHand();
+    }
+
+    /**
+     * Picks shooting or melee for this tick.
+     *  - ranged weapon in the main hand: pure archer, always shoots
+     *  - ranged weapon in the offhand + anything else in the main hand: hybrid,
+     *    shoots from range and switches to the main-hand weapon up close
+     *    (with a gap between the two distances so it doesn't flicker)
+     *  - otherwise: melee
+     */
+    private void updateCombatMode(double distance) {
+        RangedWeapon main = weaponIn(EquipmentSlot.HAND);
+        RangedWeapon off = weaponIn(EquipmentSlot.OFF_HAND);
+
+        if (main == RangedWeapon.NONE && off != RangedWeapon.NONE) {
+            hybrid = true;
+            rangedHand = EquipmentSlot.OFF_HAND;
+            boolean shooting = rangedMode != RangedWeapon.NONE
+                ? distance > HYBRID_MELEE_DISTANCE
+                : distance > HYBRID_RANGED_DISTANCE;
+            rangedMode = shooting ? off : RangedWeapon.NONE;
+        } else if (main != RangedWeapon.NONE) {
+            hybrid = false;
+            rangedHand = EquipmentSlot.HAND;
+            rangedMode = main;
+        } else {
+            hybrid = false;
+            rangedMode = RangedWeapon.NONE;
+        }
+    }
+
+    private double getArrowSpeed(RangedWeapon weapon) {
+        return weapon == RangedWeapon.CROSSBOW
+            ? CROSSBOW_ARROW_SPEED
+            : BOW_ARROW_SPEED;
+    }
+
+    /** Ticks to fully draw a bow / charge a crossbow (Quick Charge speeds up the crossbow). */
+    private int getDrawTicks(RangedWeapon weapon) {
+        if (weapon == RangedWeapon.BOW) return BOW_DRAW_TICKS;
+        int quickCharge = getRangedItem().getEnchantmentLevel(
+            Enchantment.QUICK_CHARGE
+        );
+        return Math.max(5, CROSSBOW_CHARGE_TICKS - 5 * quickCharge);
+    }
+
+    /** Smoothed per-tick velocity of the target, measured by hand (player velocity isn't reliable). */
+    private void trackTargetVelocity(LivingEntity target) {
+        Vector pos = target.getLocation().toVector();
+        if (target != velTarget || lastTargetPos == null) {
+            velTarget = target;
+            targetVel = new Vector();
+        } else {
+            Vector instant = pos.clone().subtract(lastTargetPos);
+            targetVel = targetVel.multiply(0.5).add(instant.multiply(0.5));
+        }
+        lastTargetPos = pos;
+    }
+
+    private void tickRanged(double distance, double aimError) {
+        if (shotCooldown > 0) {
+            shotCooldown--;
+            drawTicks = 0;
+            return;
+        }
+
+        boolean canShoot =
+            targetVisible && aimSolved && distance <= RANGED_SHOOT_DISTANCE;
+        if (!canShoot) {
+            drawTicks = 0; // lower the bow
+            return;
+        }
+
+        int required = getDrawTicks(rangedMode);
+        if (drawTicks < required) drawTicks++;
+
+        // Only release once fully drawn AND actually looking where the arrow should go
+        if (
+            drawTicks >= required &&
+            aimError <= difficulty.rangedReleaseTolerance &&
+            lastAimPitchError <= difficulty.rangedReleaseTolerance
+        ) {
+            fireProjectiles(rangedMode);
+            drawTicks = 0;
+            shotCooldown = RANGED_RECOVERY_TICKS;
+        }
+    }
+
+    private void fireProjectiles(RangedWeapon weapon) {
+        ItemStack held = getRangedItem();
+
+        double speed = getArrowSpeed(weapon);
+        Vector look = applyInaccuracy(mannequin.getEyeLocation().getDirection());
+        boolean multishot =
+            weapon == RangedWeapon.CROSSBOW &&
+            held.getEnchantmentLevel(Enchantment.MULTISHOT) > 0;
+
+        int arrows = multishot ? 3 : 1;
+        for (int i = 0; i < arrows; i++) {
+            Vector dir = look.clone();
+            if (multishot) dir.rotateAroundY(Math.toRadians((i - 1) * 10.0));
+            launchArrow(weapon, held, dir.multiply(speed));
+        }
+
+        if (rangedHand == EquipmentSlot.OFF_HAND) mannequin.swingOffHand();
+        else mannequin.swingMainHand();
+        mannequin
+            .getWorld()
+            .playSound(
+                mannequin.getEyeLocation(),
+                weapon == RangedWeapon.BOW
+                    ? Sound.ENTITY_ARROW_SHOOT
+                    : Sound.ITEM_CROSSBOW_SHOOT,
+                1f,
+                1f
+            );
+    }
+
+    private void launchArrow(RangedWeapon weapon, ItemStack held, Vector velocity) {
+        Arrow arrow = mannequin.launchProjectile(Arrow.class, velocity);
+        arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
+        // We only release at full draw, and crossbow arrows are always critical
+        arrow.setCritical(true);
+
+        if (weapon == RangedWeapon.BOW) {
+            int power = held.getEnchantmentLevel(Enchantment.POWER);
+            if (power > 0) {
+                arrow.setDamage(arrow.getDamage() + 0.5 * power + 0.5);
+            }
+            int punch = held.getEnchantmentLevel(Enchantment.PUNCH);
+            if (punch > 0) arrow.setKnockbackStrength(punch);
+            if (held.getEnchantmentLevel(Enchantment.FLAME) > 0) {
+                arrow.setFireTicks(100);
+            }
+        } else {
+            int piercing = held.getEnchantmentLevel(Enchantment.PIERCING);
+            if (piercing > 0) arrow.setPierceLevel(piercing);
+        }
+    }
+
+    /** Vanilla's projectile inaccuracy: a little gaussian noise on each axis. */
+    private Vector applyInaccuracy(Vector dir) {
+        ThreadLocalRandom rng = ThreadLocalRandom.current();
+        double spread = 0.0075 * difficulty.rangedInaccuracy;
+        return dir
+            .clone()
+            .add(
+                new Vector(
+                    rng.nextGaussian() * spread,
+                    rng.nextGaussian() * spread,
+                    rng.nextGaussian() * spread
+                )
+            )
+            .normalize();
+    }
+
+    /**
+     * Where to look so an arrow lands on the (moving) target: leads the target
+     * horizontally and compensates for arrow drop. Null if it's out of range.
+     */
+    private Vector rangedAimPoint(LivingEntity target) {
+        double speed = getArrowSpeed(rangedMode);
+        Vector eye = mannequin.getEyeLocation().toVector();
+        Vector center = target.getBoundingBox().getCenter();
+
+        // lower difficulties under-lead moving targets
+        double leadTicks =
+            Math.min(center.distance(eye) / speed, 40.0) * difficulty.leadScale;
+        Vector predicted = center
+            .clone()
+            .add(
+                new Vector(
+                    targetVel.getX() * leadTicks,
+                    0,
+                    targetVel.getZ() * leadTicks
+                )
+            );
+
+        Vector dir = solveLaunchDirection(eye, predicted, speed);
+        if (dir == null) return null;
+        Vector point = eye
+            .clone()
+            .add(dir.multiply(Math.max(predicted.distance(eye), 1.0)));
+        return applyAimWobble(eye, point);
+    }
+
+    /**
+     * Lower difficulties track the target imperfectly: the aim point drifts by a
+     * random yaw / pitch offset that is re-rolled every half second.
+     */
+    private Vector applyAimWobble(Vector eye, Vector point) {
+        double wobble = difficulty.rangedAimWobble;
+        if (wobble <= 0) return point;
+
+        if (--wobbleTicks <= 0) {
+            wobbleTicks = 10;
+            ThreadLocalRandom rng = ThreadLocalRandom.current();
+            wobbleYaw = rng.nextGaussian() * wobble;
+            wobblePitch = rng.nextGaussian() * wobble;
+        }
+
+        Vector to = point.clone().subtract(eye);
+        double len = to.length();
+        if (len < 1.0E-6) return point;
+
+        double yaw = Math.atan2(-to.getX(), to.getZ()) + Math.toRadians(wobbleYaw);
+        double pitch =
+            Math.asin(Math.max(-1.0, Math.min(1.0, to.getY() / len))) +
+            Math.toRadians(wobblePitch);
+
+        Vector dir = new Vector(
+            -Math.sin(yaw) * Math.cos(pitch),
+            Math.sin(pitch),
+            Math.cos(yaw) * Math.cos(pitch)
+        );
+        return eye.clone().add(dir.multiply(len));
+    }
+
+    /** Bisects the launch pitch so the arrow passes through the point, simulating vanilla arrow physics. */
+    private Vector solveLaunchDirection(Vector from, Vector to, double speed) {
+        double dx = to.getX() - from.getX();
+        double dz = to.getZ() - from.getZ();
+        double dy = to.getY() - from.getY();
+        double horizontal = Math.hypot(dx, dz);
+        if (horizontal < 1.0E-3) {
+            return new Vector(0, dy >= 0 ? 1 : -1, 0);
+        }
+
+        double lo = -0.6;
+        double hi = 1.2; // radians
+        if (arrowHeightAt(horizontal, hi, speed) < dy) return null; // out of range
+
+        for (int i = 0; i < 14; i++) {
+            double mid = (lo + hi) / 2;
+            if (arrowHeightAt(horizontal, mid, speed) < dy) lo = mid;
+            else hi = mid;
+        }
+
+        double pitch = (lo + hi) / 2;
+        double cos = Math.cos(pitch);
+        return new Vector(
+            (dx / horizontal) * cos,
+            Math.sin(pitch),
+            (dz / horizontal) * cos
+        );
+    }
+
+    /** Height of an arrow launched at this pitch when it has travelled `horizontal` blocks. */
+    private double arrowHeightAt(double horizontal, double pitch, double speed) {
+        double vx = speed * Math.cos(pitch);
+        double vy = speed * Math.sin(pitch);
+        double x = 0;
+        double y = 0;
+        for (int tick = 0; tick < 120; tick++) {
+            double nx = x + vx;
+            double ny = y + vy;
+            if (nx >= horizontal) {
+                double t = (horizontal - x) / (nx - x);
+                return y + (ny - y) * t;
+            }
+            x = nx;
+            y = ny;
+            vx *= ARROW_DRAG;
+            vy = vy * ARROW_DRAG - ARROW_GRAVITY;
+        }
+        return Double.POSITIVE_INFINITY; // never gets there (too steep)
+    }
+
     // ------------------------------------------------------------------ aiming
 
     /**
@@ -509,15 +974,21 @@ public class MannequinFighter {
         float dYaw = wrapDegrees(targetYaw - yaw);
         float dPitch = targetPitch - pitch;
 
-        yaw += clamp(dYaw * TURN_SMOOTHING, -MAX_YAW_STEP, MAX_YAW_STEP);
+        float turn = (float) difficulty.turnScale; // lower difficulties turn more slowly
+        yaw += clamp(
+            dYaw * TURN_SMOOTHING * turn,
+            -MAX_YAW_STEP * turn,
+            MAX_YAW_STEP * turn
+        );
         pitch += clamp(
-            dPitch * TURN_SMOOTHING,
-            -MAX_PITCH_STEP,
-            MAX_PITCH_STEP
+            dPitch * TURN_SMOOTHING * turn,
+            -MAX_PITCH_STEP * turn,
+            MAX_PITCH_STEP * turn
         );
         pitch = clamp(pitch, -90f, 90f);
 
         mannequin.setRotation(yaw, pitch);
+        lastAimPitchError = Math.abs(targetPitch - pitch);
         return Math.abs(wrapDegrees(targetYaw - yaw));
     }
 
@@ -551,8 +1022,21 @@ public class MannequinFighter {
             sidestepTicks--;
             forward = 0.3;
             strafe = sidestepDir;
+        } else if (rangedMode != RangedWeapon.NONE) {
+            // Archer: hold a distance, strafe while shooting, close in when it
+            // can't see the target or the target is too far to shoot
+            if (!targetVisible || distance > RANGED_APPROACH_DISTANCE) {
+                forward = 1;
+                sprint = true;
+            } else if (
+                !hybrid &&
+                distance < RANGED_BACK_OFF_DISTANCE * difficulty.backOffScale
+            ) {
+                forward = -1;
+            }
+            strafe = nextStrafeDirection() * (forward != 0 ? 0.5 : 1.0);
         } else {
-            if (distance > reach * APPROACH_FACTOR) {
+            if (distance > reach * approachFactor) {
                 forward = 1;
                 // Hold sprint while closing in. It used to turn off beyond
                 // reach, so by the time a swing landed it was never sprinting.
@@ -563,6 +1047,13 @@ public class MannequinFighter {
             if (distance <= reach + STRAFE_RANGE) {
                 strafe = nextStrafeDirection() * (forward != 0 ? 0.5 : 1.0);
             }
+        }
+
+        // Drawing a bow / charging a crossbow slows you to 20% and stops sprinting
+        if (drawTicks > 0) {
+            forward *= ITEM_USE_SLOWDOWN;
+            strafe *= ITEM_USE_SLOWDOWN;
+            sprint = false;
         }
 
         // Knocked off an edge or fell short of a jump: air-strafe back toward ground
@@ -1105,10 +1596,16 @@ public class MannequinFighter {
         LivingEntity closest = null;
         double minDistSq = Double.MAX_VALUE;
 
+        // A bow / crossbow can hit from much further, so it notices targets from further
+        double radius =
+            getRangedWeapon() != RangedWeapon.NONE
+                ? RANGED_SEARCH_RADIUS
+                : SEARCH_RADIUS;
+
         for (Entity entity : mannequin.getNearbyEntities(
-            SEARCH_RADIUS,
-            SEARCH_RADIUS / 2,
-            SEARCH_RADIUS
+            radius,
+            radius / 2,
+            radius
         )) {
             if (
                 !(entity instanceof LivingEntity living) ||

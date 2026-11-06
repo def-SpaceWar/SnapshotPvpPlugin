@@ -42,9 +42,16 @@ public class FighterDummy implements CustomMob {
         mannequin
             .getEquipment()
             .setItemInMainHand(new ItemStack(Material.IRON_SWORD));
+        mannequin
+            .getEquipment()
+            .setItemInOffHand(new ItemStack(Material.BOW));
         mannequin.setProfile(
             ResolvableProfile.resolvableProfile().name("defSpaceMine").build()
         );
+        mannequin.customName(Component.text("Fighter Dummy")
+                .color(NamedTextColor.GOLD)
+                .decoration(TextDecoration.BOLD, true)
+                .decoration(TextDecoration.ITALIC, false));
         mannequin.setPersistent(true);
 
         return mannequin;
