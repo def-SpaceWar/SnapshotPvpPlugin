@@ -18,13 +18,12 @@ public class LobbyManager {
     public static LobbyManager instance;
 
     private final JavaPlugin plugin;
-    private List<LobbyType> registeredLobbies;
+    public static List<LobbyType> registeredLobbies = new ArrayList<>();
     private List<LobbyInstance> activeLobbies;
 
     public LobbyManager(JavaPlugin plugin) {
         instance = this;
         this.plugin = plugin;
-        registeredLobbies = new ArrayList<>();
         activeLobbies = new ArrayList<>();
 
         registeredLobbies.add(new ManaKitLobbyType());

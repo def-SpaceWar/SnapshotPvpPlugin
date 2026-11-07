@@ -1,6 +1,16 @@
 package com.defspacemine.snapshotpvp;
 
 import com.google.common.collect.Multimap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -45,6 +55,8 @@ import org.bukkit.util.Vector;
  * hand makes it a pure archer that keeps its distance. A bow or crossbow in its
  * OFFHAND (with something else in the main hand) makes it a hybrid: it shoots the
  * offhand weapon from range and switches to its main-hand weapon up close.
+ * When a straight line to the target is blocked it runs an A* search over the
+ * terrain and walks the detour instead of pushing into walls.
  *
  * Difficulty only adds openings (sloppier spacing, an occasional missed swing,
  * slower aim, less accurate arrows); it never lowers damage, speed or knockback.
@@ -71,6 +83,11 @@ public class MannequinFighter {
     // Held back for this many attack cooldowns: the next hit gets bonus reach
     private static final int CHARGED_REACH_COOLDOWNS = 2;
     private static final double CHARGED_REACH_BONUS = 1.0;
+    // Reach shifts with our own velocity toward the target: charging in extends it,
+    // being knocked back shrinks it (reach change = velocity in blocks/tick * this)
+    private static final double VELOCITY_REACH_TICKS = 2.0;
+    private static final double MAX_VELOCITY_REACH_BONUS = 1.0;
+    private static final double MAX_VELOCITY_REACH_PENALTY = 1.5;
     private static final double DEFAULT_ATTACK_SPEED = 4.0;
     private static final double DEFAULT_ATTACK_DAMAGE = 2.0;
 
@@ -89,11 +106,14 @@ public class MannequinFighter {
 
     // ---- criticals
     private static final double CRIT_MULTIPLIER = 1.5;
-    // Hop so the swing lands on the way down. Chance per attack, 0 disables hopping.
-    private static final double CRIT_HOP_CHANCE = 0.7;
+    // Hop so the swing lands on the way down (the chance per attack comes from the difficulty)
     private static final double CRIT_HOP_RANGE = 2.5; // start hopping this far outside reach
     private static final int CRIT_HOP_LEAD_TICKS = 8; // hop when the swing is this close to ready
-    private static final int CRIT_WAIT_MAX_TICKS = 20; // never hold a swing longer than this
+    private static final int CRIT_WAIT_MAX_TICKS = 20; // hard cap on holding a swing for a crit
+    // Crit hops only happen when they actually raise damage output (see critHopWorthIt)
+    private static final double CRIT_HOP_CYCLE_TICKS = 12.5; // one full hop: jump, fall, land
+    private static final double CRIT_WINDOW_TICKS = 6.0; // the falling part of a hop, when crits are possible
+    private static final double CRIT_HOP_MARGIN = 1.1; // hop only if it beats plain attacking by 10%
 
     // ---- fluid crit rule
     private static final int CRIT_FLUID_GRACE_TICKS = 20; // no crits this soon after leaving water/lava
@@ -154,20 +174,43 @@ public class MannequinFighter {
     private static final int STUCK_TICKS = 12;
     private static final int SIDESTEP_TICKS = 25;
 
+    // ---- pathfinding (A* over the terrain, used when the straight line is blocked)
+    private static final int PATH_CHECK_TICKS = 10; // how often to test "is the straight line walkable?"
+    private static final int PATH_REPLAN_TICKS = 60; // re-search a detour after this long
+    private static final double PATH_GOAL_DRIFT = 4.0; // ...or when the target moved this far
+    private static final int PATH_MAX_EXPANSIONS = 700; // search budget (scaled by difficulty)
+    private static final int PATH_EXPANSIONS_PER_TICK = 30; // spread the search over several ticks
+    private static final double PATH_MAX_RADIUS = 30.0; // never search further than this from the start
+    private static final double PATH_HEURISTIC_WEIGHT = 1.25; // >1 trades optimality for speed
+    private static final double PATH_WAYPOINT_REACH = 0.6;
+    private static final int PATH_FAIL_COOLDOWN_TICKS = 40;
+    private static final int PATH_SMOOTH_LOOKAHEAD = 6;
+    private static final double PATH_GOAL_HORIZONTAL = 1.2;
+    private static final double PATH_GOAL_VERTICAL = 1.6;
+    private static final double ROUTE_SAMPLE_STEP = 0.5;
+    private static final int ROUTE_MAX_SAMPLES = 48;
+    private static final double[] ROUTE_WIDTH_SAMPLES = { -0.28, 0.0, 0.28 };
+    private static final int[][] PATH_DIRS = {
+        { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 },
+        { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 },
+    };
+
     /**
      * HARD is the full-strength bot. EASY and MEDIUM keep the same damage, speed and
      * knockback but leave it more openings: it closes in further than it needs to,
      * sometimes whiffs a swing because its aim is off, turns more slowly, and its
      * bow / crossbow aim wobbles, is released more sloppily, is spread wider and
-     * leads moving targets less.
+     * leads moving targets less. Movement is also a little less smart: it re-decides
+     * what to press less often, attempts shorter gap jumps, hops for crits less, takes
+     * longer to get unstuck and searches shorter detours around obstacles.
      */
     public enum Difficulty {
-        //   approach range   melee miss   aim turn   arrow    arrow   archer     aim      release
-        //   (x reach)        chance       speed      spread   lead    back-off   wobble   tolerance
-        //                                                                         (deg)    (deg)
-        EASY(0.50, 0.70, 0.25, 0.6, 6.0, 0.4, 0.5, 4.0, 10.0),
-        MEDIUM(0.65, 0.80, 0.10, 0.8, 3.0, 0.7, 0.75, 2.0, 8.0),
-        HARD(0.85, 0.85, 0.00, 1.0, 1.0, 1.0, 1.0, 0.0, 6.0);
+        //   approach range   melee miss   aim turn   arrow    arrow   archer     aim      release     move     gap     crit hop   unstick   path
+        //   (x reach)        chance       speed      spread   lead    back-off   wobble   tolerance   delay    scale   chance     scale     search
+        //                                                                         (deg)    (deg)       (ticks)
+        EASY(0.50, 0.70, 0.25, 0.6, 6.0, 0.4, 0.5, 4.0, 10.0, 4, 0.5, 0.25, 2.0, 0.3),
+        MEDIUM(0.65, 0.80, 0.10, 0.8, 3.0, 0.7, 0.75, 2.0, 8.0, 2, 0.75, 0.50, 1.4, 0.6),
+        HARD(0.85, 0.85, 0.00, 1.0, 1.0, 1.0, 1.0, 0.0, 6.0, 1, 1.0, 0.70, 1.0, 1.0);
 
         final double approachMin;
         final double approachMax;
@@ -178,6 +221,11 @@ public class MannequinFighter {
         final double backOffScale;
         final double rangedAimWobble;
         final double rangedReleaseTolerance;
+        final int movementDelayTicks;
+        final double gapScale;
+        final double critHopChance;
+        final double stuckScale;
+        final double pathScale;
 
         Difficulty(
             double approachMin,
@@ -188,7 +236,12 @@ public class MannequinFighter {
             double leadScale,
             double backOffScale,
             double rangedAimWobble,
-            double rangedReleaseTolerance
+            double rangedReleaseTolerance,
+            int movementDelayTicks,
+            double gapScale,
+            double critHopChance,
+            double stuckScale,
+            double pathScale
         ) {
             this.approachMin = approachMin;
             this.approachMax = approachMax;
@@ -199,6 +252,11 @@ public class MannequinFighter {
             this.backOffScale = backOffScale;
             this.rangedAimWobble = rangedAimWobble;
             this.rangedReleaseTolerance = rangedReleaseTolerance;
+            this.movementDelayTicks = movementDelayTicks;
+            this.gapScale = gapScale;
+            this.critHopChance = critHopChance;
+            this.stuckScale = stuckScale;
+            this.pathScale = pathScale;
         }
     }
 
@@ -251,6 +309,35 @@ public class MannequinFighter {
     private int sidestepTicks = 0;
     private double sidestepDir = 1;
     private double lastX, lastZ;
+
+    // movement decisions are held for a few ticks on lower difficulties
+    private int decisionCooldown = 0;
+    private double heldForward = 0;
+    private double heldStrafe = 0;
+    private boolean heldSprint = false;
+
+    // pathfinding
+    private List<Vector> path;
+    private int pathIndex = 0;
+    private int pathAge = 0;
+    private Vector pathGoal;
+    private boolean pathSearching = false;
+    private int routeCheckCooldown = 0;
+    private int pathFailCooldown = 0;
+    private final PriorityQueue<PathNode> pathOpen = new PriorityQueue<>(
+        Comparator.comparingDouble((PathNode n) -> n.f)
+    );
+    private final Map<Long, PathNode> pathBest = new HashMap<>();
+    private final Set<Long> pathClosed = new HashSet<>();
+    private PathNode pathStart;
+    private PathNode pathClosest;
+    private double pathClosestDistance;
+    private int pathExpansions;
+    private Vector pathSearchGoal;
+    private double pathStartX, pathStartZ;
+    // block collision shapes are cached only while a search is running
+    private final Map<Long, Collection<BoundingBox>> shapeCache = new HashMap<>();
+    private boolean cacheShapes = false;
 
     /** Full-strength bot (HARD). */
     public MannequinFighter(Plugin plugin, Mannequin mannequin) {
@@ -323,6 +410,8 @@ public class MannequinFighter {
                 if (target == null) {
                     velTarget = null;
                     drawTicks = 0;
+                    path = null;
+                    pathSearching = false;
                     return;
                 }
 
@@ -338,22 +427,34 @@ public class MannequinFighter {
         );
         // Positioning (approach / strafe distances) uses the normal reach; only the
         // swing itself gets the bonus, so a held-back mannequin lunges in from further out
-        double attackReach =
-            reach + (hasChargedReach() ? CHARGED_REACH_BONUS : 0.0);
+        // Reach also follows our own velocity: running into someone extends it, and
+        // being knocked back shrinks it, so combos are hard to swing out of
+        double attackReach = Math.max(
+            0.5,
+            reach +
+                (hasChargedReach() ? CHARGED_REACH_BONUS : 0.0) +
+                velocityReachBonus(target)
+        );
         double distance = distanceToBoundingBox(target);
 
+        targetVisible = mannequin.hasLineOfSight(target);
         updateCombatMode(distance);
         trackTargetVelocity(target);
 
         Vector aimPoint = target.getBoundingBox().getCenter();
         if (rangedMode != RangedWeapon.NONE) {
-            targetVisible = mannequin.hasLineOfSight(target);
             Vector solved = rangedAimPoint(target);
             aimSolved = solved != null;
             if (solved != null) aimPoint = solved;
         } else {
             drawTicks = 0;
             shotCooldown = 0;
+        }
+
+        // Walking a detour around an obstacle: look where we're going so we can sprint it
+        if (!targetVisible) {
+            Vector look = pathLookPoint();
+            if (look != null) aimPoint = look;
         }
 
         double aimError = lookAt(aimPoint);
@@ -370,7 +471,7 @@ public class MannequinFighter {
             aimError <= MAX_AIM_ERROR &&
             attackCooldownTicks <= 0 &&
             !hasDamageImmunity(target) &&
-            mannequin.hasLineOfSight(target);
+            targetVisible;
 
         // Hopping for a crit: hold the swing until we're actually falling
         if (
@@ -378,7 +479,7 @@ public class MannequinFighter {
             hopForCrit &&
             !isCriticalHit() &&
             ticksSinceFluid >= CRIT_FLUID_GRACE_TICKS &&
-            critWaitTicks < CRIT_WAIT_MAX_TICKS
+            critWaitTicks < critWaitCap()
         ) {
             critWaitTicks++;
             ready = false;
@@ -396,7 +497,8 @@ public class MannequinFighter {
             critWaitTicks = 0;
             ticksSinceAttack = 0;
             hopForCrit =
-                ThreadLocalRandom.current().nextDouble() < CRIT_HOP_CHANCE;
+                critHopWorthIt() &&
+                ThreadLocalRandom.current().nextDouble() < difficulty.critHopChance;
             approachFactor = rollApproachFactor();
         }
     }
@@ -423,7 +525,8 @@ public class MannequinFighter {
     private void performAttack(LivingEntity victim) {
         mannequin.swingMainHand();
 
-        boolean sprintHit = sprinting;
+        // Like crits: no sprint knockback in water/lava or right after leaving it
+        boolean sprintHit = sprinting && !isInOrJustOutOfFluid();
         // Custom rules: unlike vanilla, sprinting does NOT cancel a critical hit
         boolean crit = isCriticalHit();
 
@@ -527,11 +630,18 @@ public class MannequinFighter {
             mannequin.getFallDistance() > 0.0f &&
             !mannequin.isOnGround() &&
             !isClimbing() &&
-            !mannequin.isInWater() &&
-            !mannequin.isInLava() &&
-            ticksSinceFluid >= CRIT_FLUID_GRACE_TICKS &&
+            !isInOrJustOutOfFluid() &&
             !mannequin.isInsideVehicle() &&
             !mannequin.hasPotionEffect(PotionEffectType.BLINDNESS)
+        );
+    }
+
+    /** In water/lava, or within CRIT_FLUID_GRACE_TICKS of leaving it. Blocks crits and sprint knockback. */
+    private boolean isInOrJustOutOfFluid() {
+        return (
+            mannequin.isInWater() ||
+            mannequin.isInLava() ||
+            ticksSinceFluid < CRIT_FLUID_GRACE_TICKS
         );
     }
 
@@ -549,6 +659,29 @@ public class MannequinFighter {
     }
 
     /**
+     * Reach shifts with our own velocity along the line to the target, like a
+     * player's does: running into someone extends it (so charging in starts combos),
+     * while being knocked back shrinks it by about the same amount (so a combo is
+     * hard to swing out of).
+     */
+    private double velocityReachBonus(LivingEntity target) {
+        Location from = mannequin.getLocation();
+        Location to = target.getLocation();
+        double dx = to.getX() - from.getX();
+        double dz = to.getZ() - from.getZ();
+        double len = Math.hypot(dx, dz);
+        if (len < 1.0E-4) return 0;
+
+        Vector vel = mannequin.getVelocity();
+        double along = (vel.getX() * dx + vel.getZ() * dz) / len; // blocks/tick toward the target
+        double bonus = along * VELOCITY_REACH_TICKS;
+        return Math.max(
+            -MAX_VELOCITY_REACH_PENALTY,
+            Math.min(MAX_VELOCITY_REACH_BONUS, bonus)
+        );
+    }
+
+    /**
      * True once it has gone CHARGED_REACH_COOLDOWNS full attack cooldowns without
      * swinging. The next hit then gets CHARGED_REACH_BONUS extra reach, and the
      * timer resets as soon as it attacks.
@@ -557,6 +690,38 @@ public class MannequinFighter {
         return (
             ticksSinceAttack >=
             CHARGED_REACH_COOLDOWNS * getAttackCooldownTicks()
+        );
+    }
+
+    /**
+     * Whether hopping for crits actually raises damage output with the current weapon
+     * and attack speed. A hop takes about CRIT_HOP_CYCLE_TICKS and offers a few crit
+     * swings during its falling window; plain attacking lands one swing per cooldown.
+     * When attacks are fast (cooldown shorter than the hop) plain attacking wins, so it
+     * simply swings whenever the cooldown is ready and the target is in reach instead
+     * of waiting to fall for a crit.
+     */
+    private boolean critHopWorthIt() {
+        double cooldown = Math.max(1, getAttackCooldownTicks());
+
+        double plainDps = calculateDamage(false) / cooldown;
+
+        double swingsPerHop =
+            cooldown >= CRIT_HOP_CYCLE_TICKS
+                ? 1
+                : 1 + Math.floor(CRIT_WINDOW_TICKS / cooldown);
+        double hopDps =
+            (swingsPerHop * calculateDamage(true)) /
+            Math.max(cooldown, CRIT_HOP_CYCLE_TICKS);
+
+        return hopDps > plainDps * CRIT_HOP_MARGIN;
+    }
+
+    /** Never hold a swing for a crit longer than half a cooldown (and never past the hard cap). */
+    private int critWaitCap() {
+        return Math.max(
+            2,
+            Math.min(CRIT_WAIT_MAX_TICKS, getAttackCooldownTicks() / 2)
         );
     }
 
@@ -1014,14 +1179,31 @@ public class MannequinFighter {
     private void steer(LivingEntity target, double reach, double distance) {
         updateStuckDetection();
 
+        boolean approachWanted =
+            rangedMode != RangedWeapon.NONE
+                ? (!targetVisible || distance > RANGED_APPROACH_DISTANCE)
+                : distance > reach * approachFactor;
+        updateNavigation(target, approachWanted);
+
         double forward = 0;
         double strafe = 0;
         boolean sprint = false;
 
-        if (sidestepTicks > 0) {
+        // Lower difficulties only re-decide what to press every few ticks
+        boolean redecide = decisionCooldown <= 0;
+        if (redecide) decisionCooldown = difficulty.movementDelayTicks;
+        decisionCooldown--;
+
+        boolean sidestepping = sidestepTicks > 0;
+        if (sidestepping) {
             sidestepTicks--;
             forward = 0.3;
             strafe = sidestepDir;
+            decisionCooldown = 0;
+        } else if (!redecide) {
+            forward = heldForward;
+            strafe = heldStrafe;
+            sprint = heldSprint;
         } else if (rangedMode != RangedWeapon.NONE) {
             // Archer: hold a distance, strafe while shooting, close in when it
             // can't see the target or the target is too far to shoot
@@ -1046,6 +1228,22 @@ public class MannequinFighter {
             }
             if (distance <= reach + STRAFE_RANGE) {
                 strafe = nextStrafeDirection() * (forward != 0 ? 0.5 : 1.0);
+            }
+        }
+
+        if (redecide && !sidestepping) {
+            heldForward = forward;
+            heldStrafe = strafe;
+            heldSprint = sprint;
+        }
+
+        // Closing in but the straight line is blocked: follow the A* detour instead
+        if (!sidestepping && forward > 0) {
+            double[] along = pathInput();
+            if (along != null) {
+                forward = along[0];
+                strafe = along[1];
+                sprint = along[0] > 0.5;
             }
         }
 
@@ -1227,9 +1425,12 @@ public class MannequinFighter {
         lastX = loc.getX();
         lastZ = loc.getZ();
 
-        if (stuckTicks >= STUCK_TICKS) {
+        if (stuckTicks >= STUCK_TICKS * difficulty.stuckScale) {
             stuckTicks = 0;
-            sidestepTicks = SIDESTEP_TICKS;
+            // Look for a real route around whatever we're pushing into, and wiggle
+            // sideways for a moment to come off the corner while it's computed
+            requestReplan();
+            sidestepTicks = SIDESTEP_TICKS / 3;
             sidestepDir = ThreadLocalRandom.current().nextBoolean() ? 1 : -1;
         }
     }
@@ -1461,7 +1662,11 @@ public class MannequinFighter {
         double height = mannequin.getHeight();
         double jumpHeight = getMaxJumpHeight();
 
-        for (double dist = 0.5; dist <= MAX_GAP_SCAN; dist += 0.25) {
+        for (
+            double dist = 0.5;
+            dist <= MAX_GAP_SCAN * difficulty.gapScale;
+            dist += 0.25
+        ) {
             double floor = floorAhead(
                 dir,
                 dist,
@@ -1533,10 +1738,7 @@ public class MannequinFighter {
             if (
                 by < world.getMinHeight() || by >= world.getMaxHeight()
             ) continue;
-            Block block = world.getBlockAt(bx, by, bz);
-            for (BoundingBox bb : block
-                .getCollisionShape()
-                .getBoundingBoxes()) {
+            for (BoundingBox bb : collisionBoxes(world, bx, by, bz)) {
                 if (!columnContains(bb, x - bx, z - bz)) continue;
                 double top = by + bb.getMaxY();
                 if (
@@ -1564,10 +1766,7 @@ public class MannequinFighter {
             if (
                 by < world.getMinHeight() || by >= world.getMaxHeight()
             ) continue;
-            Block block = world.getBlockAt(bx, by, bz);
-            for (BoundingBox bb : block
-                .getCollisionShape()
-                .getBoundingBoxes()) {
+            for (BoundingBox bb : collisionBoxes(world, bx, by, bz)) {
                 if (!columnContains(bb, x - bx, z - bz)) continue;
                 if (
                     by + bb.getMaxY() > y0 && by + bb.getMinY() < y1
@@ -1588,6 +1787,445 @@ public class MannequinFighter {
             localZ >= bb.getMinZ() &&
             localZ <= bb.getMaxZ()
         );
+    }
+
+    // ------------------------------------------------------------------ pathfinding
+
+    private static final class PathNode {
+
+        final int x;
+        final int y;
+        final int z;
+        final double feetY;
+        double g;
+        double f;
+        PathNode parent;
+
+        PathNode(int x, int y, int z, double feetY) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.feetY = feetY;
+        }
+    }
+
+    private static long packKey(int x, int y, int z) {
+        return (
+            ((long) (x & 0x3FFFFFF) << 38) |
+            ((long) (z & 0x3FFFFFF) << 12) |
+            (long) (y & 0xFFF)
+        );
+    }
+
+    private Collection<BoundingBox> collisionBoxes(
+        World world,
+        int bx,
+        int by,
+        int bz
+    ) {
+        if (!cacheShapes) {
+            return world
+                .getBlockAt(bx, by, bz)
+                .getCollisionShape()
+                .getBoundingBoxes();
+        }
+        return shapeCache.computeIfAbsent(packKey(bx, by, bz), k ->
+            world.getBlockAt(bx, by, bz).getCollisionShape().getBoundingBoxes()
+        );
+    }
+
+    /**
+     * Keeps a detour available whenever we want to close in but can't just walk at
+     * the target. Every few ticks it tests the straight line; if that's blocked it
+     * starts an A* search (spread over several ticks) and the result is followed by
+     * pathInput(). If the line is clear again the detour is dropped.
+     */
+    private void updateNavigation(LivingEntity target, boolean approachWanted) {
+        pathAge++;
+        if (routeCheckCooldown > 0) routeCheckCooldown--;
+        if (pathFailCooldown > 0) pathFailCooldown--;
+
+        if (pathSearching) stepPathSearch();
+
+        if (!approachWanted) {
+            path = null;
+            pathSearching = false;
+            return;
+        }
+
+        if (routeCheckCooldown > 0) return;
+        routeCheckCooldown = PATH_CHECK_TICKS;
+
+        Vector me = mannequin.getLocation().toVector();
+        Vector goal = target.getLocation().toVector();
+
+        if (isRouteWalkable(me, goal)) {
+            path = null; // the straight line works
+            pathSearching = false;
+            return;
+        }
+
+        boolean stale =
+            path == null ||
+            pathAge > PATH_REPLAN_TICKS ||
+            (pathGoal != null &&
+                pathGoal.distanceSquared(goal) >
+                PATH_GOAL_DRIFT * PATH_GOAL_DRIFT);
+        if (stale && !pathSearching && pathFailCooldown <= 0) {
+            startPathSearch(goal);
+        }
+    }
+
+    /** Throws away the current detour so a fresh one is searched at the next check. */
+    private void requestReplan() {
+        path = null;
+        pathSearching = false;
+        routeCheckCooldown = 0;
+        pathFailCooldown = 0;
+    }
+
+    /** The (forward, strafe) keys toward the next waypoint, or null when not on a detour. */
+    private double[] pathInput() {
+        if (path == null) return null;
+        Location loc = mannequin.getLocation();
+
+        while (pathIndex < path.size()) {
+            Vector wp = path.get(pathIndex);
+            double dx = wp.getX() - loc.getX();
+            double dz = wp.getZ() - loc.getZ();
+            boolean closeEnough =
+                Math.hypot(dx, dz) < PATH_WAYPOINT_REACH &&
+                Math.abs(wp.getY() - loc.getY()) < 1.3;
+            if (!closeEnough) break;
+            pathIndex++;
+        }
+        if (pathIndex >= path.size()) {
+            path = null;
+            return null;
+        }
+
+        Vector wp = path.get(pathIndex);
+        Vector dir = new Vector(
+            wp.getX() - loc.getX(),
+            0,
+            wp.getZ() - loc.getZ()
+        );
+        if (dir.lengthSquared() < 1.0E-6) return null;
+        return inputToward(dir.normalize());
+    }
+
+    /** Where to look while following a detour (the next waypoint at eye height), or null. */
+    private Vector pathLookPoint() {
+        if (path == null || pathIndex >= path.size()) return null;
+        Vector wp = path.get(pathIndex);
+        return new Vector(wp.getX(), mannequin.getEyeLocation().getY(), wp.getZ());
+    }
+
+    private void startPathSearch(Vector goal) {
+        Location loc = mannequin.getLocation();
+
+        pathOpen.clear();
+        pathBest.clear();
+        pathClosed.clear();
+        shapeCache.clear();
+
+        pathSearchGoal = goal.clone();
+        pathExpansions = 0;
+        pathStartX = loc.getX();
+        pathStartZ = loc.getZ();
+
+        int sx = (int) Math.floor(loc.getX());
+        int sz = (int) Math.floor(loc.getZ());
+        int sy = (int) Math.floor(loc.getY() + EPS);
+        pathStart = new PathNode(sx, sy, sz, loc.getY());
+        pathStart.g = 0;
+        pathStart.f = PATH_HEURISTIC_WEIGHT * goalDistance(pathStart);
+
+        pathOpen.add(pathStart);
+        pathBest.put(packKey(sx, sy, sz), pathStart);
+        pathClosest = pathStart;
+        pathClosestDistance = goalDistance(pathStart);
+        pathSearching = true;
+    }
+
+    private void stepPathSearch() {
+        cacheShapes = true;
+        try {
+            int maxExpansions = (int) (PATH_MAX_EXPANSIONS * difficulty.pathScale);
+            for (int budget = PATH_EXPANSIONS_PER_TICK; budget > 0; budget--) {
+                PathNode node = pathOpen.poll();
+                if (node == null || pathExpansions >= maxExpansions) {
+                    finishPathSearch(pathClosest);
+                    return;
+                }
+                if (!pathClosed.add(packKey(node.x, node.y, node.z))) continue;
+                pathExpansions++;
+
+                double toGoal = goalDistance(node);
+                if (toGoal < pathClosestDistance) {
+                    pathClosestDistance = toGoal;
+                    pathClosest = node;
+                }
+                if (isGoalNode(node)) {
+                    finishPathSearch(node);
+                    return;
+                }
+                expandPathNode(node);
+            }
+        } finally {
+            cacheShapes = false;
+        }
+    }
+
+    private void finishPathSearch(PathNode end) {
+        pathSearching = false;
+
+        List<Vector> points = new ArrayList<>();
+        for (PathNode n = end; n != null; n = n.parent) {
+            points.add(new Vector(n.x + 0.5, n.feetY, n.z + 0.5));
+        }
+        Collections.reverse(points);
+
+        // The first point is where we already are. A search that never got anywhere
+        // means no usable detour: fall back to the old behaviour for a moment.
+        if (end == pathStart || points.size() <= 1) {
+            path = null;
+            pathFailCooldown = PATH_FAIL_COOLDOWN_TICKS;
+            return;
+        }
+        points.remove(0);
+
+        // Smarter difficulties cut corners along the path instead of tracing every cell
+        if (difficulty.pathScale >= 0.6) points = smoothPath(points);
+
+        path = points;
+        pathIndex = 0;
+        pathAge = 0;
+        pathGoal = pathSearchGoal;
+    }
+
+    /** Greedy string-pulling: skip ahead to the furthest waypoint we can walk to in a straight line. */
+    private List<Vector> smoothPath(List<Vector> points) {
+        List<Vector> out = new ArrayList<>();
+        Vector current = mannequin.getLocation().toVector();
+        int i = 0;
+        while (i < points.size()) {
+            int farthest = i;
+            int limit = Math.min(points.size() - 1, i + PATH_SMOOTH_LOOKAHEAD);
+            for (int j = limit; j > i; j--) {
+                if (isRouteWalkable(current, points.get(j))) {
+                    farthest = j;
+                    break;
+                }
+            }
+            out.add(points.get(farthest));
+            current = points.get(farthest);
+            i = farthest + 1;
+        }
+        return out;
+    }
+
+    private double goalDistance(PathNode n) {
+        double dx = Math.abs(pathSearchGoal.getX() - (n.x + 0.5));
+        double dz = Math.abs(pathSearchGoal.getZ() - (n.z + 0.5));
+        double diagonal = Math.min(dx, dz);
+        double straight = Math.max(dx, dz) - diagonal;
+        return (
+            straight +
+            1.414 * diagonal +
+            Math.abs(pathSearchGoal.getY() - n.feetY) * 0.5
+        );
+    }
+
+    private boolean isGoalNode(PathNode n) {
+        return (
+            Math.hypot(
+                n.x + 0.5 - pathSearchGoal.getX(),
+                n.z + 0.5 - pathSearchGoal.getZ()
+            ) <= PATH_GOAL_HORIZONTAL &&
+            Math.abs(n.feetY - pathSearchGoal.getY()) <= PATH_GOAL_VERTICAL
+        );
+    }
+
+    private void expandPathNode(PathNode n) {
+        double height = mannequin.getHeight();
+        double step = getAttributeValue(Attribute.STEP_HEIGHT, DEFAULT_STEP_HEIGHT);
+        double jumpHeight = getMaxJumpHeight();
+
+        for (int[] d : PATH_DIRS) {
+            int nx = n.x + d[0];
+            int nz = n.z + d[1];
+            boolean diagonal = d[0] != 0 && d[1] != 0;
+
+            if (
+                Math.hypot(nx + 0.5 - pathStartX, nz + 0.5 - pathStartZ) >
+                PATH_MAX_RADIUS
+            ) continue;
+
+            // no cutting corners: both orthogonal neighbours must be free of anything
+            // taller than a step
+            if (diagonal) {
+                if (
+                    solidAt(
+                        n.x + d[0] + 0.5,
+                        n.z + 0.5,
+                        n.feetY + step + EPS,
+                        n.feetY + height - EPS
+                    )
+                ) continue;
+                if (
+                    solidAt(
+                        n.x + 0.5,
+                        n.z + d[1] + 0.5,
+                        n.feetY + step + EPS,
+                        n.feetY + height - EPS
+                    )
+                ) continue;
+            }
+
+            double floor = columnFloor(nx, nz, n.feetY, jumpHeight, SAFE_DROP, height);
+            if (Double.isNaN(floor)) continue;
+            double rise = floor - n.feetY;
+
+            double cost = diagonal ? 1.414 : 1.0;
+            if (rise > step + EPS) {
+                // a jump: not diagonally, and we need headroom to rise
+                if (diagonal) continue;
+                if (
+                    solidAt(
+                        n.x + 0.5,
+                        n.z + 0.5,
+                        n.feetY + height,
+                        n.feetY + height + rise + EPS
+                    )
+                ) continue;
+                cost += 1.0;
+            } else {
+                // walking or dropping: nothing tall at our current level in the next cell
+                if (
+                    solidAt(
+                        nx + 0.5,
+                        nz + 0.5,
+                        n.feetY + step + EPS,
+                        n.feetY + height - EPS
+                    )
+                ) continue;
+                if (rise < -1.0 - EPS) cost += -rise * 0.5; // prefer not to drop
+            }
+
+            double g = n.g + cost;
+            int ny = (int) Math.floor(floor + EPS);
+            long key = packKey(nx, ny, nz);
+            if (pathClosed.contains(key)) continue;
+            PathNode existing = pathBest.get(key);
+            if (existing != null && existing.g <= g) continue;
+
+            PathNode next = new PathNode(nx, ny, nz, floor);
+            next.g = g;
+            next.f = g + PATH_HEURISTIC_WEIGHT * goalDistance(next);
+            next.parent = n;
+            pathBest.put(key, next);
+            pathOpen.add(next);
+        }
+    }
+
+    /**
+     * The height we'd stand at in block column (bx, bz) when arriving from fromY, or NaN
+     * if it can't be stood in (no floor within reach, no room for our body, or hazardous).
+     */
+    private double columnFloor(
+        int bx,
+        int bz,
+        double fromY,
+        double up,
+        double down,
+        double height
+    ) {
+        double cx = bx + 0.5;
+        double cz = bz + 0.5;
+        double maxY = fromY + up + EPS;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            double floor = standY(cx, cz, maxY, fromY - down);
+            if (Double.isNaN(floor)) return Double.NaN;
+            if (
+                !solidAt(cx, cz, floor + EPS, floor + height - EPS) &&
+                !isHazard(bx, bz, floor)
+            ) return floor;
+            maxY = floor - 0.05; // blocked here (low ceiling?), try the next surface down
+        }
+        return Double.NaN;
+    }
+
+    private boolean isHazard(int bx, int bz, double floor) {
+        World world = mannequin.getWorld();
+        Material feet = world
+            .getBlockAt(bx, (int) Math.floor(floor + EPS), bz)
+            .getType();
+        Material support = world
+            .getBlockAt(bx, (int) Math.floor(floor - EPS), bz)
+            .getType();
+
+        boolean badFeet = switch (feet) {
+            case LAVA,
+                WATER,
+                FIRE,
+                SOUL_FIRE,
+                COBWEB,
+                SWEET_BERRY_BUSH,
+                POWDER_SNOW,
+                CAMPFIRE,
+                SOUL_CAMPFIRE,
+                WITHER_ROSE -> true;
+            default -> false;
+        };
+        if (badFeet) return true;
+
+        return (
+            support == Material.MAGMA_BLOCK ||
+            support == Material.CACTUS ||
+            support == Material.CAMPFIRE ||
+            support == Material.SOUL_CAMPFIRE
+        );
+    }
+
+    /**
+     * Whether we can walk (or step / jump / drop along) the straight line between two
+     * points: there's always a floor within reach and our whole width fits.
+     */
+    private boolean isRouteWalkable(Vector from, Vector to) {
+        double dx = to.getX() - from.getX();
+        double dz = to.getZ() - from.getZ();
+        double dist = Math.hypot(dx, dz);
+        if (dist < 0.5) return true;
+        double ux = dx / dist;
+        double uz = dz / dist;
+
+        double height = mannequin.getHeight();
+        double jumpHeight = getMaxJumpHeight();
+        double feetY = from.getY();
+        int steps = (int) Math.min(
+            ROUTE_MAX_SAMPLES,
+            Math.ceil(dist / ROUTE_SAMPLE_STEP)
+        );
+
+        for (int i = 1; i <= steps; i++) {
+            double d = Math.min(i * ROUTE_SAMPLE_STEP, dist);
+            double x = from.getX() + ux * d;
+            double z = from.getZ() + uz * d;
+
+            double floor = standY(x, z, feetY + jumpHeight + EPS, feetY - SAFE_DROP);
+            if (Double.isNaN(floor)) return false;
+
+            for (double lateral : ROUTE_WIDTH_SAMPLES) {
+                double px = x - uz * lateral;
+                double pz = z + ux * lateral;
+                if (solidAt(px, pz, floor + EPS, floor + height - EPS)) {
+                    return false;
+                }
+            }
+            feetY = floor;
+        }
+        return true;
     }
 
     // --------------------------------------------------------------- targeting

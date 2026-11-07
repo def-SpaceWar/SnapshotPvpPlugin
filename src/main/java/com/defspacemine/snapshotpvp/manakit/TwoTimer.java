@@ -3,9 +3,7 @@ package com.defspacemine.snapshotpvp.manakit;
 import com.defspacemine.snapshotpvp.MannequinFighter;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
-
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -64,7 +62,7 @@ public class TwoTimer extends ManaKit {
     private static final int TWIN_TOY_COST = 12; // 12 attacks to summon Twin Toy
     private static final int SWAP_COOLDOWN_TICKS = 100; // 5 seconds between swaps
     private static final int JACK_RESTOCK_TICKS = 200; // 10 seconds per Jack in the Box
-    private static final int OUT_OF_COMBAT_HEAL_TICKS = 400; // 20 seconds out of combat
+    private static final int OUT_OF_COMBAT_HEAL_TICKS = 300; // 15 seconds out of combat[cite: 2]
     private static final int TWIN_KILL_REGEN_TICKS = 200; // 10 seconds of regen after a twin kill
 
     private static final int BUILD_RESTOCK_TICKS = 60; // 3 seconds per block batch
@@ -280,12 +278,13 @@ public class TwoTimer extends ManaKit {
                 ChatColor.WHITE + "" + twinCharge + "/" + TWIN_TOY_COST;
         }
 
-        String jackStatus = SnapshotPvpPlugin.countInv(p, Material.JUKEBOX) > 0
-            ? ChatColor.GREEN + "READY"
-            : ChatColor.WHITE +
-              "" +
-              (jackTimer * 100) / JACK_RESTOCK_TICKS +
-              "%";
+        String jackStatus =
+            SnapshotPvpPlugin.countInv(p, Material.JUKEBOX) > 0
+                ? ChatColor.GREEN + "READY"
+                : ChatColor.WHITE +
+                  "" +
+                  (jackTimer * 100) / JACK_RESTOCK_TICKS +
+                  "%";
 
         int outOfCombat = pdc.getOrDefault(
             outOfCombatKey,
@@ -342,10 +341,6 @@ public class TwoTimer extends ManaKit {
     }
 
     private void handleHungerAndOutOfCombatHeal(Player p) {
-        if (p.getFoodLevel() < 20) {
-            p.setFoodLevel(20);
-        }
-
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         int outOfCombat = pdc.getOrDefault(
             outOfCombatKey,
@@ -357,11 +352,9 @@ public class TwoTimer extends ManaKit {
             outOfCombat++;
             pdc.set(outOfCombatKey, PersistentDataType.INTEGER, outOfCombat);
 
-            p.setSaturation(0f);
-            p.removePotionEffect(PotionEffectType.SATURATION);
-
             if (outOfCombat == OUT_OF_COMBAT_HEAL_TICKS) {
                 p.setHealth(p.getMaxHealth());
+                p.setFoodLevel(20);
                 p.setSaturation(20f);
                 p.getWorld().playSound(
                     p.getLocation(),
@@ -378,6 +371,14 @@ public class TwoTimer extends ManaKit {
                     0.4,
                     0.05
                 );
+            }
+        } else {
+            // Out of combat: keep hunger and saturation infinite
+            if (p.getFoodLevel() < 20) {
+                p.setFoodLevel(20);
+            }
+            if (p.getSaturation() < 20f) {
+                p.setSaturation(20f);
             }
         }
     }
@@ -415,9 +416,7 @@ public class TwoTimer extends ManaKit {
         pdc.set(outOfCombatKey, PersistentDataType.INTEGER, 0);
 
         if (
-            victim instanceof Player &&
-            getTwinToy(p) == null &&
-            !hasTwinItem(p)
+            victim instanceof Player && getTwinToy(p) == null && !hasTwinItem(p)
         ) {
             int twinCharge =
                 pdc.getOrDefault(twinChargeKey, PersistentDataType.INTEGER, 0) +
@@ -486,8 +485,7 @@ public class TwoTimer extends ManaKit {
         Material itemType = item.getType();
 
         if (
-            itemType == Material.ARMOR_STAND ||
-            itemType == Material.ENDER_EYE
+            itemType == Material.ARMOR_STAND || itemType == Material.ENDER_EYE
         ) {
             e.setCancelled(true);
             Mannequin twin = getTwinToy(p);
@@ -570,7 +568,6 @@ public class TwoTimer extends ManaKit {
             }
             return;
         }
-
     }
 
     private void ensureSwordsTagged(Player p) {
@@ -814,7 +811,9 @@ public class TwoTimer extends ManaKit {
 
     private void configureTwinToy(Player owner, Mannequin twin) {
         twin.setImmovable(false);
-        twin.setProfile(ResolvableProfile.resolvableProfile().name(owner.getName()).build());
+        twin.setProfile(
+            ResolvableProfile.resolvableProfile().name(owner.getName()).build()
+        );
 
         EntityEquipment ownerEq = owner.getEquipment();
         EntityEquipment twinEq = twin.getEquipment();
@@ -861,12 +860,6 @@ public class TwoTimer extends ManaKit {
             equip.setItemInOffHand(
                 owner.getInventory().getItemInOffHand().clone()
             );
-            // equip.setHelmetDropChance(0f);
-            // equip.setChestplateDropChance(0f);
-            // equip.setLeggingsDropChance(0f);
-            // equip.setBootsDropChance(0f);
-            // equip.setItemInMainHandDropChance(0f);
-            // equip.setItemInOffHandDropChance(0f);
         }
 
         int hp = (int) Math.ceil(twin.getHealth());
@@ -1279,7 +1272,9 @@ public class TwoTimer extends ManaKit {
     }
 
     private boolean hasTwinItem(Player p) {
-        return SnapshotPvpPlugin.countInv(p, Material.ARMOR_STAND) > 0 ||
-            SnapshotPvpPlugin.countInv(p, Material.ENDER_EYE) > 0;
+        return (
+            SnapshotPvpPlugin.countInv(p, Material.ARMOR_STAND) > 0 ||
+            SnapshotPvpPlugin.countInv(p, Material.ENDER_EYE) > 0
+        );
     }
 }

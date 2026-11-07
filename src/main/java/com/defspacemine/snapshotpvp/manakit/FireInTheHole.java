@@ -242,7 +242,9 @@ public class FireInTheHole extends ManaKit {
         }
 
         if (nukeRestockC >= nukeRestock) {
-            p.getInventory().addItem(CustomEggListener.injectOwner(nuke, p));
+            ItemStack item = CustomEggListener.injectOwner(nuke, p);
+            SnapshotPvpPlugin.clearInv(p, item);
+            p.getInventory().addItem(item);
             pdc.set(
                 nukeRestockCounter,
                 PersistentDataType.INTEGER,

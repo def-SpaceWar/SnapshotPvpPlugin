@@ -29,7 +29,7 @@ public class FighterDummy implements CustomMob {
 
     public LivingEntity spawn(Location loc, PersistentDataContainer pdc) {
         Mannequin mannequin = loc.getWorld().spawn(loc, Mannequin.class);
-        new MannequinFighter(SnapshotPvpPlugin.instance, mannequin);
+        new MannequinFighter(SnapshotPvpPlugin.instance, mannequin, MannequinFighter.Difficulty.HARD);
 
         mannequin.getEquipment().setHelmet(new ItemStack(Material.IRON_HELMET));
         mannequin
@@ -42,16 +42,23 @@ public class FighterDummy implements CustomMob {
         mannequin
             .getEquipment()
             .setItemInMainHand(new ItemStack(Material.IRON_SWORD));
-        mannequin
-            .getEquipment()
-            .setItemInOffHand(new ItemStack(Material.BOW));
+        mannequin.getEquipment().setItemInOffHand(new ItemStack(Material.BOW));
         mannequin.setProfile(
             ResolvableProfile.resolvableProfile().name("defSpaceMine").build()
         );
-        mannequin.customName(Component.text("Fighter Dummy")
+        mannequin.customName(
+            Component.text("Fighter Dummy: ")
                 .color(NamedTextColor.GOLD)
                 .decoration(TextDecoration.BOLD, true)
-                .decoration(TextDecoration.ITALIC, false));
+                .decoration(TextDecoration.ITALIC, false)
+                .append(
+                    Component.text("Hard")
+                        .color(NamedTextColor.RED)
+                        .decoration(TextDecoration.BOLD, true)
+                        .decoration(TextDecoration.ITALIC, false)
+                )
+        );
+        mannequin.setCustomNameVisible(true);
         mannequin.setPersistent(true);
 
         return mannequin;

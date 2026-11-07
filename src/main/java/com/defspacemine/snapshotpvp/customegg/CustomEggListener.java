@@ -1,12 +1,34 @@
 package com.defspacemine.snapshotpvp.customegg;
 
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import com.defspacemine.snapshotpvp.WeatherManager;
+import com.defspacemine.snapshotpvp.custommob.EngineerDroid;
+import com.defspacemine.snapshotpvp.custommob.EngineerSentry;
+import com.defspacemine.snapshotpvp.custommob.EngineerUpgradedDroid;
+import com.defspacemine.snapshotpvp.custommob.EngineerUpgradedSentry;
+import com.defspacemine.snapshotpvp.custommob.FITHBomb1;
+import com.defspacemine.snapshotpvp.custommob.FITHBomb2;
+import com.defspacemine.snapshotpvp.custommob.FITHBomb3;
+import com.defspacemine.snapshotpvp.custommob.FITHNuke;
+import com.defspacemine.snapshotpvp.custommob.FighterDummy;
+import com.defspacemine.snapshotpvp.custommob.FighterDummyEasy;
+import com.defspacemine.snapshotpvp.custommob.FighterDummyMedium;
+import com.defspacemine.snapshotpvp.custommob.MercAutoBomb;
+import com.defspacemine.snapshotpvp.custommob.MercGoodShotBhaiya;
+import com.defspacemine.snapshotpvp.custommob.MercLauncher;
+import com.defspacemine.snapshotpvp.manakit.ICBM;
+import com.defspacemine.snapshotpvp.manakit.LightPaladin;
+import io.papermc.paper.event.entity.WardenAngerChangeEvent;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
@@ -55,29 +77,6 @@ import org.bukkit.scoreboard.Team;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
-
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import com.defspacemine.snapshotpvp.WeatherManager;
-import com.defspacemine.snapshotpvp.custommob.EngineerDroid;
-import com.defspacemine.snapshotpvp.custommob.EngineerSentry;
-import com.defspacemine.snapshotpvp.custommob.EngineerUpgradedDroid;
-import com.defspacemine.snapshotpvp.custommob.EngineerUpgradedSentry;
-import com.defspacemine.snapshotpvp.custommob.FITHBomb1;
-import com.defspacemine.snapshotpvp.custommob.FITHBomb2;
-import com.defspacemine.snapshotpvp.custommob.FITHBomb3;
-import com.defspacemine.snapshotpvp.custommob.FITHNuke;
-import com.defspacemine.snapshotpvp.custommob.FighterDummy;
-import com.defspacemine.snapshotpvp.custommob.MercAutoBomb;
-import com.defspacemine.snapshotpvp.custommob.MercGoodShotBhaiya;
-import com.defspacemine.snapshotpvp.custommob.MercLauncher;
-import com.defspacemine.snapshotpvp.manakit.ICBM;
-import com.defspacemine.snapshotpvp.manakit.LightPaladin;
-
-import io.papermc.paper.event.entity.WardenAngerChangeEvent;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 public class CustomEggListener implements Listener {
 
@@ -168,6 +167,8 @@ public class CustomEggListener implements Listener {
         register(new EngineerSentry());
         register(new EngineerUpgradedSentry());
         register(new FighterDummy());
+        register(new FighterDummyMedium());
+        register(new FighterDummyEasy());
 
         startGlobalAggroTask();
         startSlimeDamageTask();
@@ -633,7 +634,9 @@ public class CustomEggListener implements Listener {
                     cubes.addAll(world.getEntitiesByClass(MagmaCube.class));
 
                     for (Mob slime : cubes) {
-                        if (!slime.isValid() || slime.isDead() || !slime.hasAI()) continue;
+                        if (
+                            !slime.isValid() || slime.isDead() || !slime.hasAI()
+                        ) continue;
 
                         boolean magma = slime instanceof MagmaCube;
                         int size = magma
@@ -646,10 +649,18 @@ public class CustomEggListener implements Listener {
                         if (slimeTeam == null) continue;
 
                         double damage;
-                        if (slime.getPersistentDataContainer().has(CUSTOM_DAMAGE, PersistentDataType.FLOAT)) {
-                            damage = slime.getPersistentDataContainer().get(CUSTOM_DAMAGE, PersistentDataType.FLOAT);
+                        if (
+                            slime
+                                .getPersistentDataContainer()
+                                .has(CUSTOM_DAMAGE, PersistentDataType.FLOAT)
+                        ) {
+                            damage = slime
+                                .getPersistentDataContainer()
+                                .get(CUSTOM_DAMAGE, PersistentDataType.FLOAT);
                         } else {
-                            var attr = slime.getAttribute(Attribute.ATTACK_DAMAGE);
+                            var attr = slime.getAttribute(
+                                Attribute.ATTACK_DAMAGE
+                            );
                             damage = attr != null ? attr.getValue() : size;
                             if (magma) damage += 2.0;
                         }
@@ -661,37 +672,68 @@ public class CustomEggListener implements Listener {
                         Player owner = getOwner(slime);
                         BoundingBox slimeBox = slime.getBoundingBox();
 
-                        for (Entity nearby : slime.getNearbyEntities(search, search, search)) {
-                            if (!(nearby instanceof LivingEntity target)) continue;
+                        for (Entity nearby : slime.getNearbyEntities(
+                            search,
+                            search,
+                            search
+                        )) {
+                            if (
+                                !(nearby instanceof LivingEntity target)
+                            ) continue;
                             if (target instanceof Player) continue;
-                            if (target == slime || target.isDead() || !target.isValid() || target.isInvulnerable()) continue;
+                            if (
+                                target == slime ||
+                                target.isDead() ||
+                                !target.isValid() ||
+                                target.isInvulnerable()
+                            ) continue;
 
-                            Team targetTeam = SnapshotPvpPlugin.getTeamG(target);
+                            Team targetTeam = SnapshotPvpPlugin.getTeamG(
+                                target
+                            );
                             if (slimeTeam.equals(targetTeam)) continue;
 
-                            if (target.getNoDamageTicks() > target.getMaximumNoDamageTicks() / 2f) continue;
+                            if (
+                                target.getNoDamageTicks() >
+                                target.getMaximumNoDamageTicks() / 2f
+                            ) continue;
 
-                            BoundingBox touchBox = target.getBoundingBox().expand(1.0, 0.5, 1.0);
+                            BoundingBox touchBox = target
+                                .getBoundingBox()
+                                .expand(1.0, 0.5, 1.0);
                             if (!touchBox.overlaps(slimeBox)) continue;
 
-                            if (slime.getLocation().distanceSquared(target.getLocation()) >= reachSq) continue;
+                            if (
+                                slime
+                                    .getLocation()
+                                    .distanceSquared(target.getLocation()) >=
+                                reachSq
+                            ) continue;
                             if (!slime.hasLineOfSight(target)) continue;
 
-                            DamageSource.Builder builder = DamageSource.builder(DamageType.MOB_ATTACK)
-                                .withDirectEntity(slime);
+                            DamageSource.Builder builder = DamageSource.builder(
+                                DamageType.MOB_ATTACK
+                            ).withDirectEntity(slime);
                             if (owner != null) builder.withCausingEntity(owner);
 
                             target.damage(damage, builder.build());
 
-                            if (target.getNoDamageTicks() > target.getMaximumNoDamageTicks() / 2f) {
-                                ThreadLocalRandom r = ThreadLocalRandom.current();
-                                slime.getWorld().playSound(
-                                    slime.getLocation(),
-                                    Sound.ENTITY_SLIME_ATTACK,
-                                    SoundCategory.HOSTILE,
-                                    1.0f,
-                                    (r.nextFloat() - r.nextFloat()) * 0.2f + 1.0f
-                                );
+                            if (
+                                target.getNoDamageTicks() >
+                                target.getMaximumNoDamageTicks() / 2f
+                            ) {
+                                ThreadLocalRandom r =
+                                    ThreadLocalRandom.current();
+                                slime
+                                    .getWorld()
+                                    .playSound(
+                                        slime.getLocation(),
+                                        Sound.ENTITY_SLIME_ATTACK,
+                                        SoundCategory.HOSTILE,
+                                        1.0f,
+                                        (r.nextFloat() - r.nextFloat()) * 0.2f +
+                                            1.0f
+                                    );
                             }
                         }
                     }
