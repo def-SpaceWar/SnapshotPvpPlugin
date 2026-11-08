@@ -61,7 +61,7 @@ public class Frog extends ManaKit {
         if (killstreak >= 1)
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 1));
         if (killstreak >= 2)
-            p.addPotionEffect(new PotionEffect(PotionEffectType.DOLPHINS_GRACE, 100, 0));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 0));
 
         PlayerInventory inv = p.getInventory();
         if (chargeRestockC >= chargeRestock) {

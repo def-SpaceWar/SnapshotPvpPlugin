@@ -72,7 +72,7 @@ public class Tridentite extends ManaKit {
             displayMessage = ChatColor.DARK_AQUA + "Trident: " + ChatColor.WHITE + tridentReturnC + "/"
                     + tridentReturn
                     + ChatColor.GRAY + " | " + displayMessage;
-            pdc.set(tridentReturnCounter, PersistentDataType.INTEGER, tridentReturnC + 1);
+            pdc.set(tridentReturnCounter, PersistentDataType.INTEGER, tridentReturnC + (killstreak >= 2 ? 3 : 1));
             pdc.set(hasTridentCounter, PersistentDataType.INTEGER, 0);
 
             p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 80, 1));
@@ -81,11 +81,10 @@ public class Tridentite extends ManaKit {
 
         p.sendActionBar(displayMessage);
 
-        p.addPotionEffect(new PotionEffect(PotionEffectType.DOLPHINS_GRACE, 100, 0));
-        if (killstreak >= 1 && !p.hasPotionEffect(PotionEffectType.HEALTH_BOOST))
-            p.addPotionEffect(new PotionEffect(PotionEffectType.HEALTH_BOOST, -1, 2));
-        if (killstreak >= 2)
-            p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 0));
+        if (killstreak >= 1 && !p.hasPotionEffect(PotionEffectType.REGENERATION))
+            p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, -1, 1));
+        // if (killstreak >= 2)
+        //     p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 0));
 
         if (tridentReturnC >= tridentReturn) {
             SnapshotPvpPlugin.clearInv(p, Material.CHORUS_FRUIT);
