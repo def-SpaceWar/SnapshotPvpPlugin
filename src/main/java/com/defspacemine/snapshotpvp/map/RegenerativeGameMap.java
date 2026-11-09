@@ -22,6 +22,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.FaceAttachable;
 import org.bukkit.block.data.Powerable;
+import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Bed;
 import org.bukkit.block.data.type.Lantern;
 import org.bukkit.block.data.type.PointedDripstone;
@@ -36,6 +37,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFadeEvent;
 import org.bukkit.event.block.BlockFormEvent;
@@ -43,6 +45,7 @@ import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
+import org.bukkit.event.block.FluidLevelChangeEvent;
 import org.bukkit.event.block.SpongeAbsorbEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
@@ -94,10 +97,34 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
         }
     }
 
+    private static class FluidDrain implements Comparable<FluidDrain> {
+
+        private final Location location;
+        private final long tick;
+
+        public FluidDrain(Location location, long tick) {
+            this.location = location;
+            this.tick = tick;
+        }
+
+        @Override
+        public int compareTo(FluidDrain other) {
+            return Long.compare(this.tick, other.tick);
+        }
+    }
+
     private final Map<Location, BlockState> originalBlockStates =
         new HashMap<>();
     private final PriorityQueue<DelayedRollback> rollbackQueue =
         new PriorityQueue<>();
+    // The single live queue entry per location. Any other entry sitting in
+    // rollbackQueue is stale (rescheduled or already finished) and is skipped.
+    private final Map<Location, DelayedRollback> queuedRollbacks =
+        new HashMap<>();
+    // Liquid that should not exist (player-placed, or flowed into a spot that
+    // was not liquid originally) gets drained after foreignFluidLifetimeTicks.
+    private final PriorityQueue<FluidDrain> drainQueue = new PriorityQueue<>();
+    private final Set<Location> pendingDrains = new HashSet<>();
     private final Map<UUID, Integer> regenSuffocationTicks = new HashMap<>();
 
     private long currentTick = 0;
@@ -105,6 +132,9 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
     protected int blocksPerTick = 25;
     protected long minDelayTicks = 100;
     protected long maxDelayTicks = 200;
+
+    /** How long liquid that isn't part of the map is allowed to exist. */
+    protected long foreignFluidLifetimeTicks = 60;
 
     @Override
     public void onCreate() {
@@ -117,6 +147,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
         currentTick++;
 
         processRegenSuffocation();
+        processFluidDrains();
 
         int restoredThisTick = 0;
         int maxAttempts = rollbackQueue.size();
@@ -128,9 +159,16 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             }
             maxAttempts--;
 
+            // Superseded by a newer entry for this location (rescheduled or finished)
+            if (queuedRollbacks.get(next.location) != next) {
+                rollbackQueue.poll();
+                continue;
+            }
+
             BlockState originalState = originalBlockStates.get(next.location);
             if (originalState == null) {
                 rollbackQueue.poll();
+                queuedRollbacks.remove(next.location);
                 continue;
             }
 
@@ -164,32 +202,28 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
 
             if (blockedOnDependency && next.deferCount < 150) {
                 rollbackQueue.poll();
-                rollbackQueue.add(
-                    new DelayedRollback(
-                        next.location,
-                        currentTick + 2,
-                        next.sortOrder,
-                        next.deferCount + 1
-                    )
+                enqueue(
+                    next.location,
+                    currentTick + 2,
+                    next.sortOrder,
+                    next.deferCount + 1
                 );
                 continue;
             }
 
             if (!isFluidRelated && restoredThisTick >= blocksPerTick) {
                 rollbackQueue.poll();
-                rollbackQueue.add(
-                    new DelayedRollback(
-                        next.location,
-                        currentTick + 1,
-                        next.sortOrder,
-                        next.deferCount
-                    )
+                enqueue(
+                    next.location,
+                    currentTick + 1,
+                    next.sortOrder,
+                    next.deferCount
                 );
                 continue;
             }
 
             rollbackQueue.poll();
-            originalBlockStates.remove(next.location);
+            finishRollback(next.location);
 
             restoreBlockState(next.location, originalState);
 
@@ -292,6 +326,9 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
         }
 
         rollbackQueue.clear();
+        queuedRollbacks.clear();
+        drainQueue.clear();
+        pendingDrains.clear();
         originalBlockStates.clear();
         regenSuffocationTicks.clear();
 
@@ -334,6 +371,128 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
 
     private boolean isFluid(Material type) {
         return type == Material.WATER || type == Material.LAVA;
+    }
+
+    /** Buckets that put water or lava into the world (fish buckets place water). */
+    private boolean placesLiquid(Material bucket) {
+        return (
+            bucket.name().endsWith("_BUCKET") &&
+            bucket != Material.POWDER_SNOW_BUCKET &&
+            bucket != Material.MILK_BUCKET
+        );
+    }
+
+    private void enqueue(
+        Location loc,
+        long targetTick,
+        int sortOrder,
+        int deferCount
+    ) {
+        DelayedRollback entry = new DelayedRollback(
+            loc,
+            targetTick,
+            sortOrder,
+            deferCount
+        );
+        queuedRollbacks.put(loc, entry);
+        rollbackQueue.add(entry);
+    }
+
+    /** Forget a location without restoring it. Its old queue entry becomes stale. */
+    private void finishRollback(Location loc) {
+        originalBlockStates.remove(loc);
+        queuedRollbacks.remove(loc);
+    }
+
+    /**
+     * If this spot was liquid originally and something (a block a player placed
+     * into it) is now being removed, bring the liquid back on the next tick
+     * instead of waiting for the block's normal regen timer.
+     */
+    private void restoreLiquidSoon(Location loc) {
+        BlockState original = originalBlockStates.get(loc);
+        DelayedRollback queued = queuedRollbacks.get(loc);
+        if (
+            original == null || queued == null || !isFluid(original.getType())
+        ) return;
+
+        long soon = currentTick + 1;
+        if (queued.targetTick > soon) {
+            enqueue(loc, soon, queued.sortOrder, queued.deferCount);
+        }
+    }
+
+    private void scheduleFluidDrain(Block block) {
+        Location loc = block.getLocation();
+        if (pendingDrains.add(loc)) {
+            drainQueue.add(
+                new FluidDrain(loc, currentTick + foreignFluidLifetimeTicks)
+            );
+        }
+    }
+
+    private void processFluidDrains() {
+        while (!drainQueue.isEmpty() && drainQueue.peek().tick <= currentTick) {
+            FluidDrain drain = drainQueue.poll();
+            pendingDrains.remove(drain.location);
+            drainForeignFluid(drain.location);
+        }
+    }
+
+    /**
+     * Removes liquid from a spot that was not liquid originally. Map liquid
+     * (original is liquid) and liquid we know nothing about are left alone.
+     */
+    private void drainForeignFluid(Location loc) {
+        BlockState original = originalBlockStates.get(loc);
+        if (original == null || isFluid(original.getType())) return;
+
+        Block block = loc.getBlock();
+
+        if (isFluid(block.getType())) {
+            block.setType(Material.AIR, false);
+            // Air is what was here originally, so there is nothing left to roll back.
+            // Anything else (a crater, a washed-away torch) stays queued as before.
+            if (original.getType().isAir()) finishRollback(loc);
+            return;
+        }
+
+        // Liquid that waterlogged a block which wasn't waterlogged originally
+        if (
+            block.getBlockData() instanceof Waterlogged now &&
+            now.isWaterlogged() &&
+            original.getType() == block.getType() &&
+            original.getBlockData() instanceof Waterlogged before &&
+            !before.isWaterlogged()
+        ) {
+            now.setWaterlogged(false);
+            block.setBlockData(now, false);
+        }
+    }
+
+    /**
+     * Vanilla turns the block into air *before* the falling block entity spawns,
+     * so at spawn time the cell already reads as air. The entity still carries
+     * the block it came from, so use that as the original. Without this, any
+     * gravity block whose cell was not already recorded (for example one that
+     * regen restored and which later fell again) got "air" recorded as its
+     * original and was never restored.
+     */
+    private void recordFallingBlockOrigin(FallingBlock falling) {
+        Location at = falling.getLocation();
+        Block block = at.getBlock();
+        BlockState state = block.getState();
+        Material now = state.getType();
+
+        boolean cleared = now.isAir() || isFluid(now);
+        boolean centered =
+            Math.abs(at.getX() - (block.getX() + 0.5)) < 0.01 &&
+            Math.abs(at.getZ() - (block.getZ() + 0.5)) < 0.01;
+
+        if (cleared && centered) {
+            state.setBlockData(falling.getBlockData());
+        }
+        recordBlockAndDependents(block, state);
     }
 
     private boolean isUnsafeToUpdate(
@@ -507,12 +666,22 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
     private long calculateTargetTick(
         Block block,
         BlockState state,
-        long baseDelay
+        long baseDelay,
+        boolean blockReplacesLiquid
     ) {
         int y = block.getLocation().getBlockY();
         Material type = state.getType();
 
-        if (isFluid(type) || isFluid(block.getType())) {
+        if (isFluid(type)) {
+            // A block placed into map liquid lives like any other placed block and
+            // the liquid comes back when it goes. Anything else that disturbs map
+            // liquid (buckets, sponges, flow, decay) is undone right away.
+            return blockReplacesLiquid
+                ? currentTick + baseDelay + y * 2L
+                : currentTick + 1;
+        }
+
+        if (isFluid(block.getType())) {
             return currentTick + 1;
         }
 
@@ -558,6 +727,25 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
         BlockState initialOriginalState,
         Map<Block, BlockState> knownOriginals
     ) {
+        recordBlockAndDependents(
+            initialBlock,
+            initialOriginalState,
+            knownOriginals,
+            false
+        );
+    }
+
+    /**
+     * @param blockReplacesLiquid true when a solid block is being put into a spot
+     *     that holds liquid (placement, a falling block landing). The liquid is
+     *     then restored when that block goes away rather than on the next tick.
+     */
+    private void recordBlockAndDependents(
+        Block initialBlock,
+        BlockState initialOriginalState,
+        Map<Block, BlockState> knownOriginals,
+        boolean blockReplacesLiquid
+    ) {
         if (
             this.world == null || !initialBlock.getWorld().equals(this.world)
         ) return;
@@ -602,7 +790,8 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
                 long targetTick = calculateTargetTick(
                     current,
                     stateToSave,
-                    baseDelay
+                    baseDelay,
+                    blockReplacesLiquid
                 );
                 if (targetTick == -1) continue;
                 int sortOrder;
@@ -628,9 +817,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
                     }
                 }
 
-                rollbackQueue.add(
-                    new DelayedRollback(loc, targetTick, sortOrder, 0)
-                );
+                enqueue(loc, targetTick, sortOrder, 0);
             }
 
             for (Block neighbor : findConnectedDependents(current)) {
@@ -736,6 +923,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             !event.getBlock().getWorld().equals(this.world)
         ) return;
         recordBlockAndDependents(event.getBlock(), event.getBlock().getState());
+        restoreLiquidSoon(event.getBlock().getLocation());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -761,7 +949,8 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
         recordBlockAndDependents(
             placed,
             event.getBlockReplacedState(),
-            originals
+            originals,
+            true
         );
     }
 
@@ -771,8 +960,10 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             this.world == null ||
             !event.getLocation().getWorld().equals(this.world)
         ) return;
-        for (Block block : event.blockList())
+        for (Block block : event.blockList()) {
             recordBlockAndDependents(block, block.getState());
+            restoreLiquidSoon(block.getLocation());
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -781,8 +972,10 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             this.world == null ||
             !event.getBlock().getWorld().equals(this.world)
         ) return;
-        for (Block block : event.blockList())
+        for (Block block : event.blockList()) {
             recordBlockAndDependents(block, block.getState());
+            restoreLiquidSoon(block.getLocation());
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -792,6 +985,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             !event.getBlock().getWorld().equals(this.world)
         ) return;
         recordBlockAndDependents(event.getBlock(), event.getBlock().getState());
+        restoreLiquidSoon(event.getBlock().getLocation());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -800,10 +994,10 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             this.world == null ||
             !event.getBlock().getWorld().equals(this.world)
         ) return;
-        recordBlockAndDependents(
-            event.getToBlock(),
-            event.getToBlock().getState()
-        );
+        Block to = event.getToBlock();
+        recordBlockAndDependents(to, to.getState());
+        // Liquid is about to occupy this spot; make sure it doesn't stay long
+        if (isFluid(event.getBlock().getType())) scheduleFluidDrain(to);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -812,10 +1006,8 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             this.world == null ||
             !event.getLocation().getWorld().equals(this.world)
         ) return;
-        if (event.getEntityType() == EntityType.FALLING_BLOCK) {
-            FallingBlock fallingBlock = (FallingBlock) event.getEntity();
-            Block block = fallingBlock.getLocation().getBlock();
-            recordBlockAndDependents(block, block.getState());
+        if (event.getEntity() instanceof FallingBlock fallingBlock) {
+            recordFallingBlockOrigin(fallingBlock);
         }
     }
 
@@ -831,7 +1023,9 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
         ) {
             recordBlockAndDependents(
                 event.getBlock(),
-                event.getBlock().getState()
+                event.getBlock().getState(),
+                Map.of(),
+                true
             );
         }
     }
@@ -843,6 +1037,9 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             !event.getBlock().getWorld().equals(this.world)
         ) return;
         recordBlockAndDependents(event.getBlock(), event.getBlock().getState());
+        if (placesLiquid(event.getBucket())) scheduleFluidDrain(
+            event.getBlock()
+        );
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -879,6 +1076,11 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
         }
 
         recordBlockAndDependents(event.getBlock(), event.getBlock().getState());
+
+        // Ice melting into water
+        if (isFluid(event.getNewState().getType())) scheduleFluidDrain(
+            event.getBlock()
+        );
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -904,6 +1106,47 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
         ) return;
         for (BlockState state : event.getBlocks())
             recordBlockAndDependents(state.getBlock(), state);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onDispense(BlockDispenseEvent event) {
+        Block dispenser = event.getBlock();
+        if (
+            this.world == null || !dispenser.getWorld().equals(this.world)
+        ) return;
+        if (!placesLiquid(event.getItem().getType())) return;
+        if (!(dispenser.getBlockData() instanceof Directional directional)) {
+            return;
+        }
+
+        Block target = dispenser.getRelative(directional.getFacing());
+        if (target.getType().isSolid()) return; // can't be emptied here
+
+        recordBlockAndDependents(target, target.getState());
+        scheduleFluidDrain(target);
+    }
+
+    /**
+     * Liquid that disappears or decays without any block event. If nothing
+     * records it, the spot reads as air by the time something else does, and
+     * the "original" saved there is wrong, so the liquid never comes back.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onFluidLevelChange(FluidLevelChangeEvent event) {
+        Block block = event.getBlock();
+        if (this.world == null || !block.getWorld().equals(this.world)) return;
+        if (!isFluid(block.getType())) return;
+        if (isFluid(event.getNewData().getMaterial())) return; // just a level change
+
+        Location loc = block.getLocation();
+        BlockState original = originalBlockStates.get(loc);
+        if (original != null) {
+            // Liquid that wasn't originally here is going away by itself;
+            // if air was underneath, nothing is left to roll back.
+            if (original.getType().isAir()) finishRollback(loc);
+            return;
+        }
+        recordBlockAndDependents(block, block.getState());
     }
 
     protected int fluidFlowMinY = Integer.MIN_VALUE;

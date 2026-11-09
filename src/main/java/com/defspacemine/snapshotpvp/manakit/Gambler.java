@@ -450,12 +450,16 @@ public class Gambler extends ManaKit {
             zombie.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, card * 2, 0));
 
             new BukkitRunnable() {
+                int ticks = card + card / 2;
                 @Override
                 public void run() {
-                    if (zombie != null && !zombie.isDead())
+                    ticks--;
+                    if ((ticks <= 0 || p.isDead()) && zombie != null && !zombie.isDead()) {
                         zombie.remove();
+                        cancel();
+                    }
                 }
-            }.runTaskLater(SnapshotPvpPlugin.instance, card * 2);
+            }.runTaskTimer(SnapshotPvpPlugin.instance, 0, 1);
         }
     }
 
