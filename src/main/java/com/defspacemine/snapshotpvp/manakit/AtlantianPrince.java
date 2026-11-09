@@ -172,7 +172,9 @@ public class AtlantianPrince extends ManaKit implements Listener {
         for (int x = -radius; x <= radius; x++) {
             for (int z = -radius; z <= radius; z++) {
                 Block b = center.clone().add(x, 0, z).getBlock();
-                if (b.getType() != Material.WATER && b.getType() == Material.AIR) {
+                if (
+                    b.getType() != Material.WATER && b.getType() == Material.AIR
+                ) {
                     b.setType(Material.WATER);
                     floodedBlocks.add(b);
                 }
