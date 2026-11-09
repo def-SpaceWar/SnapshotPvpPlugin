@@ -162,9 +162,6 @@ public class AtlantianPrince extends ManaKit implements Listener {
         int radius = 6; // Radius of the temporary flood area
 
         playAbilityFeedback(p);
-        p.sendMessage(
-            ChatColor.AQUA + "" + ChatColor.BOLD + ">> ROYAL FLOOD ACTIVATED!"
-        );
 
         List<Block> floodedBlocks = new ArrayList<>();
 
