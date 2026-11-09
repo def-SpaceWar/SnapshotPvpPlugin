@@ -83,11 +83,24 @@ public class MannequinFighter {
     // Held back for this many attack cooldowns: the next hit gets bonus reach
     private static final int CHARGED_REACH_COOLDOWNS = 2;
     private static final double CHARGED_REACH_BONUS = 1.0;
-    // Reach shifts with our own velocity toward the target: charging in extends it,
-    // being knocked back shrinks it (reach change = velocity in blocks/tick * this)
-    private static final double VELOCITY_REACH_TICKS = 2.0;
-    private static final double MAX_VELOCITY_REACH_BONUS = 1.0;
-    private static final double MAX_VELOCITY_REACH_PENALTY = 1.5;
+    // Reach shifts with our own movement toward the target, like a real player's does
+    // once latency and interpolation are involved: effective reach = reach + speed
+    // toward the target (blocks/tick) * this many ticks (~200ms). Deliberately NOT
+    // capped, so a sprinting chaser can keep a combo going and a knocked-back
+    // fighter really can't swing back until the knockback wears off.
+    private static final double VELOCITY_REACH_TICKS = 4.0;
+    // A missed swing costs this many EXTRA ticks on top of the normal attack cooldown
+    private static final int ATTACK_MISS_PENALTY_TICKS = 4;
+    // The AI swings once per this many "full charge" times. 2 = the 200% charged time,
+    // which is what the original `ceil(20 / attackSpeed) * 2` worked out to.
+    private static final int ATTACK_CADENCE_MULTIPLIER = 2;
+    // Combat Test knockback: the vertical part is capped at this, and applies in the air too
+    private static final double CT_KNOCKBACK_VERTICAL_CAP = 0.4;
+
+    // ---- combos
+    private static final int COMBO_WINDOW_EXTRA_TICKS = 20; // keeps chasing this long past one swing cooldown
+    private static final double COMBO_LEAD_TICKS = 2.0; // aim this far ahead of a launched target
+    private static final double COMBO_JUMP_HEIGHT = 0.9; // jump after a target that's this far above us
     private static final double DEFAULT_ATTACK_SPEED = 4.0;
     private static final double DEFAULT_ATTACK_DAMAGE = 2.0;
 
@@ -191,8 +204,14 @@ public class MannequinFighter {
     private static final int ROUTE_MAX_SAMPLES = 48;
     private static final double[] ROUTE_WIDTH_SAMPLES = { -0.28, 0.0, 0.28 };
     private static final int[][] PATH_DIRS = {
-        { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 },
-        { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 },
+        { 1, 0 },
+        { -1, 0 },
+        { 0, 1 },
+        { 0, -1 },
+        { 1, 1 },
+        { 1, -1 },
+        { -1, 1 },
+        { -1, -1 },
     };
 
     /**
@@ -202,15 +221,66 @@ public class MannequinFighter {
      * bow / crossbow aim wobbles, is released more sloppily, is spread wider and
      * leads moving targets less. Movement is also a little less smart: it re-decides
      * what to press less often, attempts shorter gap jumps, hops for crits less, takes
-     * longer to get unstuck and searches shorter detours around obstacles.
+     * longer to get unstuck and searches shorter detours around obstacles. It also
+     * follows up a landed hit with a combo less often.
      */
     public enum Difficulty {
         //   approach range   melee miss   aim turn   arrow    arrow   archer     aim      release     move     gap     crit hop   unstick   path
         //   (x reach)        chance       speed      spread   lead    back-off   wobble   tolerance   delay    scale   chance     scale     search
         //                                                                         (deg)    (deg)       (ticks)
-        EASY(0.50, 0.70, 0.25, 0.6, 6.0, 0.4, 0.5, 4.0, 10.0, 4, 0.5, 0.25, 2.0, 0.3),
-        MEDIUM(0.65, 0.80, 0.10, 0.8, 3.0, 0.7, 0.75, 2.0, 8.0, 2, 0.75, 0.50, 1.4, 0.6),
-        HARD(0.85, 0.85, 0.00, 1.0, 1.0, 1.0, 1.0, 0.0, 6.0, 1, 1.0, 0.70, 1.0, 1.0);
+        //                                                                                                                                       combo
+        //                                                                                                                                       follow-up
+        EASY(
+            0.50,
+            0.70,
+            0.25,
+            0.6,
+            6.0,
+            0.4,
+            0.5,
+            4.0,
+            10.0,
+            4,
+            0.5,
+            0.25,
+            2.0,
+            0.3,
+            0.30
+        ),
+        MEDIUM(
+            0.65,
+            0.80,
+            0.10,
+            0.8,
+            3.0,
+            0.7,
+            0.75,
+            2.0,
+            8.0,
+            2,
+            0.75,
+            0.50,
+            1.4,
+            0.6,
+            0.65
+        ),
+        HARD(
+            0.85,
+            0.85,
+            0.00,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            6.0,
+            1,
+            1.0,
+            0.70,
+            1.0,
+            1.0,
+            1.00
+        );
 
         final double approachMin;
         final double approachMax;
@@ -226,6 +296,7 @@ public class MannequinFighter {
         final double critHopChance;
         final double stuckScale;
         final double pathScale;
+        final double comboFollowUp;
 
         Difficulty(
             double approachMin,
@@ -241,7 +312,8 @@ public class MannequinFighter {
             double gapScale,
             double critHopChance,
             double stuckScale,
-            double pathScale
+            double pathScale,
+            double comboFollowUp
         ) {
             this.approachMin = approachMin;
             this.approachMax = approachMax;
@@ -257,6 +329,7 @@ public class MannequinFighter {
             this.critHopChance = critHopChance;
             this.stuckScale = stuckScale;
             this.pathScale = pathScale;
+            this.comboFollowUp = comboFollowUp;
         }
     }
 
@@ -286,6 +359,13 @@ public class MannequinFighter {
     private int sprintResetTicks = 0;
     private boolean hopForCrit = false;
     private int critWaitTicks = 0;
+
+    // combo state + actual per-tick movement (used for the velocity-dependent reach)
+    private int comboTicks = 0;
+    private int comboHits = 0;
+    private boolean hasPrevPos = false;
+    private double prevX, prevZ;
+    private double dispX, dispZ;
     private int ticksSinceFluid = 1000;
 
     private RangedWeapon rangedMode = RangedWeapon.NONE;
@@ -336,7 +416,8 @@ public class MannequinFighter {
     private Vector pathSearchGoal;
     private double pathStartX, pathStartZ;
     // block collision shapes are cached only while a search is running
-    private final Map<Long, Collection<BoundingBox>> shapeCache = new HashMap<>();
+    private final Map<Long, Collection<BoundingBox>> shapeCache =
+        new HashMap<>();
     private boolean cacheShapes = false;
 
     /** Full-strength bot (HARD). */
@@ -392,6 +473,8 @@ public class MannequinFighter {
                 if (attackCooldownTicks > 0) attackCooldownTicks--;
                 ticksSinceAttack = Math.min(ticksSinceAttack + 1, 100_000);
                 if (jumpCooldown > 0) jumpCooldown--;
+                if (comboTicks > 0 && --comboTicks == 0) comboHits = 0;
+                updateMotionTracking();
                 if (sprintResetTicks > 0) sprintResetTicks--;
                 if (mannequin.isInWater() || mannequin.isInLava()) {
                     ticksSinceFluid = 0;
@@ -430,7 +513,7 @@ public class MannequinFighter {
         // Reach also follows our own velocity: running into someone extends it, and
         // being knocked back shrinks it, so combos are hard to swing out of
         double attackReach = Math.max(
-            0.5,
+            0.0,
             reach +
                 (hasChargedReach() ? CHARGED_REACH_BONUS : 0.0) +
                 velocityReachBonus(target)
@@ -442,6 +525,12 @@ public class MannequinFighter {
         trackTargetVelocity(target);
 
         Vector aimPoint = target.getBoundingBox().getCenter();
+        // Mid-combo the target is flying away: aim where it's going, not where it was
+        if (comboTicks > 0 && rangedMode == RangedWeapon.NONE) {
+            aimPoint = aimPoint
+                .clone()
+                .add(targetVel.clone().multiply(COMBO_LEAD_TICKS));
+        }
         if (rangedMode != RangedWeapon.NONE) {
             Vector solved = rangedAimPoint(target);
             aimSolved = solved != null;
@@ -476,6 +565,7 @@ public class MannequinFighter {
         // Hopping for a crit: hold the swing until we're actually falling
         if (
             ready &&
+            comboTicks <= 0 &&
             hopForCrit &&
             !isCriticalHit() &&
             ticksSinceFluid >= CRIT_FLUID_GRACE_TICKS &&
@@ -486,19 +576,24 @@ public class MannequinFighter {
         }
 
         if (ready) {
-            if (rollsMiss(aimError)) {
-                // Whiffed: the swing animation plays and the cooldown is spent,
-                // but no damage or knockback is dealt
+            boolean missed = rollsMiss(aimError);
+            if (missed) {
+                // Whiffed: the swing animation plays, but no damage or knockback is dealt
                 mannequin.swingMainHand();
             } else {
                 performAttack(target);
+                startCombo();
             }
-            attackCooldownTicks = getAttackCooldownTicks();
+            // A miss costs 4 extra ticks on top of the normal attack cooldown
+            attackCooldownTicks =
+                getAttackCooldownTicks() +
+                (missed ? ATTACK_MISS_PENALTY_TICKS : 0);
             critWaitTicks = 0;
             ticksSinceAttack = 0;
             hopForCrit =
                 critHopWorthIt() &&
-                ThreadLocalRandom.current().nextDouble() < difficulty.critHopChance;
+                ThreadLocalRandom.current().nextDouble() <
+                    difficulty.critHopChance;
             approachFactor = rollApproachFactor();
         }
     }
@@ -536,6 +631,7 @@ public class MannequinFighter {
             .build();
 
         Vector velBefore = victim.getVelocity();
+        boolean victimAirborne = !victim.isOnGround();
         double before = victim.getHealth() + victim.getAbsorptionAmount();
         victim.damage(calculateDamage(crit), source);
         double after = victim.getHealth() + victim.getAbsorptionAmount();
@@ -549,7 +645,15 @@ public class MannequinFighter {
 
         if (crit) {
             world.playSound(hitPoint, Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
-            world.spawnParticle(Particle.CRIT, hitPoint, 15, 0.3, 0.3, 0.3, 0.2);
+            world.spawnParticle(
+                Particle.CRIT,
+                hitPoint,
+                15,
+                0.3,
+                0.3,
+                0.3,
+                0.2
+            );
         }
 
         // Vanilla shows the enchanted-hit sparkles whenever an enchantment added damage
@@ -587,15 +691,13 @@ public class MannequinFighter {
             getAttributeValue(Attribute.ATTACK_KNOCKBACK, 0.0) +
             getKnockbackEnchantLevel() +
             (sprintHit ? 1 : 0);
-        if (level <= 0) return;
+        if (level <= 0) {
+            applyMidairLift(victim, victimAirborne, velBefore.getY(), 0.0);
+            return;
+        }
 
         if (sprintHit) {
-            world.playSound(
-                from,
-                Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK,
-                1f,
-                1f
-            );
+            world.playSound(from, Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK, 1f, 1f);
         }
 
         double yaw = Math.toRadians(from.getYaw());
@@ -603,6 +705,12 @@ public class MannequinFighter {
             level * KNOCKBACK_PER_LEVEL,
             Math.sin(yaw),
             -Math.cos(yaw)
+        );
+        applyMidairLift(
+            victim,
+            victimAirborne,
+            velBefore.getY(),
+            level * KNOCKBACK_PER_LEVEL
         );
 
         // Vanilla: any extra-knockback hit costs the attacker 40% of its horizontal
@@ -658,11 +766,35 @@ public class MannequinFighter {
         );
     }
 
+    /** Tracks how far we actually moved last tick (teleports are ignored). */
+    private void updateMotionTracking() {
+        Location loc = mannequin.getLocation();
+        if (hasPrevPos) {
+            double dx = loc.getX() - prevX;
+            double dz = loc.getZ() - prevZ;
+            if (Math.hypot(dx, dz) < 3.0) {
+                dispX = dx;
+                dispZ = dz;
+            } else {
+                dispX = 0;
+                dispZ = 0;
+            }
+        }
+        prevX = loc.getX();
+        prevZ = loc.getZ();
+        hasPrevPos = true;
+    }
+
     /**
-     * Reach shifts with our own velocity along the line to the target, like a
-     * player's does: running into someone extends it (so charging in starts combos),
-     * while being knocked back shrinks it by about the same amount (so a combo is
-     * hard to swing out of).
+     * Reach follows our own movement along the line to the target, the way a real
+     * player's effectively does: effective reach = reach + closing speed * ~4 ticks of
+     * latency. Not capped:
+     *  - sprinting at someone extends it (rewarding running in to start a combo, and
+     *    keeping a chase going once the target is launched),
+     *  - being knocked back shrinks it by the same formula, so while the knockback is
+     *    carrying us away we can't swing back (which is what makes us combo-able).
+     * Actual movement is used because the entity's velocity is measured after friction
+     * and understates a sprint by ~45%; velocity is only used to see knockback early.
      */
     private double velocityReachBonus(LivingEntity target) {
         Location from = mannequin.getLocation();
@@ -671,14 +803,80 @@ public class MannequinFighter {
         double dz = to.getZ() - from.getZ();
         double len = Math.hypot(dx, dz);
         if (len < 1.0E-4) return 0;
+        double ux = dx / len;
+        double uz = dz / len;
 
+        double alongMoved = dispX * ux + dispZ * uz; // blocks actually moved toward the target last tick
         Vector vel = mannequin.getVelocity();
-        double along = (vel.getX() * dx + vel.getZ() * dz) / len; // blocks/tick toward the target
-        double bonus = along * VELOCITY_REACH_TICKS;
-        return Math.max(
-            -MAX_VELOCITY_REACH_PENALTY,
-            Math.min(MAX_VELOCITY_REACH_BONUS, bonus)
+        double alongVel = vel.getX() * ux + vel.getZ() * uz; // about to move; knockback shows up here first
+        double along =
+            alongVel < 0 ? Math.min(alongMoved, alongVel) : alongMoved;
+
+        return along * VELOCITY_REACH_TICKS;
+    }
+
+    /** A landed hit starts (or extends) a combo window, if the difficulty "sees" the follow-up. */
+    private void startCombo() {
+        if (comboTicks > 0) comboHits++;
+        else comboHits = 1;
+
+        comboTicks =
+            ThreadLocalRandom.current().nextDouble() < difficulty.comboFollowUp
+                ? getAttackCooldownTicks() + COMBO_WINDOW_EXTRA_TICKS
+                : 0;
+    }
+
+    /** Mid-combo the victim is launched upward: jump after it so the follow-up still connects. */
+    private boolean shouldComboJump(
+        LivingEntity target,
+        double distance,
+        double reach
+    ) {
+        return (
+            comboTicks > 0 &&
+            rangedMode == RangedWeapon.NONE &&
+            target.getLocation().getY() >
+                mannequin.getLocation().getY() + COMBO_JUMP_HEIGHT &&
+            distance <= reach + 2.0
         );
+    }
+
+    /**
+     * Combat Test knockback: unlike vanilla, a victim that's in the air is still pushed
+     * UP. Vanilla only adds the vertical part when the victim is on the ground
+     * (y = min(0.4, y / 2 + strength)); this applies that same formula to airborne
+     * victims too, once for the base hit and once more for any extra knockback.
+     */
+    private void applyMidairLift(
+        LivingEntity victim,
+        boolean wasAirborne,
+        double velYBefore,
+        double extraStrength
+    ) {
+        if (!wasAirborne) return;
+
+        AttributeInstance resistAttr = victim.getAttribute(
+            Attribute.KNOCKBACK_RESISTANCE
+        );
+        double resist =
+            1.0 - (resistAttr == null ? 0.0 : resistAttr.getValue());
+        resist = Math.max(0.0, Math.min(1.0, resist));
+        if (resist <= 0) return;
+
+        double y = Math.min(
+            CT_KNOCKBACK_VERTICAL_CAP,
+            velYBefore / 2.0 + BASE_KNOCKBACK * resist
+        );
+        if (extraStrength > 0) {
+            y = Math.min(
+                CT_KNOCKBACK_VERTICAL_CAP,
+                y / 2.0 + extraStrength * resist
+            );
+        }
+
+        Vector v = victim.getVelocity();
+        v.setY(y);
+        victim.setVelocity(v);
     }
 
     /**
@@ -729,6 +927,7 @@ public class MannequinFighter {
     private boolean shouldCritHop(double distance, double reach) {
         return (
             rangedMode == RangedWeapon.NONE &&
+            comboTicks <= 0 &&
             hopForCrit &&
             attackCooldownTicks <= CRIT_HOP_LEAD_TICKS &&
             distance <= reach + CRIT_HOP_RANGE
@@ -768,13 +967,27 @@ public class MannequinFighter {
             .getEnchantmentLevel(Enchantment.SHARPNESS);
     }
 
-    private int getAttackCooldownTicks() {
+    /**
+     * Ticks until a fully charged swing is available, using vanilla / Combat Test timing:
+     * the charge takes T = 20 / attackSpeed ticks and a swing is allowed once
+     * (ticks + 0.5) / T >= 1, i.e. ceil(T - 0.5) ticks after the last one.
+     */
+    private int getFullChargeTicks() {
         double attackSpeed = getAttributeValue(
             Attribute.ATTACK_SPEED,
             DEFAULT_ATTACK_SPEED
         );
-        if (attackSpeed <= 0) return 20;
-        return Math.max(1, (int) Math.ceil(20.0 / attackSpeed)) * 2;
+        if (attackSpeed <= 0) return 10;
+        return Math.max(1, (int) Math.ceil(20.0 / attackSpeed - 0.5));
+    }
+
+    /**
+     * How often the AI swings: the 200% "charged" time (ATTACK_CADENCE_MULTIPLIER full
+     * charges). That's what the old `ceil(20 / attackSpeed) * 2` effectively was, and
+     * this lands within a tick or two of it.
+     */
+    private int getAttackCooldownTicks() {
+        return getFullChargeTicks() * ATTACK_CADENCE_MULTIPLIER;
     }
 
     /**
@@ -860,9 +1073,10 @@ public class MannequinFighter {
         if (main == RangedWeapon.NONE && off != RangedWeapon.NONE) {
             hybrid = true;
             rangedHand = EquipmentSlot.OFF_HAND;
-            boolean shooting = rangedMode != RangedWeapon.NONE
-                ? distance > HYBRID_MELEE_DISTANCE
-                : distance > HYBRID_RANGED_DISTANCE;
+            boolean shooting =
+                rangedMode != RangedWeapon.NONE
+                    ? distance > HYBRID_MELEE_DISTANCE
+                    : distance > HYBRID_RANGED_DISTANCE;
             rangedMode = shooting ? off : RangedWeapon.NONE;
         } else if (main != RangedWeapon.NONE) {
             hybrid = false;
@@ -935,7 +1149,9 @@ public class MannequinFighter {
         ItemStack held = getRangedItem();
 
         double speed = getArrowSpeed(weapon);
-        Vector look = applyInaccuracy(mannequin.getEyeLocation().getDirection());
+        Vector look = applyInaccuracy(
+            mannequin.getEyeLocation().getDirection()
+        );
         boolean multishot =
             weapon == RangedWeapon.CROSSBOW &&
             held.getEnchantmentLevel(Enchantment.MULTISHOT) > 0;
@@ -961,7 +1177,11 @@ public class MannequinFighter {
             );
     }
 
-    private void launchArrow(RangedWeapon weapon, ItemStack held, Vector velocity) {
+    private void launchArrow(
+        RangedWeapon weapon,
+        ItemStack held,
+        Vector velocity
+    ) {
         Arrow arrow = mannequin.launchProjectile(Arrow.class, velocity);
         arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
         // We only release at full draw, and crossbow arrows are always critical
@@ -1048,7 +1268,8 @@ public class MannequinFighter {
         double len = to.length();
         if (len < 1.0E-6) return point;
 
-        double yaw = Math.atan2(-to.getX(), to.getZ()) + Math.toRadians(wobbleYaw);
+        double yaw =
+            Math.atan2(-to.getX(), to.getZ()) + Math.toRadians(wobbleYaw);
         double pitch =
             Math.asin(Math.max(-1.0, Math.min(1.0, to.getY() / len))) +
             Math.toRadians(wobblePitch);
@@ -1091,7 +1312,11 @@ public class MannequinFighter {
     }
 
     /** Height of an arrow launched at this pitch when it has travelled `horizontal` blocks. */
-    private double arrowHeightAt(double horizontal, double pitch, double speed) {
+    private double arrowHeightAt(
+        double horizontal,
+        double pitch,
+        double speed
+    ) {
         double vx = speed * Math.cos(pitch);
         double vy = speed * Math.sin(pitch);
         double x = 0;
@@ -1179,10 +1404,14 @@ public class MannequinFighter {
     private void steer(LivingEntity target, double reach, double distance) {
         updateStuckDetection();
 
+        // Mid-combo: stay on the target, no spacing games
+        boolean combo = comboTicks > 0 && rangedMode == RangedWeapon.NONE;
+
         boolean approachWanted =
-            rangedMode != RangedWeapon.NONE
-                ? (!targetVisible || distance > RANGED_APPROACH_DISTANCE)
-                : distance > reach * approachFactor;
+            combo ||
+            (rangedMode != RangedWeapon.NONE
+                ? !targetVisible || distance > RANGED_APPROACH_DISTANCE
+                : distance > reach * approachFactor);
         updateNavigation(target, approachWanted);
 
         double forward = 0;
@@ -1190,7 +1419,7 @@ public class MannequinFighter {
         boolean sprint = false;
 
         // Lower difficulties only re-decide what to press every few ticks
-        boolean redecide = decisionCooldown <= 0;
+        boolean redecide = combo || decisionCooldown <= 0;
         if (redecide) decisionCooldown = difficulty.movementDelayTicks;
         decisionCooldown--;
 
@@ -1204,6 +1433,10 @@ public class MannequinFighter {
             forward = heldForward;
             strafe = heldStrafe;
             sprint = heldSprint;
+        } else if (combo) {
+            // Chase the launched target flat out, sprinting (it re-sprints after each hit's w-tap)
+            forward = distance < reach * BACK_OFF_FACTOR ? 0 : 1;
+            sprint = forward > 0;
         } else if (rangedMode != RangedWeapon.NONE) {
             // Archer: hold a distance, strafe while shooting, close in when it
             // can't see the target or the target is too far to shoot
@@ -1282,9 +1515,10 @@ public class MannequinFighter {
                 } else if (
                     plan == Plan.WALK &&
                     jumpCooldown <= 0 &&
-                    shouldCritHop(distance, reach)
+                    (shouldCritHop(distance, reach) ||
+                        shouldComboJump(target, distance, reach))
                 ) {
-                    jump = true; // hop so the swing lands as a crit
+                    jump = true; // hop for a crit, or to follow a launched target
                 }
             }
         }
@@ -1870,7 +2104,7 @@ public class MannequinFighter {
             pathAge > PATH_REPLAN_TICKS ||
             (pathGoal != null &&
                 pathGoal.distanceSquared(goal) >
-                PATH_GOAL_DRIFT * PATH_GOAL_DRIFT);
+                    PATH_GOAL_DRIFT * PATH_GOAL_DRIFT);
         if (stale && !pathSearching && pathFailCooldown <= 0) {
             startPathSearch(goal);
         }
@@ -1918,7 +2152,11 @@ public class MannequinFighter {
     private Vector pathLookPoint() {
         if (path == null || pathIndex >= path.size()) return null;
         Vector wp = path.get(pathIndex);
-        return new Vector(wp.getX(), mannequin.getEyeLocation().getY(), wp.getZ());
+        return new Vector(
+            wp.getX(),
+            mannequin.getEyeLocation().getY(),
+            wp.getZ()
+        );
     }
 
     private void startPathSearch(Vector goal) {
@@ -1951,7 +2189,8 @@ public class MannequinFighter {
     private void stepPathSearch() {
         cacheShapes = true;
         try {
-            int maxExpansions = (int) (PATH_MAX_EXPANSIONS * difficulty.pathScale);
+            int maxExpansions = (int) (PATH_MAX_EXPANSIONS *
+                difficulty.pathScale);
             for (int budget = PATH_EXPANSIONS_PER_TICK; budget > 0; budget--) {
                 PathNode node = pathOpen.poll();
                 if (node == null || pathExpansions >= maxExpansions) {
@@ -2049,7 +2288,10 @@ public class MannequinFighter {
 
     private void expandPathNode(PathNode n) {
         double height = mannequin.getHeight();
-        double step = getAttributeValue(Attribute.STEP_HEIGHT, DEFAULT_STEP_HEIGHT);
+        double step = getAttributeValue(
+            Attribute.STEP_HEIGHT,
+            DEFAULT_STEP_HEIGHT
+        );
         double jumpHeight = getMaxJumpHeight();
 
         for (int[] d : PATH_DIRS) {
@@ -2083,7 +2325,14 @@ public class MannequinFighter {
                 ) continue;
             }
 
-            double floor = columnFloor(nx, nz, n.feetY, jumpHeight, SAFE_DROP, height);
+            double floor = columnFloor(
+                nx,
+                nz,
+                n.feetY,
+                jumpHeight,
+                SAFE_DROP,
+                height
+            );
             if (Double.isNaN(floor)) continue;
             double rise = floor - n.feetY;
 
@@ -2166,7 +2415,8 @@ public class MannequinFighter {
             .getType();
 
         boolean badFeet = switch (feet) {
-            case LAVA,
+            case
+                LAVA,
                 WATER,
                 FIRE,
                 SOUL_FIRE,
@@ -2213,7 +2463,12 @@ public class MannequinFighter {
             double x = from.getX() + ux * d;
             double z = from.getZ() + uz * d;
 
-            double floor = standY(x, z, feetY + jumpHeight + EPS, feetY - SAFE_DROP);
+            double floor = standY(
+                x,
+                z,
+                feetY + jumpHeight + EPS,
+                feetY - SAFE_DROP
+            );
             if (Double.isNaN(floor)) return false;
 
             for (double lateral : ROUTE_WIDTH_SAMPLES) {
