@@ -63,7 +63,12 @@ public abstract class ManaKit {
 
     public void onLeaveCombat(Player p) {}
 
-    public void onDamageInWorld(Player p, Player attacker, Entity victim, EntityDamageByEntityEvent e) {}
+    public void onDamageInWorld(
+        Player p,
+        Player attacker,
+        Entity victim,
+        EntityDamageByEntityEvent e
+    ) {}
 
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {}
 
@@ -106,16 +111,44 @@ public abstract class ManaKit {
 
     private Color feedbackColor() {
         return switch (id) {
-            case "atlantian_prince", "tridentite", "voodoo" -> Color.fromRGB(0x28BEDC);
-            case "berserk", "barbarian", "violence", "buckshot_viking" -> Color.fromRGB(0xDC2D2D);
-            case "colossus", "juggernaut", "shulkian", "titan" -> Color.fromRGB(0x9169CD);
-            case "frog", "jade_trio", "cactus_champion", "poacher", "slime_king" -> Color.fromRGB(0x46DC69);
-            case "icbm", "fire_in_the_hole", "incendiary", "hellbound_ronin", "headless_horseman" -> Color.fromRGB(0xFF7D23);
-            case "mercenary", "japanese_goblin", "ranger", "deadeye" -> Color.fromRGB(0xFFCD46);
+            case "atlantian_prince", "tridentite", "voodoo" -> Color.fromRGB(
+                0x28BEDC
+            );
+            case
+                "berserk",
+                "barbarian",
+                "violence",
+                "buckshot_viking" -> Color.fromRGB(0xDC2D2D);
+            case "colossus", "juggernaut", "shulkian", "titan" -> Color.fromRGB(
+                0x9169CD
+            );
+            case
+                "frog",
+                "jade_trio",
+                "cactus_champion",
+                "poacher",
+                "slime_king" -> Color.fromRGB(0x46DC69);
+            case
+                "icbm",
+                "fire_in_the_hole",
+                "incendiary",
+                "hellbound_ronin",
+                "headless_horseman" -> Color.fromRGB(0xFF7D23);
+            case
+                "mercenary",
+                "japanese_goblin",
+                "ranger",
+                "deadeye" -> Color.fromRGB(0xFFCD46);
             case "pharmacist" -> Color.fromRGB(0x50E1D2);
             case "cultist" -> Color.fromRGB(0x914BBE);
             case "light_paladin" -> Color.fromRGB(0xFFDC50);
-            case "squire", "breezy", "monk", "hacker", "engineer", "two_timer" -> Color.fromRGB(0x50AFFF);
+            case
+                "squire",
+                "breezy",
+                "monk",
+                "hacker",
+                "engineer",
+                "two_timer" -> Color.fromRGB(0x50AFFF);
             case "gambler", "thief" -> Color.fromRGB(0xFFC341);
             case "jockey" -> Color.fromRGB(0xA07346);
             case "sculk_warrior" -> Color.fromRGB(0x2DCDBE);
@@ -125,15 +158,46 @@ public abstract class ManaKit {
 
     private Sound feedbackSound() {
         return switch (id) {
-            case "atlantian_prince", "tridentite", "voodoo" -> Sound.ENTITY_DOLPHIN_SPLASH;
-            case "berserk", "barbarian", "violence", "buckshot_viking", "colossus", "juggernaut" -> Sound.ENTITY_PLAYER_ATTACK_SWEEP;
-            case "icbm", "fire_in_the_hole", "incendiary", "hellbound_ronin", "headless_horseman" -> Sound.ENTITY_FIREWORK_ROCKET_BLAST;
-            case "frog", "jade_trio", "cactus_champion", "poacher", "slime_king", "breezy" -> Sound.BLOCK_GRASS_PLACE;
+            case
+                "atlantian_prince",
+                "tridentite",
+                "voodoo" -> Sound.ENTITY_DOLPHIN_SPLASH;
+            case
+                "berserk",
+                "barbarian",
+                "violence",
+                "buckshot_viking",
+                "colossus",
+                "juggernaut" -> Sound.ENTITY_PLAYER_ATTACK_SWEEP;
+            case
+                "icbm",
+                "fire_in_the_hole",
+                "incendiary",
+                "hellbound_ronin",
+                "headless_horseman" -> Sound.ENTITY_FIREWORK_ROCKET_BLAST;
+            case
+                "frog",
+                "jade_trio",
+                "cactus_champion",
+                "poacher",
+                "slime_king",
+                "breezy" -> Sound.BLOCK_GRASS_PLACE;
             case "pharmacist" -> Sound.BLOCK_BREWING_STAND_BREW;
             case "cultist" -> Sound.BLOCK_AMETHYST_BLOCK_CHIME;
-            case "mercenary", "japanese_goblin", "ranger", "deadeye", "shulkian" -> Sound.ENTITY_ARROW_HIT_PLAYER;
+            case
+                "mercenary",
+                "japanese_goblin",
+                "ranger",
+                "deadeye",
+                "shulkian" -> Sound.ENTITY_ARROW_HIT_PLAYER;
             case "sculk_warrior" -> Sound.ENTITY_WARDEN_HEARTBEAT;
-            case "hacker", "engineer", "two_timer", "gambler", "thief", "monk" -> Sound.BLOCK_AMETHYST_BLOCK_CHIME;
+            case
+                "hacker",
+                "engineer",
+                "two_timer",
+                "gambler",
+                "thief",
+                "monk" -> Sound.BLOCK_AMETHYST_BLOCK_CHIME;
             case "jockey" -> Sound.ENTITY_HORSE_AMBIENT;
             case "squire", "light_paladin" -> Sound.ENTITY_PLAYER_LEVELUP;
             case "titan" -> Sound.BLOCK_AMETHYST_BLOCK_CHIME;
@@ -144,8 +208,19 @@ public abstract class ManaKit {
     private float feedbackPitch() {
         return switch (id) {
             case "atlantian_prince", "tridentite", "voodoo" -> 1.2f;
-            case "berserk", "barbarian", "violence", "buckshot_viking", "colossus", "juggernaut" -> 0.8f;
-            case "icbm", "fire_in_the_hole", "incendiary", "hellbound_ronin", "headless_horseman" -> 0.9f;
+            case
+                "berserk",
+                "barbarian",
+                "violence",
+                "buckshot_viking",
+                "colossus",
+                "juggernaut" -> 0.8f;
+            case
+                "icbm",
+                "fire_in_the_hole",
+                "incendiary",
+                "hellbound_ronin",
+                "headless_horseman" -> 0.9f;
             default -> 1.0f;
         };
     }
