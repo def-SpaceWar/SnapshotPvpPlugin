@@ -114,8 +114,8 @@ public abstract class ManaKit {
             case "mercenary", "japanese_goblin", "ranger", "deadeye" -> Color.fromRGB(0xFFCD46);
             case "pharmacist" -> Color.fromRGB(0x50E1D2);
             case "cultist" -> Color.fromRGB(0x914BBE);
-            case "light_paladin", "squire" -> Color.fromRGB(0xFFDC50);
-            case "breezy", "monk", "hacker", "engineer", "two_timer" -> Color.fromRGB(0x50AFFF);
+            case "light_paladin" -> Color.fromRGB(0xFFDC50);
+            case "squire", "breezy", "monk", "hacker", "engineer", "two_timer" -> Color.fromRGB(0x50AFFF);
             case "gambler", "thief" -> Color.fromRGB(0xFFC341);
             case "jockey" -> Color.fromRGB(0xA07346);
             case "sculk_warrior" -> Color.fromRGB(0x2DCDBE);
