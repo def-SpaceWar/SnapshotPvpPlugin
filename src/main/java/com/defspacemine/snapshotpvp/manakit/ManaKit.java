@@ -106,20 +106,20 @@ public abstract class ManaKit {
 
     private Color feedbackColor() {
         return switch (id) {
-            case "atlantian_prince", "tridentite", "voodoo" -> Color.fromRGB(40, 190, 220);
-            case "berserk", "barbarian", "violence", "buckshot_viking" -> Color.fromRGB(220, 45, 45);
-            case "colossus", "juggernaut", "shulkian", "titan" -> Color.fromRGB(145, 105, 205);
-            case "frog", "jade_trio", "cactus_champion", "poacher", "slime_king" -> Color.fromRGB(70, 220, 105);
-            case "icbm", "fire_in_the_hole", "incendiary", "hellbound_ronin", "headless_horseman" -> Color.fromRGB(255, 125, 35);
-            case "mercenary", "japanese_goblin", "ranger", "deadeye" -> Color.fromRGB(255, 205, 70);
-            case "pharmacist" -> Color.fromRGB(80, 225, 210);
-            case "cultist" -> Color.fromRGB(145, 75, 190);
-            case "light_paladin", "squire" -> Color.fromRGB(255, 220, 80);
-            case "breezy", "monk", "hacker", "engineer", "two_timer" -> Color.fromRGB(80, 175, 255);
-            case "gambler", "thief" -> Color.fromRGB(255, 195, 65);
-            case "jockey" -> Color.fromRGB(160, 115, 70);
-            case "sculk_warrior" -> Color.fromRGB(45, 205, 190);
-            default -> Color.fromRGB(190, 150, 255);
+            case "atlantian_prince", "tridentite", "voodoo" -> Color.fromRGB(0x28BEDC);
+            case "berserk", "barbarian", "violence", "buckshot_viking" -> Color.fromRGB(0xDC2D2D);
+            case "colossus", "juggernaut", "shulkian", "titan" -> Color.fromRGB(0x9169CD);
+            case "frog", "jade_trio", "cactus_champion", "poacher", "slime_king" -> Color.fromRGB(0x46DC69);
+            case "icbm", "fire_in_the_hole", "incendiary", "hellbound_ronin", "headless_horseman" -> Color.fromRGB(0xFF7D23);
+            case "mercenary", "japanese_goblin", "ranger", "deadeye" -> Color.fromRGB(0xFFCD46);
+            case "pharmacist" -> Color.fromRGB(0x50E1D2);
+            case "cultist" -> Color.fromRGB(0x914BBE);
+            case "light_paladin", "squire" -> Color.fromRGB(0xFFDC50);
+            case "breezy", "monk", "hacker", "engineer", "two_timer" -> Color.fromRGB(0x50AFFF);
+            case "gambler", "thief" -> Color.fromRGB(0xFFC341);
+            case "jockey" -> Color.fromRGB(0xA07346);
+            case "sculk_warrior" -> Color.fromRGB(0x2DCDBE);
+            default -> Color.fromRGB(0xBE96FF);
         };
     }
 

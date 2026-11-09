@@ -9,7 +9,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -162,12 +161,7 @@ public class AtlantianPrince extends ManaKit implements Listener {
         Location center = p.getLocation();
         int radius = 6; // Radius of the temporary flood area
 
-        p.getWorld().playSound(
-            center,
-            Sound.ENTITY_PLAYER_SPLASH_HIGH_SPEED,
-            1.2f,
-            0.8f
-        );
+        playAbilityFeedback(p);
         p.sendMessage(
             ChatColor.AQUA + "" + ChatColor.BOLD + ">> ROYAL FLOOD ACTIVATED!"
         );
@@ -215,7 +209,7 @@ public class AtlantianPrince extends ManaKit implements Listener {
             item.setItemMeta(meta);
         }
         p.getInventory().addItem(item);
-        p.playSound(p.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1.0f, 1.4f);
+        playItemGainFeedback(p);
     }
 
     private boolean hasRoyalFloodItem(Player p) {
