@@ -134,6 +134,7 @@ public class Mercenary extends ManaKit {
             inv.addItem(launchers);
             inv.addItem(CustomEggListener.injectOwner(autoBombs, p));
             inv.addItem(enderpearl);
+            playItemGainFeedback(p);
             pdc.set(mercRestockCounter, PersistentDataType.INTEGER, 0);
         }
     }
@@ -157,5 +158,6 @@ public class Mercenary extends ManaKit {
         PlayerInventory inv = p.getInventory();
         SnapshotPvpPlugin.clearInv(p, Material.OCELOT_SPAWN_EGG);
         inv.addItem(goodShotBhaiyas);
+        playAbilityFeedback(p);
     }
 }

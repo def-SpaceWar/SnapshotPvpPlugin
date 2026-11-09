@@ -196,6 +196,7 @@ public class Thief extends ManaKit {
         if (ammoRestockC >= ammoRestock) {
             SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
             inv.addItem(ammo);
+            playItemGainFeedback(p);
             pdc.set(
                 ammoRestockCounter,
                 PersistentDataType.INTEGER,
@@ -206,12 +207,14 @@ public class Thief extends ManaKit {
         if (smokeRestockC >= smokeRestock) {
             SnapshotPvpPlugin.clearInv(p, Material.CHORUS_FRUIT);
             inv.addItem(smokeBomb);
+            playItemGainFeedback(p);
             pdc.set(smokeRestockCounter, PersistentDataType.INTEGER, 0);
         }
 
         if (pearlRestockC >= pearlRestock) {
             SnapshotPvpPlugin.clearInv(p, Material.ENDER_PEARL);
             inv.addItem(enderPearl);
+            playItemGainFeedback(p);
             pdc.set(pearlRestockCounter, PersistentDataType.INTEGER, 0);
         }
 

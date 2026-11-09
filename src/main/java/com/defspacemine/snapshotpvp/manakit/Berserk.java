@@ -99,6 +99,7 @@ public class Berserk extends ManaKit {
         PlayerInventory inv = p.getInventory();
         if (enrageC >= enrage) {
             p.getInventory().addItem(ragePotion);
+            playAbilityFeedback(p);
             pdc.set(enrageCounter, PersistentDataType.INTEGER, enrageC - enrage);
         }
     }

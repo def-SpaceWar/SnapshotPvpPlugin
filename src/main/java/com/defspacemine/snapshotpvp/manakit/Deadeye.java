@@ -134,7 +134,10 @@ public class Deadeye extends ManaKit {
     @Override
     public void onEnterCombat(Player p) {
         resetKit(p);
+        boolean needsArrows =
+            SnapshotPvpPlugin.countInv(p, Material.ARROW) < maxArrows;
         capAndRestockArrows(p);
+        if (needsArrows) playItemGainFeedback(p);
     }
 
     @Override
@@ -215,6 +218,7 @@ public class Deadeye extends ManaKit {
             capAndRestockArrows(inv);
             SnapshotPvpPlugin.clearInv(p, Material.SPECTRAL_ARROW);
             inv.addItem(spectralArrowItem);
+            playItemGainFeedback(p);
             pdc.set(attackCounter, PersistentDataType.INTEGER, 0);
         }
     }
@@ -257,6 +261,9 @@ public class Deadeye extends ManaKit {
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
-        capAndRestockArrows(p);
+        if (SnapshotPvpPlugin.countInv(p, Material.ARROW) < maxArrows) {
+            capAndRestockArrows(p);
+            playItemGainFeedback(p);
+        }
     }
 }

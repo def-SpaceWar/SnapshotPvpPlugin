@@ -23,6 +23,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
@@ -267,7 +268,6 @@ public final class ManaKitListener implements Listener {
         registerKit(new Violence());
         registerKit(new Monk());
         registerKit(new TwoTimer());
-        registerKit(new GodOfStories());
 
         manakitGameLoop();
     }
@@ -293,6 +293,7 @@ public final class ManaKitListener implements Listener {
         PersistentDataContainer pdc = player.getPersistentDataContainer();
         pdc.set(MANA_KIT, PersistentDataType.STRING, kit.getId());
         kit.giveKit(player);
+        kit.playItemGainFeedback(player);
     }
 
     public static void giveItemsFromShulker(
@@ -402,6 +403,15 @@ public final class ManaKitListener implements Listener {
         ManaKit shooterKit = getPlayerKit(shooter);
         if (shooterKit == null) return;
         shooterKit.onShootBow(shooter, event);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onEntityToggleGlide(EntityToggleGlideEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        if (!player.getScoreboardTags().contains("combat")) return;
+
+        ManaKit kit = getPlayerKit(player);
+        if (kit != null) kit.onToggleGlide(player, event);
     }
 
     @EventHandler(ignoreCancelled = true)

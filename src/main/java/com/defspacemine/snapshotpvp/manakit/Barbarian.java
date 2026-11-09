@@ -72,6 +72,7 @@ public class Barbarian extends ManaKit {
                         PotionEffectType.REGENERATION,
                         200,
                         0));
+                playAbilityFeedback(p);
             }
         } else {
             pdc.set(bloodlustCounter, PersistentDataType.INTEGER, 0);
@@ -90,6 +91,7 @@ public class Barbarian extends ManaKit {
                         PotionEffectType.ABSORPTION,
                         200,
                         0));
+                playAbilityFeedback(p);
             }
         }
 

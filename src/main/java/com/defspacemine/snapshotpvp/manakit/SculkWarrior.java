@@ -168,7 +168,10 @@ public class SculkWarrior extends ManaKit {
             if (
                 SnapshotPvpPlugin.countInv(p, Material.ECHO_SHARD) <
                 MAX_ECHO_SHARDS
-            ) inv.addItem(getEchoShard());
+            ) {
+                inv.addItem(getEchoShard());
+                playItemGainFeedback(p);
+            }
         }
 
         if (shriekerRestockC >= shriekerRestock) {
@@ -179,6 +182,7 @@ public class SculkWarrior extends ManaKit {
             );
             SnapshotPvpPlugin.clearInv(p, Material.SCULK_SHRIEKER);
             inv.addItem(getSculkShrieker());
+            playItemGainFeedback(p);
         }
     }
 

@@ -623,6 +623,7 @@ public class Hacker extends ManaKit implements Listener {
         }
 
         p.getInventory().addItem(flightItem);
+        playItemGainFeedback(p);
     }
 
     /** Nearest living thing to the horse that isn't on the hacker's team. */
@@ -675,7 +676,7 @@ public class Hacker extends ManaKit implements Listener {
         }
 
         p.getInventory().addItem(trojanItem);
-        p.playSound(p.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1.0f, 1.2f);
+        playItemGainFeedback(p);
     }
 
     private void giveRewindItem(Player p) {
@@ -703,6 +704,7 @@ public class Hacker extends ManaKit implements Listener {
         }
 
         p.getInventory().addItem(rewindItem);
+        playItemGainFeedback(p);
     }
 
     private boolean hasRewindItemInInventory(Player p) {

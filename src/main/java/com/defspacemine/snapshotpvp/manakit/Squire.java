@@ -106,16 +106,20 @@ public class Squire extends ManaKit {
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestockC + 1);
 
         PlayerInventory inv = p.getInventory();
+        boolean gainedItem = false;
         if (arrowRestockC >= arrowRestock) {
             SnapshotPvpPlugin.clearInv(p, Material.ARROW);
             inv.addItem(arrows);
+            gainedItem = true;
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
 
         if (honorableRestockC >= honorableRestock) {
             inv.addItem(honorPotion);
+            gainedItem = true;
             pdc.set(honorableRestockCounter, PersistentDataType.INTEGER, 0);
         }
+        if (gainedItem) playItemGainFeedback(p);
     }
 
     @Override

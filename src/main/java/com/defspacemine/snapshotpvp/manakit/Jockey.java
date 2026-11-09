@@ -219,6 +219,7 @@ public class Jockey extends ManaKit implements Listener {
             PlayerInventory inv = p.getInventory();
             SnapshotPvpPlugin.clearInv(p, Material.ARROW);
             inv.addItem(arrows.clone());
+            playItemGainFeedback(p);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
     }

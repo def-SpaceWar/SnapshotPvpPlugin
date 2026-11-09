@@ -51,6 +51,7 @@ public class Colossus extends ManaKit {
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
+        playAbilityFeedback(p);
         p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 200, 0));
     }
 }

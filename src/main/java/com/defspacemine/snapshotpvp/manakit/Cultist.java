@@ -117,26 +117,36 @@ public class Cultist extends ManaKit {
             p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 40, 1, false, false));
 
         PlayerInventory inv = p.getInventory();
+        boolean gainedRitual = false;
         if (
             power >= COST_NECRO &&
             SnapshotPvpPlugin.countInv(p, Material.ROTTEN_FLESH) == 0
-        )
+        ) {
             inv.addItem(ritualNecro);
+            gainedRitual = true;
+        }
         if (
             power >= COST_DARK &&
             SnapshotPvpPlugin.countInv(p, Material.COOKIE) == 0
-        )
+        ) {
             inv.addItem(ritualDark);
+            gainedRitual = true;
+        }
         if (
             power >= COST_DOOM &&
             SnapshotPvpPlugin.countInv(p, Material.DRIED_KELP) == 0
-        )
+        ) {
             inv.addItem(ritualDoom);
+            gainedRitual = true;
+        }
         if (
             power >= COST_DIVINE &&
             SnapshotPvpPlugin.countInv(p, Material.GOLDEN_APPLE) == 0
-        )
+        ) {
             inv.addItem(ritualDivine);
+            gainedRitual = true;
+        }
+        if (gainedRitual) playItemGainFeedback(p);
     }
 
     private boolean hasAnyRitual(Player p) {

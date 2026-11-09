@@ -475,6 +475,7 @@ public class Pharmacist extends ManaKit {
 
         if (potionStockC >= potionStock) {
             givePotion(p, currentPotionC);
+            playItemGainFeedback(p);
             pdc.set(potionStockCounter, PersistentDataType.INTEGER, potionStockC - potionStock);
             pdc.set(currentPotionCounter, PersistentDataType.INTEGER, randomAny());
         }
@@ -498,6 +499,7 @@ public class Pharmacist extends ManaKit {
         givePotion(p, randomPotion());
         givePotion(p, randomSplash());
         givePotion(p, randomLingering());
+        playItemGainFeedback(p);
     }
 
     @Override
@@ -517,5 +519,6 @@ public class Pharmacist extends ManaKit {
         givePotion(p, randomPotion());
         givePotion(p, randomSplash());
         givePotion(p, randomLingering());
+        playAbilityFeedback(p);
     }
 }

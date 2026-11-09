@@ -11,6 +11,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.damage.DamageType;
 import org.bukkit.enchantments.Enchantment;
@@ -157,6 +158,7 @@ public class LightPaladin extends ManaKit {
         if (holyShieldRestockC >= holyShieldRestock) {
             SnapshotPvpPlugin.clearInv(p, Material.SPLASH_POTION);
             p.getInventory().addItem(holyShield);
+            playItemGainFeedback(p);
             pdc.set(holyShieldRestockCounter, PersistentDataType.INTEGER, 0);
         }
     }
@@ -170,6 +172,7 @@ public class LightPaladin extends ManaKit {
         ) p.removePotionEffect(PotionEffectType.REGENERATION);
         SnapshotPvpPlugin.clearInv(p, Material.CROSSBOW);
         p.getInventory().addItem(blindingLight);
+        playAbilityFeedback(p);
     }
 
     @Override
@@ -199,6 +202,7 @@ public class LightPaladin extends ManaKit {
 
         Location loc = p.getLocation();
         healParticles(p.getWorld(), loc);
+        p.playSound(loc, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.35f, 1.8f);
         if (!p.isDead()) p.heal(HEAL_AMOUNT);
         for (Player other : p.getWorld().getPlayers())
             if (

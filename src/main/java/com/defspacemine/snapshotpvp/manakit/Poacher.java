@@ -121,6 +121,7 @@ public class Poacher extends ManaKit {
         if (killShotC >= killShot) {
             SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
             inv.addItem(powerfulToxin);
+            playItemGainFeedback(p);
             pdc.set(killShotCounter, PersistentDataType.INTEGER, 0);
         }
     }

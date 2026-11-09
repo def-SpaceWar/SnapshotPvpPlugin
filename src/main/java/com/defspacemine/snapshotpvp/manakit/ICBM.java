@@ -141,12 +141,14 @@ public class ICBM extends ManaKit {
             SnapshotPvpPlugin.clearInv(p, antimatterMissiles);
             inv.addItem(avgMissiles);
             inv.addItem(antimatterMissiles);
+            playItemGainFeedback(p);
             pdc.set(ammoRestockCounter, PersistentDataType.INTEGER, 0);
         }
 
         if (terrorismC >= terrorism) {
             SnapshotPvpPlugin.clearInv(p, redTerrors);
             inv.addItem(redTerrors);
+            playAbilityFeedback(p);
             pdc.set(terrorismCounter, PersistentDataType.INTEGER, terrorismC - terrorism);
         }
     }

@@ -220,12 +220,14 @@ public class Engineer extends ManaKit {
             SnapshotPvpPlugin.clearInv(p, CustomEggListener.injectOwner(sentry, p));
             inv.addItem(CustomEggListener.injectOwner(droid, p));
             inv.addItem(CustomEggListener.injectOwner(sentry, p));
+            playItemGainFeedback(p);
             pdc.set(botChargeCounter, PersistentDataType.INTEGER, 0);
         }
 
         if (tpRestockC >= tpRestockTimer) {
             SnapshotPvpPlugin.clearInv(p, Material.BEACON);
             inv.addItem(teleporterItem);
+            playItemGainFeedback(p);
             pdc.set(tpRestockCounter, PersistentDataType.INTEGER, 0);
         } else if (SnapshotPvpPlugin.countInv(p, Material.BEACON) == 0) pdc.set(
             tpRestockCounter,
@@ -484,6 +486,7 @@ public class Engineer extends ManaKit {
         SnapshotPvpPlugin.clearInv(p, CustomEggListener.injectOwner(upgradedSentry, p));
         inv.addItem(CustomEggListener.injectOwner(upgradedDroid, p));
         inv.addItem(CustomEggListener.injectOwner(upgradedSentry, p));
+        playAbilityFeedback(p);
     }
 
     @Override
@@ -508,6 +511,7 @@ public class Engineer extends ManaKit {
 
     private void retrieveTrident(Player p) {
         p.getInventory().addItem(trident);
+        playItemGainFeedback(p);
         for (Entity e : p.getWorld().getEntities())
             if (e instanceof Trident t) if (
                 t.getOwnerUniqueId().equals(p.getUniqueId())

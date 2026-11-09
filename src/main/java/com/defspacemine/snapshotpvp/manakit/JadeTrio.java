@@ -60,6 +60,7 @@ public class JadeTrio extends ManaKit {
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
+        playAbilityFeedback(p);
         p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 200, 1));
         p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 200, 1));
         p.setHealth(p.getHealth() + (p.getMaxHealth() - p.getHealth()) / 2);

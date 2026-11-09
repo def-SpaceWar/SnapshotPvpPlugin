@@ -264,7 +264,7 @@ public class Violence extends ManaKit implements Listener {
         if (progress >= 25) {
             pdc.set(progressKey, PersistentDataType.INTEGER, 25);
             p.getInventory().addItem(apathyPotion.clone());
-            p.playSound(p.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1.0f, 0.8f);
+            playItemGainFeedback(p);
         } else {
             pdc.set(progressKey, PersistentDataType.INTEGER, progress);
         }
@@ -389,6 +389,7 @@ public class Violence extends ManaKit implements Listener {
 
     private void retrieveTrident(Player p) {
         p.getInventory().addItem(trident);
+        playItemGainFeedback(p);
         for (Entity e : p.getWorld().getEntities())
             if (e instanceof Trident t) if (
                 t.getOwnerUniqueId().equals(p.getUniqueId())

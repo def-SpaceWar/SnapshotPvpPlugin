@@ -1224,7 +1224,7 @@ public class TwoTimer extends ManaKit {
             item.setItemMeta(meta);
         }
         p.getInventory().addItem(item);
-        p.playSound(p.getLocation(), Sound.ENTITY_ITEM_PICKUP, 0.8f, 1.2f);
+        playItemGainFeedback(p);
     }
 
     private void giveTwinSwapItem(Player p) {
@@ -1248,6 +1248,7 @@ public class TwoTimer extends ManaKit {
             item.setItemMeta(meta);
         }
         p.getInventory().addItem(item);
+        playItemGainFeedback(p);
     }
 
     private void giveJackInTheBox(Player p) {
@@ -1268,7 +1269,7 @@ public class TwoTimer extends ManaKit {
             item.setItemMeta(meta);
         }
         p.getInventory().addItem(item);
-        p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.7f, 1.6f);
+        playItemGainFeedback(p);
     }
 
     private boolean hasTwinItem(Player p) {

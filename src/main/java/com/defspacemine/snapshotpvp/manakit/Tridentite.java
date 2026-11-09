@@ -1,13 +1,17 @@
 package com.defspacemine.snapshotpvp.manakit;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Trident;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -99,6 +103,29 @@ public class Tridentite extends ManaKit {
     }
 
     @Override
+    public void onProjectileHit(Player p, ProjectileHitEvent e) {
+        if (!(e.getEntity() instanceof Trident thrown)) return;
+        if (!p.getUniqueId().equals(thrown.getOwnerUniqueId())) return;
+
+        thrown.getWorld().spawnParticle(
+            Particle.DUST,
+            thrown.getLocation(),
+            12,
+            0.25,
+            0.25,
+            0.25,
+            0,
+            new Particle.DustOptions(Color.fromRGB(40, 190, 220), 1.2f)
+        );
+        thrown.getWorld().playSound(
+            thrown.getLocation(),
+            Sound.ITEM_TRIDENT_HIT,
+            0.9f,
+            1.2f
+        );
+    }
+
+    @Override
     public void onLeaveCombat(Player p) {
         p.clearActivePotionEffects();
         resetKit(p);
@@ -106,6 +133,7 @@ public class Tridentite extends ManaKit {
 
     private void retrieveTrident(Player p) {
         p.getInventory().addItem(trident);
+        playItemGainFeedback(p);
         for (Entity e : p.getWorld().getEntities())
             if (e instanceof Trident t)
                 if (t.getOwnerUniqueId().equals(p.getUniqueId()))

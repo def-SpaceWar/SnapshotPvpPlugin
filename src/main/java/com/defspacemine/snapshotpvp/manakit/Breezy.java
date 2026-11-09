@@ -6,6 +6,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.damage.DamageType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -77,6 +78,11 @@ public class Breezy extends ManaKit {
     }
 
     @Override
+    public void onToggleGlide(Player p, EntityToggleGlideEvent e) {
+        if (e.isGliding()) playAbilityFeedback(p);
+    }
+
+    @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
         if (e.getDamageSource().getDamageType() != DamageType.PLAYER_ATTACK
                 || !(e.getEntity() instanceof Player))
@@ -88,6 +94,7 @@ public class Breezy extends ManaKit {
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
+        playAbilityFeedback(p);
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(glideCounter, PersistentDataType.INTEGER, glide);
         p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, -1, 1));

@@ -98,6 +98,7 @@ public class Shulkian extends ManaKit {
         if (arrowRestockC >= arrowRestock) {
             SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
             inv.addItem(arrows);
+            playItemGainFeedback(p);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
     }
@@ -113,5 +114,10 @@ public class Shulkian extends ManaKit {
     public void onEnterCombat(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestock);
+    }
+
+    @Override
+    public void onShootBow(Player p, EntityShootBowEvent e) {
+        playAbilityFeedback(p);
     }
 }

@@ -124,6 +124,7 @@ public class Ranger extends ManaKit {
 
         if (arrowRestockC >= arrowRestock) {
             for (int i = 0; i < MAX_ARROWS; i++) inv.addItem(arrow);
+            playItemGainFeedback(p);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
     }
@@ -141,10 +142,12 @@ public class Ranger extends ManaKit {
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         PlayerInventory inv = p.getInventory();
         int arrowCount = SnapshotPvpPlugin.countInv(p, Material.SPECTRAL_ARROW);
+        boolean gainedArrows = arrowCount < MAX_ARROWS;
         while (arrowCount < MAX_ARROWS) {
             inv.addItem(arrow);
             arrowCount++;
         }
+        if (gainedArrows) playItemGainFeedback(p);
     }
 
     @Override
@@ -157,12 +160,14 @@ public class Ranger extends ManaKit {
         }
         SnapshotPvpPlugin.clearInv(p, Material.IRON_SWORD);
         inv.addItem(kbSword);
+        playAbilityFeedback(p);
     }
 
     @Override
     public void onProjectileHit(Player p, ProjectileHitEvent e) {
         if (!(e.getEntity() instanceof SpectralArrow arrow)) return;
         if (!(e.getHitEntity() instanceof LivingEntity target)) return;
+        playAbilityFeedback(p);
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         PlayerInventory inv = p.getInventory();

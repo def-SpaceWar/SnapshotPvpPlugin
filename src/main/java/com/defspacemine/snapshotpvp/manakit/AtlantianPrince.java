@@ -48,6 +48,7 @@ public class AtlantianPrince extends ManaKit {
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
+        playAbilityFeedback(p);
         p.setHealth(p.getHealth() + (p.getMaxHealth() - p.getHealth()) * .4);
         p.addPotionEffect(
             new PotionEffect(PotionEffectType.RESISTANCE, 100, 2)

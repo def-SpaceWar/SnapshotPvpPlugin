@@ -156,12 +156,14 @@ public class Gambler extends ManaKit {
         if (arrowRestockC >= arrowRestock) {
             SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
             inv.addItem(bettingArrow);
+            playItemGainFeedback(p);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
 
         if (cardC >= card) {
             SnapshotPvpPlugin.clearInv(p, Material.SNOWBALL);
             p.getInventory().addItem(wildCard);
+            playItemGainFeedback(p);
             pdc.set(cardCounter, PersistentDataType.INTEGER, 0);
         }
 

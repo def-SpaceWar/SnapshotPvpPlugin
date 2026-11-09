@@ -232,6 +232,7 @@ public class Monk extends ManaKit {
 
         clearMoves(p);
         for (int i = 0; i < maxMoves; i++) giveRandomMove(p, heldMoves(p));
+        playItemGainFeedback(p);
     }
 
     @Override
@@ -307,6 +308,7 @@ public class Monk extends ManaKit {
             if (stepped) flow += flowPerStep;
             if (flow >= flowRestock) {
                 giveRandomMove(p, held);
+                playItemGainFeedback(p);
                 moves++;
                 flow -= flowRestock; // overflow carries into the next move
             }
@@ -712,12 +714,6 @@ public class Monk extends ManaKit {
 
         Move next = pool.get(ThreadLocalRandom.current().nextInt(pool.size()));
         p.getInventory().addItem(moveItems.get(next).clone());
-        p.playSound(
-            p.getLocation(),
-            Sound.ENTITY_EXPERIENCE_ORB_PICKUP,
-            0.6f,
-            1.6f
-        );
     }
 
     private boolean isEnemy(Player p, Entity entity) {

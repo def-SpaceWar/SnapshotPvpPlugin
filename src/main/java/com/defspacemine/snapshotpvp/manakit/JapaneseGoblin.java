@@ -6,9 +6,12 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
 import org.bukkit.enchantments.Enchantment;
@@ -115,6 +118,7 @@ public class JapaneseGoblin extends ManaKit {
         if (kunaiRestockC >= kunaiRestock) {
             SnapshotPvpPlugin.clearInv(p, Material.SNOWBALL);
             inv.addItem(kunai);
+            playItemGainFeedback(p);
             pdc.set(
                 kunaiRestockCounter,
                 PersistentDataType.INTEGER,
@@ -161,6 +165,17 @@ public class JapaneseGoblin extends ManaKit {
         if (!(e.getEntity() instanceof Snowball snowball)) return;
 
         Location loc = snowball.getLocation();
+        loc.getWorld().spawnParticle(
+            Particle.DUST,
+            loc,
+            12,
+            0.25,
+            0.25,
+            0.25,
+            0,
+            new Particle.DustOptions(Color.fromRGB(255, 65, 40), 1.2f)
+        );
+        p.playSound(loc, Sound.ENTITY_CREEPER_PRIMED, 0.8f, 1.4f);
         if (e.getHitEntity() instanceof LivingEntity victim) victim.damage(
             KUNAI_DAMAGE,
             DamageSource.builder(DamageType.MOB_PROJECTILE)

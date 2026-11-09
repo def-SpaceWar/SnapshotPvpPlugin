@@ -67,6 +67,7 @@ public class Frog extends ManaKit {
         if (chargeRestockC >= chargeRestock) {
             SnapshotPvpPlugin.clearInv(p, Material.WIND_CHARGE);
             inv.addItem(windCharges);
+            playItemGainFeedback(p);
             pdc.set(chargeRestockCounter, PersistentDataType.INTEGER, 0);
         }
 
@@ -103,6 +104,7 @@ public class Frog extends ManaKit {
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
+        playAbilityFeedback(p);
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(chargeRestockCounter, PersistentDataType.INTEGER, chargeRestock);
         p.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 200, 2));

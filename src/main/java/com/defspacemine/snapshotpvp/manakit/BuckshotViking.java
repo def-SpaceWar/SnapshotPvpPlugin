@@ -173,16 +173,20 @@ public class BuckshotViking extends ManaKit {
         );
 
         PlayerInventory inv = p.getInventory();
+        boolean gainedItem = false;
         if (ammoRestockC >= ammoRestock) {
             SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
             inv.addItem(ammo);
+            gainedItem = true;
             pdc.set(ammoRestockCounter, PersistentDataType.INTEGER, 0);
         }
 
         if (gritRestockC >= gritRestock) {
             inv.addItem(gritPotion);
+            gainedItem = true;
             pdc.set(gritRestockCounter, PersistentDataType.INTEGER, 0);
         }
+        if (gainedItem) playItemGainFeedback(p);
     }
 
     @Override

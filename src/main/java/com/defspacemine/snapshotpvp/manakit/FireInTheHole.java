@@ -226,6 +226,7 @@ public class FireInTheHole extends ManaKit {
             SnapshotPvpPlugin.clearInv(p, Material.ENDER_PEARL);
             inv.addItem(arrows);
             inv.addItem(enderpearl);
+            playItemGainFeedback(p);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
         }
 
@@ -233,6 +234,7 @@ public class FireInTheHole extends ManaKit {
             inv.addItem(CustomEggListener.injectOwner(bomb1, p));
             inv.addItem(CustomEggListener.injectOwner(bomb2, p));
             inv.addItem(CustomEggListener.injectOwner(bomb3, p));
+            playItemGainFeedback(p);
 
             pdc.set(
                 bombersRestockCounter,
@@ -245,6 +247,7 @@ public class FireInTheHole extends ManaKit {
             ItemStack item = CustomEggListener.injectOwner(nuke, p);
             SnapshotPvpPlugin.clearInv(p, item);
             p.getInventory().addItem(item);
+            playAbilityFeedback(p);
             pdc.set(
                 nukeRestockCounter,
                 PersistentDataType.INTEGER,

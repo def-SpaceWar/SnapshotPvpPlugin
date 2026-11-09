@@ -149,6 +149,7 @@ public class CactusChampion extends ManaKit {
         if (cactusTotemC >= cactusTotem) {
             SnapshotPvpPlugin.clearInv(p, Material.CACTUS);
             inv.addItem(cactusTotemItem);
+            playItemGainFeedback(p);
             pdc.set(cactusTotemCounter, PersistentDataType.INTEGER, 0);
         }
 

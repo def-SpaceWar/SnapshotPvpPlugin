@@ -153,6 +153,7 @@ public class HeadlessHorseman extends ManaKit {
 
         if (midnightRideC >= midnightRide && !hasEgg && horse == null) {
             p.getInventory().addItem(undyingSteedEgg.clone());
+            playItemGainFeedback(p);
             pdc.set(midnightRideCounter, PersistentDataType.INTEGER, 0);
         }
     }
