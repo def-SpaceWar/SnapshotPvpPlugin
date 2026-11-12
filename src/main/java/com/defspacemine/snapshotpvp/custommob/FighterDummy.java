@@ -42,7 +42,7 @@ public class FighterDummy implements CustomMob {
         mannequin
             .getEquipment()
             .setItemInMainHand(new ItemStack(Material.IRON_SWORD));
-        mannequin.getEquipment().setItemInOffHand(new ItemStack(Material.BOW));
+        mannequin.getEquipment().setItemInOffHand(new ItemStack(Material.CROSSBOW));
         mannequin.setProfile(
             ResolvableProfile.resolvableProfile().name("defSpaceMine").build()
         );

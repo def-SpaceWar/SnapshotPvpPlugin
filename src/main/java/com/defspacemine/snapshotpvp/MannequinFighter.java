@@ -60,7 +60,8 @@ import org.bukkit.util.Vector;
  *
  * Difficulty only adds openings (sloppier spacing, an occasional missed swing,
  * slower aim, less accurate arrows); it never lowers damage, speed or knockback.
- * HARD is the default and is the full-strength behaviour described above.
+ * MASTER is the default and is the full-strength behaviour described above.
+ * Difficulties, easiest to hardest: EASY, MEDIUM, HARD, EXPERT, MASTER.
  *
  * A Mannequin isn't a player, so it starts with the generic entity attribute
  * defaults (movement speed 0.7, no attack attributes). The constructor sets the
@@ -215,72 +216,102 @@ public class MannequinFighter {
     };
 
     /**
-     * HARD is the full-strength bot. EASY and MEDIUM keep the same damage, speed and
-     * knockback but leave it more openings: it closes in further than it needs to,
-     * sometimes whiffs a swing because its aim is off, turns more slowly, and its
-     * bow / crossbow aim wobbles, is released more sloppily, is spread wider and
-     * leads moving targets less. Movement is also a little less smart: it re-decides
-     * what to press less often, attempts shorter gap jumps, hops for crits less, takes
-     * longer to get unstuck and searches shorter detours around obstacles. It also
-     * follows up a landed hit with a combo less often.
+     * From easiest to hardest: EASY, MEDIUM, HARD, EXPERT, MASTER. MASTER is the
+     * full-strength bot and the default; EXPERT is a notch below it. None of them lower
+     * damage, speed or knockback. The lower the difficulty, the more openings it leaves:
+     * it doesn't use its full reach (and gets less, or none, of the momentum reach
+     * bonus; the charged-swing bonus is the same everywhere), reacts late before swinging, closes in further than it
+     * needs to, whiffs swings, turns slowly, and loses more reach when it is knocked
+     * back, so it is easier to combo and its own combos are rarer. Its bow / crossbow aim
+     * wobbles, is released sloppily, is spread wider and leads moving targets less.
+     * Movement is less smart too: it re-decides what to press less often, attempts
+     * shorter gap jumps, hops for crits less, takes longer to get unstuck and searches
+     * shorter detours around obstacles.
      */
     public enum Difficulty {
-        //   approach range   melee miss   aim turn   arrow    arrow   archer     aim      release     move     gap     crit hop   unstick   path
-        //   (x reach)        chance       speed      spread   lead    back-off   wobble   tolerance   delay    scale   chance     scale     search
-        //                                                                         (deg)    (deg)       (ticks)
-        //                                                                                                                                       combo
-        //                                                                                                                                       follow-up
         EASY(
-            0.50,
-            0.70,
-            0.25,
-            0.6,
-            6.0,
-            0.4,
-            0.5,
-            4.0,
-            10.0,
-            4,
-            0.5,
-            0.25,
-            2.0,
-            0.3,
-            0.30
+            new Tuning()
+                .reachUsage(0.70)
+                .momentum(0.0)
+                .knockbackPenalty(1.5)
+                .swingDelay(10)
+                .approach(0.45, 0.65)
+                .missChance(0.45)
+                .turn(0.35)
+                .arrowSpread(10.0)
+                .lead(0.10)
+                .backOff(0.30)
+                .aimWobble(7.0)
+                .release(16.0)
+                .moveDelay(8)
+                .gaps(0.30)
+                .critHops(0.10)
+                .unstick(3.0)
+                .pathSearch(0.15)
+                .combos(0.05)
         ),
         MEDIUM(
-            0.65,
-            0.80,
-            0.10,
-            0.8,
-            3.0,
-            0.7,
-            0.75,
-            2.0,
-            8.0,
-            2,
-            0.75,
-            0.50,
-            1.4,
-            0.6,
-            0.65
+            new Tuning()
+                .reachUsage(0.78)
+                .momentum(0.3)
+                .knockbackPenalty(1.25)
+                .swingDelay(7)
+                .approach(0.50, 0.70)
+                .missChance(0.30)
+                .turn(0.50)
+                .arrowSpread(7.0)
+                .lead(0.25)
+                .backOff(0.40)
+                .aimWobble(5.5)
+                .release(13.0)
+                .moveDelay(6)
+                .gaps(0.40)
+                .critHops(0.20)
+                .unstick(2.5)
+                .pathSearch(0.25)
+                .combos(0.15)
         ),
         HARD(
-            0.85,
-            0.85,
-            0.00,
-            1.0,
-            1.0,
-            1.0,
-            1.0,
-            0.0,
-            6.0,
-            1,
-            1.0,
-            0.70,
-            1.0,
-            1.0,
-            1.00
-        );
+            new Tuning()
+                .reachUsage(0.86)
+                .momentum(0.6)
+                .knockbackPenalty(1.1)
+                .swingDelay(4)
+                .approach(0.55, 0.75)
+                .missChance(0.18)
+                .turn(0.70)
+                .arrowSpread(4.5)
+                .lead(0.50)
+                .backOff(0.60)
+                .aimWobble(4.0)
+                .release(10.0)
+                .moveDelay(4)
+                .gaps(0.60)
+                .critHops(0.35)
+                .unstick(1.8)
+                .pathSearch(0.45)
+                .combos(0.40)
+        ),
+        // The old MEDIUM
+        EXPERT(
+            new Tuning()
+                .approach(0.65, 0.80)
+                .missChance(0.10)
+                .turn(0.80)
+                .arrowSpread(3.0)
+                .lead(0.70)
+                .backOff(0.75)
+                .aimWobble(2.0)
+                .release(8.0)
+                .moveDelay(2)
+                .gaps(0.75)
+                .critHops(0.50)
+                .unstick(1.4)
+                .pathSearch(0.60)
+                .combos(0.65)
+        ),
+        // The old HARD: every Tuning default
+        MASTER(new Tuning());
 
         final double approachMin;
         final double approachMax;
@@ -297,39 +328,157 @@ public class MannequinFighter {
         final double stuckScale;
         final double pathScale;
         final double comboFollowUp;
+        final double reachUsage;
+        final double momentumBonusScale;
+        final double knockbackPenaltyScale;
+        final int swingDelayTicks;
 
-        Difficulty(
-            double approachMin,
-            double approachMax,
-            double meleeMissChance,
-            double turnScale,
-            double rangedInaccuracy,
-            double leadScale,
-            double backOffScale,
-            double rangedAimWobble,
-            double rangedReleaseTolerance,
-            int movementDelayTicks,
-            double gapScale,
-            double critHopChance,
-            double stuckScale,
-            double pathScale,
-            double comboFollowUp
-        ) {
-            this.approachMin = approachMin;
-            this.approachMax = approachMax;
-            this.meleeMissChance = meleeMissChance;
-            this.turnScale = turnScale;
-            this.rangedInaccuracy = rangedInaccuracy;
-            this.leadScale = leadScale;
-            this.backOffScale = backOffScale;
-            this.rangedAimWobble = rangedAimWobble;
-            this.rangedReleaseTolerance = rangedReleaseTolerance;
-            this.movementDelayTicks = movementDelayTicks;
-            this.gapScale = gapScale;
-            this.critHopChance = critHopChance;
-            this.stuckScale = stuckScale;
-            this.pathScale = pathScale;
-            this.comboFollowUp = comboFollowUp;
+        Difficulty(Tuning t) {
+            this.approachMin = t.approachMin;
+            this.approachMax = t.approachMax;
+            this.meleeMissChance = t.meleeMissChance;
+            this.turnScale = t.turnScale;
+            this.rangedInaccuracy = t.rangedInaccuracy;
+            this.leadScale = t.leadScale;
+            this.backOffScale = t.backOffScale;
+            this.rangedAimWobble = t.rangedAimWobble;
+            this.rangedReleaseTolerance = t.rangedReleaseTolerance;
+            this.movementDelayTicks = t.movementDelayTicks;
+            this.gapScale = t.gapScale;
+            this.critHopChance = t.critHopChance;
+            this.stuckScale = t.stuckScale;
+            this.pathScale = t.pathScale;
+            this.comboFollowUp = t.comboFollowUp;
+            this.reachUsage = t.reachUsage;
+            this.momentumBonusScale = t.momentumBonusScale;
+            this.knockbackPenaltyScale = t.knockbackPenaltyScale;
+            this.swingDelayTicks = t.swingDelayTicks;
+        }
+    }
+
+    /**
+     * Settings for a Difficulty. Every default is the MASTER value, so each difficulty
+     * only has to list what it changes.
+     */
+    private static final class Tuning {
+
+        // how close it closes in before holding position (x reach)
+        double approachMin = 0.85;
+        double approachMax = 0.85;
+        // chance a swing whiffs because its aim is off
+        double meleeMissChance = 0.0;
+        // how fast it turns toward what it's aiming at
+        double turnScale = 1.0;
+        // bow / crossbow: arrow spread, target leading, retreat distance, aim drift, release tolerance
+        double rangedInaccuracy = 1.0;
+        double leadScale = 1.0;
+        double backOffScale = 1.0;
+        double rangedAimWobble = 0.0;
+        double rangedReleaseTolerance = 6.0;
+        // movement smarts
+        int movementDelayTicks = 1;
+        double gapScale = 1.0;
+        double critHopChance = 0.70;
+        double stuckScale = 1.0;
+        double pathScale = 1.0;
+        double comboFollowUp = 1.0;
+        // reach: fraction of its reach it will actually swing from, how much of the
+        // momentum bonus it gets, and how hard knockback cuts it
+        double reachUsage = 1.0;
+        double momentumBonusScale = 1.0;
+        double knockbackPenaltyScale = 1.0;
+        // ticks the target must already be in reach before it swings (reaction time)
+        int swingDelayTicks = 0;
+
+        Tuning approach(double min, double max) {
+            this.approachMin = min;
+            this.approachMax = max;
+            return this;
+        }
+
+        Tuning missChance(double v) {
+            this.meleeMissChance = v;
+            return this;
+        }
+
+        Tuning turn(double v) {
+            this.turnScale = v;
+            return this;
+        }
+
+        Tuning arrowSpread(double v) {
+            this.rangedInaccuracy = v;
+            return this;
+        }
+
+        Tuning lead(double v) {
+            this.leadScale = v;
+            return this;
+        }
+
+        Tuning backOff(double v) {
+            this.backOffScale = v;
+            return this;
+        }
+
+        Tuning aimWobble(double v) {
+            this.rangedAimWobble = v;
+            return this;
+        }
+
+        Tuning release(double v) {
+            this.rangedReleaseTolerance = v;
+            return this;
+        }
+
+        Tuning moveDelay(int v) {
+            this.movementDelayTicks = v;
+            return this;
+        }
+
+        Tuning gaps(double v) {
+            this.gapScale = v;
+            return this;
+        }
+
+        Tuning critHops(double v) {
+            this.critHopChance = v;
+            return this;
+        }
+
+        Tuning unstick(double v) {
+            this.stuckScale = v;
+            return this;
+        }
+
+        Tuning pathSearch(double v) {
+            this.pathScale = v;
+            return this;
+        }
+
+        Tuning combos(double v) {
+            this.comboFollowUp = v;
+            return this;
+        }
+
+        Tuning reachUsage(double v) {
+            this.reachUsage = v;
+            return this;
+        }
+
+        Tuning momentum(double v) {
+            this.momentumBonusScale = v;
+            return this;
+        }
+
+        Tuning knockbackPenalty(double v) {
+            this.knockbackPenaltyScale = v;
+            return this;
+        }
+
+        Tuning swingDelay(int v) {
+            this.swingDelayTicks = v;
+            return this;
         }
     }
 
@@ -362,6 +511,7 @@ public class MannequinFighter {
 
     // combo state + actual per-tick movement (used for the velocity-dependent reach)
     private int comboTicks = 0;
+    private int inReachTicks = 0;
     private int comboHits = 0;
     private boolean hasPrevPos = false;
     private double prevX, prevZ;
@@ -420,9 +570,9 @@ public class MannequinFighter {
         new HashMap<>();
     private boolean cacheShapes = false;
 
-    /** Full-strength bot (HARD). */
+    /** Full-strength bot (MASTER). */
     public MannequinFighter(Plugin plugin, Mannequin mannequin) {
-        this(plugin, mannequin, Difficulty.HARD);
+        this(plugin, mannequin, Difficulty.MASTER);
     }
 
     public MannequinFighter(
@@ -432,7 +582,7 @@ public class MannequinFighter {
     ) {
         this.plugin = plugin;
         this.mannequin = mannequin;
-        this.difficulty = difficulty == null ? Difficulty.HARD : difficulty;
+        this.difficulty = difficulty == null ? Difficulty.MASTER : difficulty;
         this.approachFactor = rollApproachFactor();
         configureMannequin();
         startCombatLoop();
@@ -512,9 +662,12 @@ public class MannequinFighter {
         // swing itself gets the bonus, so a held-back mannequin lunges in from further out
         // Reach also follows our own velocity: running into someone extends it, and
         // being knocked back shrinks it, so combos are hard to swing out of
+        // Lower difficulties don't use their full reach, get less (or none) of the
+        // momentum bonus, and lose more reach when knocked back. The charged-swing
+        // bonus is the same CHARGED_REACH_BONUS on every difficulty.
         double attackReach = Math.max(
             0.0,
-            reach +
+            reach * difficulty.reachUsage +
                 (hasChargedReach() ? CHARGED_REACH_BONUS : 0.0) +
                 velocityReachBonus(target)
         );
@@ -555,8 +708,13 @@ public class MannequinFighter {
             return;
         }
 
+        // Reaction time: lower difficulties don't swing the instant a target is in reach
+        if (distance <= attackReach) inReachTicks++;
+        else inReachTicks = 0;
+
         boolean ready =
             distance <= attackReach &&
+            (comboTicks > 0 || inReachTicks > difficulty.swingDelayTicks) &&
             aimError <= MAX_AIM_ERROR &&
             attackCooldownTicks <= 0 &&
             !hasDamageImmunity(target) &&
@@ -598,7 +756,7 @@ public class MannequinFighter {
         }
     }
 
-    /** Picks how close it will close in this time. HARD is always the same tight spacing. */
+    /** Picks how close it will close in this time. MASTER is always the same tight spacing. */
     private double rollApproachFactor() {
         double min = difficulty.approachMin;
         double max = difficulty.approachMax;
@@ -812,7 +970,13 @@ public class MannequinFighter {
         double along =
             alongVel < 0 ? Math.min(alongMoved, alongVel) : alongMoved;
 
-        return along * VELOCITY_REACH_TICKS;
+        // Lower difficulties get less (or none) of the momentum bonus, and lose more
+        // reach when they're the one being knocked back
+        double scale =
+            along >= 0
+                ? difficulty.momentumBonusScale
+                : difficulty.knockbackPenaltyScale;
+        return along * VELOCITY_REACH_TICKS * scale;
     }
 
     /** A landed hit starts (or extends) a combo window, if the difficulty "sees" the follow-up. */
