@@ -292,23 +292,27 @@ public class MannequinFighter {
                 .pathSearch(0.45)
                 .combos(0.40)
         ),
-        // The old MEDIUM
+        // A bit softer than before, but still clearly harder than HARD and a notch below MASTER
         EXPERT(
             new Tuning()
-                .approach(0.65, 0.80)
-                .missChance(0.10)
-                .turn(0.80)
-                .arrowSpread(3.0)
-                .lead(0.70)
-                .backOff(0.75)
-                .aimWobble(2.0)
-                .release(8.0)
-                .moveDelay(2)
-                .gaps(0.75)
-                .critHops(0.50)
-                .unstick(1.4)
+                .reachUsage(0.94)
+                .momentum(0.85)
+                .knockbackPenalty(1.05)
+                .swingDelay(2)
+                .approach(0.62, 0.78)
+                .missChance(0.13)
+                .turn(0.75)
+                .arrowSpread(3.5)
+                .lead(0.60)
+                .backOff(0.70)
+                .aimWobble(3.0)
+                .release(9.0)
+                .moveDelay(3)
+                .gaps(0.70)
+                .critHops(0.45)
+                .unstick(1.5)
                 .pathSearch(0.60)
-                .combos(0.65)
+                .combos(0.55)
         ),
         // The old HARD: every Tuning default
         MASTER(new Tuning());
