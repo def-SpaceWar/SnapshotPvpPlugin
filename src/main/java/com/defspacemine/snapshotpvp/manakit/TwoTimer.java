@@ -778,7 +778,7 @@ public class TwoTimer extends ManaKit {
         MannequinFighter fighter = new MannequinFighter(
             SnapshotPvpPlugin.instance,
             twin,
-            MannequinFighter.Difficulty.EASY
+            MannequinFighter.Difficulty.HARD
         );
         twins.put(owner.getUniqueId(), fighter);
 
