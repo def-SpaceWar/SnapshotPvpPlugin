@@ -56,7 +56,7 @@ public class SculkWarrior extends ManaKit {
     final NamespacedKey shriekerRestockCounter = ManaKitListener.MANA_KIT_DATA1;
 
     public SculkWarrior() {
-        super("sculk_warrior", "Sculk Warrior", "[Melee Assassin]", 0);
+        super("sculk_warrior", "Sculk Warrior", "[Melee Assassin]", 2);
     }
 
     @Override
