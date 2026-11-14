@@ -24,7 +24,7 @@ import org.bukkit.potion.PotionEffectType;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Berserk extends ManaKit {
-    final int enrage = 60; // 20 attacks or getting hit 60 times!
+    final int enrage = 20; // 20 attacks or getting hit 20 times!
     final NamespacedKey enrageCounter = ManaKitListener.MANA_KIT_DATA0;
 
     private ItemStack ragePotion;
@@ -38,22 +38,15 @@ public class Berserk extends ManaKit {
         meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
         meta.setColor(Color.fromRGB(16711680));
         meta.addCustomEffect(new PotionEffect(
-                PotionEffectType.ABSORPTION,
-                500,
-                1,
-                false,
-                true,
-                true), true);
-        meta.addCustomEffect(new PotionEffect(
                 PotionEffectType.RESISTANCE,
-                500,
-                1,
+                250,
+                0,
                 false,
                 true,
                 true), true);
         meta.addCustomEffect(new PotionEffect(
                 PotionEffectType.STRENGTH,
-                500,
+                250,
                 1,
                 false,
                 true,
@@ -120,7 +113,7 @@ public class Berserk extends ManaKit {
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(enrageCounter, PersistentDataType.INTEGER,
-                pdc.get(enrageCounter, PersistentDataType.INTEGER) + 3);
+                pdc.get(enrageCounter, PersistentDataType.INTEGER) + 1);
     }
 
     @Override
