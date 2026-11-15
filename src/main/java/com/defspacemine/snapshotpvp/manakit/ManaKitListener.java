@@ -691,6 +691,18 @@ public final class ManaKitListener implements Listener {
             public void run() {
                 for (Player player : SnapshotPvpPlugin.server.getOnlinePlayers()) {
                     if (ManaKit.isInShadowRealm(player)) {
+                        int ticksRemaining = ManaKit.getShadowRealmTimer(player);
+                        if (ticksRemaining <= 1) {
+                            if (!ManaKit.returnFromShadowRealm(player)) {
+                                ManaKit kit = getPlayerKit(player);
+                                if (kit != null) kit.onShadowTick(player);
+                            }
+                            continue;
+                        }
+                        ManaKit.setShadowRealmTimer(
+                            player,
+                            ticksRemaining - 1
+                        );
                         ManaKit kit = getPlayerKit(player);
                         if (kit != null) kit.onShadowTick(player);
                         continue;

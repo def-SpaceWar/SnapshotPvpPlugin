@@ -1,9 +1,14 @@
 package com.defspacemine.snapshotpvp.manakit;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -15,8 +20,17 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 
 public abstract class ManaKit {
+
+    private static final String MAP_SUFFIX = "_map";
+    private static final String SHADOW_SUFFIX = "_map_shadow";
+
+    public static final NamespacedKey SHADOW_REALM_TIMER = new NamespacedKey(
+        "defspacemine",
+        "shadow_realm_timer"
+    );
 
     protected final String id;
     protected final String displayName;
@@ -48,7 +62,86 @@ public abstract class ManaKit {
     }
 
     public static boolean isInShadowRealm(Player player) {
-        return player.getWorld().getName().endsWith("_map_shadow");
+        return player.getWorld().getName().endsWith(SHADOW_SUFFIX);
+    }
+
+    public static int getShadowRealmTimer(Player player) {
+        return player
+            .getPersistentDataContainer()
+            .getOrDefault(SHADOW_REALM_TIMER, PersistentDataType.INTEGER, 0);
+    }
+
+    public static void setShadowRealmTimer(Player player, int ticks) {
+        if (ticks < 0) throw new IllegalArgumentException(
+            "Shadow realm timer cannot be negative"
+        );
+        player
+            .getPersistentDataContainer()
+            .set(SHADOW_REALM_TIMER, PersistentDataType.INTEGER, ticks);
+    }
+
+    public static boolean enterShadowRealm(Player player, int durationTicks) {
+        if (durationTicks <= 0) throw new IllegalArgumentException(
+            "Shadow realm duration must be positive"
+        );
+
+        String normalWorldName = player.getWorld().getName();
+        if (
+            isInShadowRealm(player) || !normalWorldName.endsWith(MAP_SUFFIX)
+        ) return false;
+
+        World shadowWorld = Bukkit.getWorld(normalWorldName + "_shadow");
+        if (shadowWorld == null) throw new IllegalStateException(
+            "Shadow realm world is not loaded: " +
+            normalWorldName +
+            "_shadow"
+        );
+
+        Location current = player.getLocation();
+        boolean teleported = player.teleport(
+            new Location(
+                shadowWorld,
+                current.getX(),
+                current.getY(),
+                current.getZ(),
+                current.getYaw(),
+                current.getPitch()
+            )
+        );
+        if (!teleported) return false;
+
+        setShadowRealmTimer(player, durationTicks);
+        return true;
+    }
+
+    public static boolean returnFromShadowRealm(Player player) {
+        if (!isInShadowRealm(player)) return false;
+
+        String shadowWorldName = player.getWorld().getName();
+        String normalWorldName = shadowWorldName.substring(
+            0,
+            shadowWorldName.length() - "_shadow".length()
+        );
+        World normalWorld = Bukkit.getWorld(normalWorldName);
+        if (normalWorld == null) throw new IllegalStateException(
+            "Normal map world is not loaded: " + normalWorldName
+        );
+
+        Location current = player.getLocation();
+        boolean teleported = player.teleport(
+            new Location(
+                normalWorld,
+                current.getX(),
+                current.getY(),
+                current.getZ(),
+                current.getYaw(),
+                current.getPitch()
+            )
+        );
+        if (!teleported) return false;
+
+        player.getPersistentDataContainer().remove(SHADOW_REALM_TIMER);
+        return true;
     }
 
     public void giveKit(Player p) {}
@@ -57,7 +150,16 @@ public abstract class ManaKit {
 
     public void onCombatTick(Player p) {}
 
-    public void onShadowTick(Player p) {}
+    public void onShadowTick(Player p) {
+        p.sendActionBar(
+            Component.text("Shadow Realm: ", NamedTextColor.LIGHT_PURPLE).append(
+                Component.text(
+                    getShadowRealmTimer(p),
+                    NamedTextColor.WHITE
+                )
+            )
+        );
+    }
 
     public void onIdleTick(Player p) {}
 
