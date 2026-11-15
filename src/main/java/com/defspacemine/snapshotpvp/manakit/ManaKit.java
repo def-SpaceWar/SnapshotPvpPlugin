@@ -27,9 +27,9 @@ public abstract class ManaKit {
     private static final String MAP_SUFFIX = "_map";
     private static final String SHADOW_SUFFIX = "_map_shadow";
 
-    public static final NamespacedKey SHADOW_REALM_TIMER = new NamespacedKey(
+    public static final NamespacedKey SHADOW_WORLD_TIMER = new NamespacedKey(
         "defspacemine",
-        "shadow_realm_timer"
+        "shadow_world_timer"
     );
 
     protected final String id;
@@ -61,38 +61,38 @@ public abstract class ManaKit {
         return description;
     }
 
-    public static boolean isInShadowRealm(Player player) {
+    public static boolean isInShadowWorld(Player player) {
         return player.getWorld().getName().endsWith(SHADOW_SUFFIX);
     }
 
-    public static int getShadowRealmTimer(Player player) {
+    public static int getShadowWorldTimer(Player player) {
         return player
             .getPersistentDataContainer()
-            .getOrDefault(SHADOW_REALM_TIMER, PersistentDataType.INTEGER, 0);
+            .getOrDefault(SHADOW_WORLD_TIMER, PersistentDataType.INTEGER, 0);
     }
 
-    public static void setShadowRealmTimer(Player player, int ticks) {
+    public static void setShadowWorldTimer(Player player, int ticks) {
         if (ticks < 0) throw new IllegalArgumentException(
-            "Shadow realm timer cannot be negative"
+            "Shadow world timer cannot be negative"
         );
         player
             .getPersistentDataContainer()
-            .set(SHADOW_REALM_TIMER, PersistentDataType.INTEGER, ticks);
+            .set(SHADOW_WORLD_TIMER, PersistentDataType.INTEGER, ticks);
     }
 
-    public static boolean enterShadowRealm(Player player, int durationTicks) {
+    public static boolean enterShadowWorld(Player player, int durationTicks) {
         if (durationTicks <= 0) throw new IllegalArgumentException(
-            "Shadow realm duration must be positive"
+            "Shadow world duration must be positive"
         );
 
         String normalWorldName = player.getWorld().getName();
         if (
-            isInShadowRealm(player) || !normalWorldName.endsWith(MAP_SUFFIX)
+            isInShadowWorld(player) || !normalWorldName.endsWith(MAP_SUFFIX)
         ) return false;
 
         World shadowWorld = Bukkit.getWorld(normalWorldName + "_shadow");
         if (shadowWorld == null) throw new IllegalStateException(
-            "Shadow realm world is not loaded: " +
+            "Shadow world world is not loaded: " +
             normalWorldName +
             "_shadow"
         );
@@ -110,12 +110,12 @@ public abstract class ManaKit {
         );
         if (!teleported) return false;
 
-        setShadowRealmTimer(player, durationTicks);
+        setShadowWorldTimer(player, durationTicks);
         return true;
     }
 
-    public static boolean returnFromShadowRealm(Player player) {
-        if (!isInShadowRealm(player)) return false;
+    public static boolean returnFromShadowWorld(Player player) {
+        if (!isInShadowWorld(player)) return false;
 
         String shadowWorldName = player.getWorld().getName();
         String normalWorldName = shadowWorldName.substring(
@@ -140,7 +140,7 @@ public abstract class ManaKit {
         );
         if (!teleported) return false;
 
-        player.getPersistentDataContainer().remove(SHADOW_REALM_TIMER);
+        player.getPersistentDataContainer().remove(SHADOW_WORLD_TIMER);
         return true;
     }
 
@@ -152,9 +152,9 @@ public abstract class ManaKit {
 
     public void onShadowTick(Player p) {
         p.sendActionBar(
-            Component.text("Shadow Realm: ", NamedTextColor.LIGHT_PURPLE).append(
+            Component.text("Shadow World: ", NamedTextColor.LIGHT_PURPLE).append(
                 Component.text(
-                    getShadowRealmTimer(p),
+                    getShadowWorldTimer(p),
                     NamedTextColor.WHITE
                 )
             )

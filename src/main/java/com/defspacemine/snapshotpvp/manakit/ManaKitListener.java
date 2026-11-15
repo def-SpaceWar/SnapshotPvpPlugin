@@ -290,7 +290,7 @@ public final class ManaKitListener implements Listener {
     }
 
     public void givePlayerKit(Player player, ManaKit kit) {
-        if (ManaKit.isInShadowRealm(player)) return;
+        if (ManaKit.isInShadowWorld(player)) return;
         PersistentDataContainer pdc = player.getPersistentDataContainer();
         pdc.set(MANA_KIT, PersistentDataType.STRING, kit.getId());
         kit.giveKit(player);
@@ -400,7 +400,7 @@ public final class ManaKitListener implements Listener {
     public void onEntityShootBow(EntityShootBowEvent event) {
         if (!(event.getEntity() instanceof Player shooter)) return;
         if (!shooter.getScoreboardTags().contains("combat")) return;
-        if (ManaKit.isInShadowRealm(shooter)) return;
+        if (ManaKit.isInShadowWorld(shooter)) return;
 
         ManaKit shooterKit = getPlayerKit(shooter);
         if (shooterKit == null) return;
@@ -411,7 +411,7 @@ public final class ManaKitListener implements Listener {
     public void onEntityToggleGlide(EntityToggleGlideEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
         if (!player.getScoreboardTags().contains("combat")) return;
-        if (ManaKit.isInShadowRealm(player)) return;
+        if (ManaKit.isInShadowWorld(player)) return;
 
         ManaKit kit = getPlayerKit(player);
         if (kit != null) kit.onToggleGlide(player, event);
@@ -440,7 +440,7 @@ public final class ManaKitListener implements Listener {
             if (
                 player.equals(victim) ||
                 player.equals(attacker) ||
-                ManaKit.isInShadowRealm(player) ||
+                ManaKit.isInShadowWorld(player) ||
                 !player.getScoreboardTags().contains("combat")
             ) continue;
             ManaKit kit = getPlayerKit(player);
@@ -455,7 +455,7 @@ public final class ManaKitListener implements Listener {
         if (
             victim instanceof Player p &&
             p.getScoreboardTags().contains("combat") &&
-            !ManaKit.isInShadowRealm(p)
+            !ManaKit.isInShadowWorld(p)
         ) {
             ManaKit victimKit = getPlayerKit(p);
             if (victimKit != null) victimKit.onDamageTaken(p, event);
@@ -464,7 +464,7 @@ public final class ManaKitListener implements Listener {
         if (
             attacker != null &&
             attacker.getScoreboardTags().contains("combat") &&
-            !ManaKit.isInShadowRealm(attacker)
+            !ManaKit.isInShadowWorld(attacker)
         ) {
             ManaKit attackerKit = getPlayerKit(attacker);
             if (attackerKit != null) attackerKit.onDamageDealt(attacker, event);
@@ -476,7 +476,7 @@ public final class ManaKitListener implements Listener {
         Player victim = event.getPlayer();
         ManaKit victimKit = getPlayerKit(victim);
         if (
-            victimKit != null && !ManaKit.isInShadowRealm(victim)
+            victimKit != null && !ManaKit.isInShadowWorld(victim)
         ) victimKit.onDeath(victim, event);
 
         Player attacker = victim.getKiller();
@@ -503,7 +503,7 @@ public final class ManaKitListener implements Listener {
             );
             ManaKit attackerKit = getPlayerKit(attacker);
             if (
-                attackerKit != null && !ManaKit.isInShadowRealm(attacker)
+                attackerKit != null && !ManaKit.isInShadowWorld(attacker)
             ) attackerKit.onKill(attacker, event);
         }
     }
@@ -512,7 +512,7 @@ public final class ManaKitListener implements Listener {
     public void onInteract(PlayerInteractEvent e) {
         Player p = e.getPlayer();
         if (!p.getScoreboardTags().contains("combat")) return;
-        if (ManaKit.isInShadowRealm(p)) return;
+        if (ManaKit.isInShadowWorld(p)) return;
         ManaKit kit = getPlayerKit(p);
         if (kit == null) return;
         kit.onInteract(p, e);
@@ -522,7 +522,7 @@ public final class ManaKitListener implements Listener {
     public void onInteractEntity(PlayerInteractEntityEvent e) {
         Player p = e.getPlayer();
         if (!p.getScoreboardTags().contains("combat")) return;
-        if (ManaKit.isInShadowRealm(p)) return;
+        if (ManaKit.isInShadowWorld(p)) return;
         ManaKit kit = getPlayerKit(p);
         if (kit == null) return;
         kit.onInteractEntity(p, e);
@@ -561,7 +561,7 @@ public final class ManaKitListener implements Listener {
         }
 
         if (!p.getScoreboardTags().contains("combat")) return;
-        if (ManaKit.isInShadowRealm(p)) return;
+        if (ManaKit.isInShadowWorld(p)) return;
         ManaKit kit = getPlayerKit(p);
         if (kit == null) return;
         kit.onConsume(p, e);
@@ -571,7 +571,7 @@ public final class ManaKitListener implements Listener {
     public void onProjectileHit(ProjectileHitEvent e) {
         if (!(e.getEntity().getShooter() instanceof Player p)) return;
         if (!p.getScoreboardTags().contains("combat")) return;
-        if (ManaKit.isInShadowRealm(p)) return;
+        if (ManaKit.isInShadowWorld(p)) return;
         ManaKit kit = getPlayerKit(p);
         if (kit == null) return;
         kit.onProjectileHit(p, e);
@@ -690,16 +690,16 @@ public final class ManaKitListener implements Listener {
             @Override
             public void run() {
                 for (Player player : SnapshotPvpPlugin.server.getOnlinePlayers()) {
-                    if (ManaKit.isInShadowRealm(player)) {
-                        int ticksRemaining = ManaKit.getShadowRealmTimer(player);
+                    if (ManaKit.isInShadowWorld(player)) {
+                        int ticksRemaining = ManaKit.getShadowWorldTimer(player);
                         if (ticksRemaining <= 1) {
-                            if (!ManaKit.returnFromShadowRealm(player)) {
+                            if (!ManaKit.returnFromShadowWorld(player)) {
                                 ManaKit kit = getPlayerKit(player);
                                 if (kit != null) kit.onShadowTick(player);
                             }
                             continue;
                         }
-                        ManaKit.setShadowRealmTimer(
+                        ManaKit.setShadowWorldTimer(
                             player,
                             ticksRemaining - 1
                         );

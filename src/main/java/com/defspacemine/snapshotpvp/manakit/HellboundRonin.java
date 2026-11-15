@@ -132,7 +132,7 @@ public class HellboundRonin extends ManaKit {
 
                 @Override
                 public void run() {
-                    if (isInShadowRealm(p)) {
+                    if (isInShadowWorld(p)) {
                         this.cancel();
                         return;
                     }

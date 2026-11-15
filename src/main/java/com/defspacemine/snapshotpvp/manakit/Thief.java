@@ -264,8 +264,8 @@ public class Thief extends ManaKit {
             );
             return;
         }
-        if (!ManaKit.enterShadowRealm(p, shadowRealmDuration)) {
-            p.sendMessage(ChatColor.RED + "Could not enter the shadow realm.");
+        if (!ManaKit.enterShadowWorld(p, shadowRealmDuration)) {
+            p.sendMessage(ChatColor.RED + "Could not enter the shadow world.");
             return;
         }
 
