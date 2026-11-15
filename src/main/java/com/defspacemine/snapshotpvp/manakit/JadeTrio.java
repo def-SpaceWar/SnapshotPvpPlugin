@@ -106,27 +106,20 @@ public class JadeTrio extends ManaKit {
         restockEmeraldBlocks(p);
         grantPortalIfCharged(p);
 
-        int killstreak = SnapshotPvpPlugin.getPlayerScore(
-            p,
-            "dummyKillstreak"
-        );
+        int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         int portalCharge = p
             .getPersistentDataContainer()
-            .getOrDefault(
-                portalChargeCounter,
-                PersistentDataType.INTEGER,
-                0
-            );
+            .getOrDefault(portalChargeCounter, PersistentDataType.INTEGER, 0);
         String portalStatus = hasPortalItem(p)
             ? ChatColor.GREEN + "READY"
             : ChatColor.WHITE.toString() +
-                portalCharge +
-                "/" +
-                PORTAL_CHARGE_HITS;
+              portalCharge +
+              "/" +
+              PORTAL_CHARGE_HITS;
 
         p.sendActionBar(
-            ChatColor.LIGHT_PURPLE +
-                "Portal: " +
+            ChatColor.GREEN +
+                "Jade Portal: " +
                 portalStatus +
                 ChatColor.GRAY +
                 " | " +
@@ -218,9 +211,7 @@ public class JadeTrio extends ManaKit {
     private ItemStack createPortalItem() {
         ItemStack item = new ItemStack(Material.DEEPSLATE_EMERALD_ORE);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(
-            Component.text(ChatColor.GREEN + "Jade Portal")
-        );
+        meta.displayName(Component.text(ChatColor.GREEN + "Jade Portal"));
         meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
         meta.getPersistentDataContainer().set(
             portalItemTag,
@@ -268,12 +259,10 @@ public class JadeTrio extends ManaKit {
         if (charge < PORTAL_CHARGE_HITS) return;
 
         if (!hasPortalItem(p)) {
-            for (
-                ItemStack leftover : p
-                    .getInventory()
-                    .addItem(portalItem.clone())
-                    .values()
-            ) {
+            for (ItemStack leftover : p
+                .getInventory()
+                .addItem(portalItem.clone())
+                .values()) {
                 p.getWorld().dropItemNaturally(p.getLocation(), leftover);
             }
             playItemGainFeedback(p);
@@ -314,9 +303,7 @@ public class JadeTrio extends ManaKit {
 
         ItemStack blocks = emeraldBlockItem.clone();
         blocks.setAmount(amount);
-        for (
-            ItemStack leftover : p.getInventory().addItem(blocks).values()
-        ) {
+        for (ItemStack leftover : p.getInventory().addItem(blocks).values()) {
             p.getWorld().dropItemNaturally(p.getLocation(), leftover);
         }
     }
@@ -392,7 +379,9 @@ public class JadeTrio extends ManaKit {
 
         Location center = getNormalWorldLocation(p);
         if (center == null) {
-            p.sendMessage(ChatColor.RED + "The portal's map world is not loaded.");
+            p.sendMessage(
+                ChatColor.RED + "The portal's map world is not loaded."
+            );
             return;
         }
 
@@ -438,7 +427,7 @@ public class JadeTrio extends ManaKit {
         DustOptions innerDust = new DustOptions(Color.fromRGB(0xA020F0), 1.2f);
 
         for (int i = 0; i < 64; i++) {
-            double angle = Math.PI * 2 * i / 64;
+            double angle = (Math.PI * 2 * i) / 64;
             Location point = center
                 .clone()
                 .add(
@@ -477,8 +466,7 @@ public class JadeTrio extends ManaKit {
     private boolean intersectsPortal(Player target, Location center) {
         BoundingBox bounds = target.getBoundingBox();
         if (
-            center.getY() < bounds.getMinY() ||
-            center.getY() > bounds.getMaxY()
+            center.getY() < bounds.getMinY() || center.getY() > bounds.getMaxY()
         ) return false;
 
         double nearestX = Math.max(

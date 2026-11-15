@@ -2,6 +2,7 @@ package com.defspacemine.snapshotpvp.manakit;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -43,7 +44,8 @@ public class Shulkian extends ManaKit {
         "defspacemine",
         "shulkian_knockback_bow"
     );
-    private final NamespacedKey damageHitsCounter = ManaKitListener.MANA_KIT_DATA1;
+    private final NamespacedKey damageHitsCounter =
+        ManaKitListener.MANA_KIT_DATA1;
 
     private ItemStack arrows;
     private final ItemStack teleportArrow;
@@ -72,35 +74,29 @@ public class Shulkian extends ManaKit {
         teleportArrow = new ItemStack(Material.TIPPED_ARROW);
         PotionMeta teleportArrowMeta = (PotionMeta) teleportArrow.getItemMeta();
         teleportArrowMeta.displayName(
-            Component.text("Teleport Arrow").decoration(
-                TextDecoration.ITALIC,
-                false
-            )
+            Component.text("Arrow of Teleportation")
+                .decoration(TextDecoration.ITALIC, false)
+                .color(NamedTextColor.GOLD)
         );
         teleportArrowMeta.setColor(Color.fromRGB(0x9B59B6));
-        teleportArrowMeta.getPersistentDataContainer().set(
-            teleportArrowKey,
-            PersistentDataType.BYTE,
-            (byte) 1
-        );
+        teleportArrowMeta
+            .getPersistentDataContainer()
+            .set(teleportArrowKey, PersistentDataType.BYTE, (byte) 1);
         teleportArrow.setItemMeta(teleportArrowMeta);
 
         knockbackBow = new ItemStack(Material.BOW);
-        knockbackBow.displayName(
-            Component.text("Super Heavy Shot").decoration(
-                TextDecoration.ITALIC,
-                false
-            ).color(Color.fromRGB(0xE7DC3C))
-        );
         Damageable knockbackBowMeta = (Damageable) knockbackBow.getItemMeta();
+        knockbackBowMeta.displayName(
+            Component.text("Super Heavy Shot")
+                .decoration(TextDecoration.ITALIC, false)
+                .color(NamedTextColor.YELLOW)
+        );
         knockbackBowMeta.addEnchant(Enchantment.KNOCKBACK, 10, true);
         knockbackBowMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
         knockbackBowMeta.setMaxDamage(2);
-        knockbackBowMeta.getPersistentDataContainer().set(
-            knockbackBowKey,
-            PersistentDataType.BYTE,
-            (byte) 1
-        );
+        knockbackBowMeta
+            .getPersistentDataContainer()
+            .set(knockbackBowKey, PersistentDataType.BYTE, (byte) 1);
         knockbackBow.setItemMeta(knockbackBowMeta);
     }
 
@@ -221,12 +217,10 @@ public class Shulkian extends ManaKit {
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
-        for (
-            ItemStack leftover : p
-                .getInventory()
-                .addItem(teleportArrow.clone())
-                .values()
-        ) {
+        for (ItemStack leftover : p
+            .getInventory()
+            .addItem(teleportArrow.clone())
+            .values()) {
             p.getWorld().dropItemNaturally(p.getLocation(), leftover);
         }
         playItemGainFeedback(p);
@@ -268,9 +262,8 @@ public class Shulkian extends ManaKit {
         ) return;
 
         Entity hitEntity = e.getHitEntity();
-        Location destination = hitEntity == null
-            ? arrow.getLocation()
-            : hitEntity.getLocation();
+        Location destination =
+            hitEntity == null ? arrow.getLocation() : hitEntity.getLocation();
         if (!canUseTeleportAbility(p, destination)) return;
 
         if (p.teleport(destination)) {
@@ -320,11 +313,9 @@ public class Shulkian extends ManaKit {
             isTeleportArrow(e.getConsumable()) &&
             e.getProjectile() instanceof AbstractArrow projectile
         ) {
-            projectile.getPersistentDataContainer().set(
-                teleportArrowKey,
-                PersistentDataType.BYTE,
-                (byte) 1
-            );
+            projectile
+                .getPersistentDataContainer()
+                .set(teleportArrowKey, PersistentDataType.BYTE, (byte) 1);
             projectile.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
         }
         playAbilityFeedback(p);
