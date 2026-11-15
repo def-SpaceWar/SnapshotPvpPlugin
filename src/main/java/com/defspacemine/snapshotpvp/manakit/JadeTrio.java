@@ -87,7 +87,6 @@ public class JadeTrio extends ManaKit {
             4,
             -185
         );
-        giveEmeraldBlocks(p, EMERALD_BLOCKS_PER_RESTOCK);
     }
 
     @Override

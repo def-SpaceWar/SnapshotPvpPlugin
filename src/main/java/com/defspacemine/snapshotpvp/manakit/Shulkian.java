@@ -78,6 +78,7 @@ public class Shulkian extends ManaKit {
                 .decoration(TextDecoration.ITALIC, false)
                 .color(NamedTextColor.GOLD)
         );
+        teleportArrowMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
         teleportArrowMeta.setColor(Color.fromRGB(0x9B59B6));
         teleportArrowMeta
             .getPersistentDataContainer()
@@ -181,7 +182,7 @@ public class Shulkian extends ManaKit {
 
         PlayerInventory inv = p.getInventory();
         if (arrowRestockC >= arrowRestock) {
-            SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
+            SnapshotPvpPlugin.clearInv(p, arrows);
             inv.addItem(arrows);
             playItemGainFeedback(p);
             pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
@@ -217,12 +218,8 @@ public class Shulkian extends ManaKit {
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
-        for (ItemStack leftover : p
-            .getInventory()
-            .addItem(teleportArrow.clone())
-            .values()) {
-            p.getWorld().dropItemNaturally(p.getLocation(), leftover);
-        }
+        SnapshotPvpPlugin.clearInv(p, teleportArrow);
+        p.getInventory().addItem(teleportArrow);
         playItemGainFeedback(p);
     }
 
