@@ -708,6 +708,8 @@ public class TwoTimer extends ManaKit {
             }
         }
 
+        if (!canUseTeleportAbility(p, dest)) return;
+
         DustOptions dust = new DustOptions(
             goLeft ? Color.AQUA : Color.ORANGE,
             1.3f
@@ -891,6 +893,8 @@ public class TwoTimer extends ManaKit {
     private void swapWithTwin(Player p, Mannequin twin) {
         Location pLoc = p.getLocation().clone();
         Location tLoc = twin.getLocation().clone();
+        if (!canUseTeleportAbility(p, tLoc)) return;
+
         Vector pVel = p.getVelocity().clone();
         Vector tVel = twin.getVelocity().clone();
 

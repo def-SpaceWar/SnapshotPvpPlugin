@@ -437,6 +437,8 @@ public class Monk extends ManaKit {
             return false;
         }
 
+        if (!canUseTeleportAbility(p, best)) return false;
+
         p.getWorld().spawnParticle(
             Particle.PORTAL,
             start.clone().add(0, 1, 0),

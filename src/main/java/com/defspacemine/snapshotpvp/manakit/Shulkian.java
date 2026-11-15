@@ -4,16 +4,23 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.ChatColor;
+import org.bukkit.Color;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.AbstractArrow;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -24,10 +31,23 @@ import org.bukkit.util.Vector;
 
 public class Shulkian extends ManaKit {
 
-    final int arrowRestock = 160; // 4 arrows every 8 seconds, they auto reset
+    final int arrowRestock = 120; // 4 arrows every 6 seconds, they auto reset
     final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;
+    private static final int DAMAGE_HITS_FOR_BOW = 10;
+
+    private final NamespacedKey teleportArrowKey = new NamespacedKey(
+        "defspacemine",
+        "shulkian_teleport_arrow"
+    );
+    private final NamespacedKey knockbackBowKey = new NamespacedKey(
+        "defspacemine",
+        "shulkian_knockback_bow"
+    );
+    private final NamespacedKey damageHitsCounter = ManaKitListener.MANA_KIT_DATA1;
 
     private ItemStack arrows;
+    private final ItemStack teleportArrow;
+    private final ItemStack knockbackBow;
 
     public Shulkian() {
         super("shulkian", "Shulkian", "[Ranged Sniper Tank]", 2);
@@ -48,6 +68,40 @@ public class Shulkian extends ManaKit {
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
             arrows.setItemMeta(meta);
         }
+
+        teleportArrow = new ItemStack(Material.TIPPED_ARROW);
+        PotionMeta teleportArrowMeta = (PotionMeta) teleportArrow.getItemMeta();
+        teleportArrowMeta.displayName(
+            Component.text("Teleport Arrow").decoration(
+                TextDecoration.ITALIC,
+                false
+            )
+        );
+        teleportArrowMeta.setColor(Color.fromRGB(0x9B59B6));
+        teleportArrowMeta.getPersistentDataContainer().set(
+            teleportArrowKey,
+            PersistentDataType.BYTE,
+            (byte) 1
+        );
+        teleportArrow.setItemMeta(teleportArrowMeta);
+
+        knockbackBow = new ItemStack(Material.BOW);
+        knockbackBow.displayName(
+            Component.text("Super Heavy Shot").decoration(
+                TextDecoration.ITALIC,
+                false
+            ).color(Color.fromRGB(0xE7DC3C))
+        );
+        Damageable knockbackBowMeta = (Damageable) knockbackBow.getItemMeta();
+        knockbackBowMeta.addEnchant(Enchantment.KNOCKBACK, 10, true);
+        knockbackBowMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
+        knockbackBowMeta.setMaxDamage(2);
+        knockbackBowMeta.getPersistentDataContainer().set(
+            knockbackBowKey,
+            PersistentDataType.BYTE,
+            (byte) 1
+        );
+        knockbackBow.setItemMeta(knockbackBowMeta);
     }
 
     @Override
@@ -68,16 +122,30 @@ public class Shulkian extends ManaKit {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(ManaKitListener.MANA_KIT, PersistentDataType.STRING, this.id);
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestock);
+        pdc.set(damageHitsCounter, PersistentDataType.INTEGER, 0);
     }
 
     @Override
     public void onCombatTick(Player p) {
+        applyShiftResistance(p);
+
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         int arrowRestockC = pdc.get(
             arrowRestockCounter,
             PersistentDataType.INTEGER
         );
+        int bowDamageHits = pdc.getOrDefault(
+            damageHitsCounter,
+            PersistentDataType.INTEGER,
+            0
+        );
+        String bowProgress = hasKnockbackBow(p)
+            ? ChatColor.GREEN + "READY"
+            : ChatColor.WHITE.toString() +
+              bowDamageHits +
+              "/" +
+              DAMAGE_HITS_FOR_BOW;
 
         p.sendActionBar(
             ChatColor.LIGHT_PURPLE +
@@ -86,6 +154,11 @@ public class Shulkian extends ManaKit {
                 arrowRestockC +
                 "/" +
                 arrowRestock +
+                ChatColor.GRAY +
+                "  |  " +
+                ChatColor.YELLOW +
+                "Super Heavy Shot: " +
+                bowProgress +
                 ChatColor.GRAY +
                 "  |  " +
                 ChatColor.RED +
@@ -120,8 +193,21 @@ public class Shulkian extends ManaKit {
     }
 
     @Override
+    public void onShadowTick(Player p) {
+        super.onShadowTick(p);
+        applyShiftResistance(p);
+    }
+
+    private void applyShiftResistance(Player p) {
+        if (p.isSneaking()) p.addPotionEffect(
+            new PotionEffect(PotionEffectType.RESISTANCE, 2, 3)
+        );
+    }
+
+    @Override
     public void onLeaveCombat(Player p) {
         SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
+        removeKnockbackBow(p);
         p.clearActivePotionEffects();
         resetKit(p);
     }
@@ -130,10 +216,129 @@ public class Shulkian extends ManaKit {
     public void onEnterCombat(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestock);
+        pdc.set(damageHitsCounter, PersistentDataType.INTEGER, 0);
+    }
+
+    @Override
+    public void onKill(Player p, PlayerDeathEvent e) {
+        for (
+            ItemStack leftover : p
+                .getInventory()
+                .addItem(teleportArrow.clone())
+                .values()
+        ) {
+            p.getWorld().dropItemNaturally(p.getLocation(), leftover);
+        }
+        playItemGainFeedback(p);
+    }
+
+    @Override
+    public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
+        if (!(e.getEntity() instanceof Player)) return;
+
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        int previousHits = pdc.getOrDefault(
+            damageHitsCounter,
+            PersistentDataType.INTEGER,
+            0
+        );
+        int hits = Math.min(DAMAGE_HITS_FOR_BOW, previousHits + 1);
+        if (hits < DAMAGE_HITS_FOR_BOW) {
+            pdc.set(damageHitsCounter, PersistentDataType.INTEGER, hits);
+            return;
+        }
+
+        if (hasKnockbackBow(p)) {
+            pdc.set(damageHitsCounter, PersistentDataType.INTEGER, 0);
+            return;
+        }
+
+        p.getInventory().addItem(knockbackBow.clone()).isEmpty();
+        pdc.set(damageHitsCounter, PersistentDataType.INTEGER, 0);
+        playItemGainFeedback(p);
+    }
+
+    @Override
+    public void onProjectileHit(Player p, ProjectileHitEvent e) {
+        if (!(e.getEntity() instanceof Arrow arrow)) return;
+        if (
+            !arrow
+                .getPersistentDataContainer()
+                .has(teleportArrowKey, PersistentDataType.BYTE)
+        ) return;
+
+        Entity hitEntity = e.getHitEntity();
+        Location destination = hitEntity == null
+            ? arrow.getLocation()
+            : hitEntity.getLocation();
+        if (!canUseTeleportAbility(p, destination)) return;
+
+        if (p.teleport(destination)) {
+            arrow.remove();
+            playAbilityFeedback(p);
+        }
+    }
+
+    private boolean hasKnockbackBow(Player p) {
+        PlayerInventory inventory = p.getInventory();
+        for (ItemStack item : inventory.getContents()) {
+            if (isKnockbackBow(item)) return true;
+        }
+        return (
+            isKnockbackBow(inventory.getItemInOffHand()) ||
+            isKnockbackBow(p.getItemOnCursor())
+        );
+    }
+
+    private void removeKnockbackBow(Player p) {
+        PlayerInventory inventory = p.getInventory();
+        ItemStack[] contents = inventory.getContents();
+        for (int slot = 0; slot < contents.length; slot++) {
+            if (isKnockbackBow(contents[slot])) inventory.setItem(slot, null);
+        }
+        if (isKnockbackBow(inventory.getItemInOffHand())) {
+            inventory.setItemInOffHand(null);
+        }
+        if (isKnockbackBow(p.getItemOnCursor())) p.setItemOnCursor(null);
+    }
+
+    private boolean isKnockbackBow(ItemStack item) {
+        return (
+            item != null &&
+            item.getType() == Material.BOW &&
+            item.hasItemMeta() &&
+            item
+                .getItemMeta()
+                .getPersistentDataContainer()
+                .has(knockbackBowKey, PersistentDataType.BYTE)
+        );
     }
 
     @Override
     public void onShootBow(Player p, EntityShootBowEvent e) {
+        if (
+            isTeleportArrow(e.getConsumable()) &&
+            e.getProjectile() instanceof AbstractArrow projectile
+        ) {
+            projectile.getPersistentDataContainer().set(
+                teleportArrowKey,
+                PersistentDataType.BYTE,
+                (byte) 1
+            );
+            projectile.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
+        }
         playAbilityFeedback(p);
+    }
+
+    private boolean isTeleportArrow(ItemStack item) {
+        return (
+            item != null &&
+            item.getType() == Material.TIPPED_ARROW &&
+            item.hasItemMeta() &&
+            item
+                .getItemMeta()
+                .getPersistentDataContainer()
+                .has(teleportArrowKey, PersistentDataType.BYTE)
+        );
     }
 }

@@ -7,7 +7,6 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Trident;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -134,10 +133,7 @@ public class Tridentite extends ManaKit {
     private void retrieveTrident(Player p) {
         p.getInventory().addItem(trident);
         playItemGainFeedback(p);
-        for (Entity e : p.getWorld().getEntities())
-            if (e instanceof Trident t)
-                if (t.getOwnerUniqueId().equals(p.getUniqueId()))
-                    t.remove();
+        removeOwnedTridents(p);
     }
 
     @Override

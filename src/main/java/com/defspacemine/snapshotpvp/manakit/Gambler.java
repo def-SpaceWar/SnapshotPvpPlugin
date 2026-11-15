@@ -507,6 +507,8 @@ public class Gambler extends ManaKit {
         int luck,
         boolean isJackpot
     ) {
+        if (!canUseTeleportAbility(p, loc)) return;
+
         Location oldLoc = p.getLocation().clone();
         p.teleport(loc.setDirection(oldLoc.getDirection().normalize()));
         p.playSound(p.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);

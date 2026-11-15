@@ -21,7 +21,6 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Trident;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -399,6 +398,11 @@ public class Engineer extends ManaKit {
         Player target,
         Location destination
     ) {
+        if (
+            !canUseTeleportAbility(engineer, destination) ||
+            !canUseTeleportAbility(target, destination)
+        ) return;
+
         target.addPotionEffect(
             new PotionEffect(PotionEffectType.INSTANT_HEALTH, 1, 0)
         );
@@ -512,10 +516,7 @@ public class Engineer extends ManaKit {
     private void retrieveTrident(Player p) {
         p.getInventory().addItem(trident);
         playItemGainFeedback(p);
-        for (Entity e : p.getWorld().getEntities())
-            if (e instanceof Trident t) if (
-                t.getOwnerUniqueId().equals(p.getUniqueId())
-            ) t.remove();
+        removeOwnedTridents(p);
     }
 
     @Override

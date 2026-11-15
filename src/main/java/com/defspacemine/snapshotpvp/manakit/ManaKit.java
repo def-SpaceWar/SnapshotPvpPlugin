@@ -11,6 +11,7 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Trident;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.EntityToggleGlideEvent;
@@ -144,6 +145,46 @@ public abstract class ManaKit {
         return true;
     }
 
+    protected final boolean canUseTeleportAbility(
+        Player player,
+        Location destination
+    ) {
+        return (
+            destination.getWorld() != null &&
+            player.getWorld().equals(destination.getWorld())
+        );
+    }
+
+    protected final void removeOwnedTridents(Player player) {
+        World currentWorld = player.getWorld();
+        String normalWorldName = currentWorld.getName();
+        if (normalWorldName.endsWith(SHADOW_SUFFIX)) {
+            normalWorldName = normalWorldName.substring(
+                0,
+                normalWorldName.length() - SHADOW_SUFFIX.length()
+            );
+        }
+
+        if (!normalWorldName.endsWith(MAP_SUFFIX)) {
+            removeOwnedTridents(currentWorld, player);
+            return;
+        }
+
+        World normalWorld = Bukkit.getWorld(normalWorldName);
+        World shadowWorld = Bukkit.getWorld(normalWorldName + SHADOW_SUFFIX);
+        if (normalWorld != null) removeOwnedTridents(normalWorld, player);
+        if (shadowWorld != null) removeOwnedTridents(shadowWorld, player);
+    }
+
+    private void removeOwnedTridents(World world, Player player) {
+        for (Entity entity : world.getEntities()) {
+            if (
+                entity instanceof Trident trident &&
+                player.getUniqueId().equals(trident.getOwnerUniqueId())
+            ) trident.remove();
+        }
+    }
+
     public void giveKit(Player p) {}
 
     public void resetKit(Player p) {}
@@ -165,7 +206,11 @@ public abstract class ManaKit {
 
     public void onDeath(Player p, PlayerDeathEvent e) {}
 
+    public void onDeathShadow(Player p, PlayerDeathEvent e) {}
+
     public void onKill(Player p, PlayerDeathEvent e) {}
+
+    public void onKillShadow(Player p, PlayerDeathEvent e) {}
 
     public void onEnterCombat(Player p) {}
 
@@ -178,21 +223,44 @@ public abstract class ManaKit {
         EntityDamageByEntityEvent e
     ) {}
 
+    public void onDamageInWorldShadow(
+        Player p,
+        Player attacker,
+        Entity victim,
+        EntityDamageByEntityEvent e
+    ) {}
+
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {}
+
+    public void onDamageDealtShadow(Player p, EntityDamageByEntityEvent e) {}
 
     public void onDamageTaken(Player p, EntityDamageByEntityEvent e) {}
 
+    public void onDamageTakenShadow(Player p, EntityDamageByEntityEvent e) {}
+
     public void onInteract(Player p, PlayerInteractEvent e) {}
+
+    public void onInteractShadow(Player p, PlayerInteractEvent e) {}
 
     public void onInteractEntity(Player p, PlayerInteractEntityEvent e) {}
 
+    public void onInteractEntityShadow(Player p, PlayerInteractEntityEvent e) {}
+
     public void onConsume(Player p, PlayerItemConsumeEvent e) {}
+
+    public void onConsumeShadow(Player p, PlayerItemConsumeEvent e) {}
 
     public void onProjectileHit(Player p, ProjectileHitEvent e) {}
 
+    public void onProjectileHitShadow(Player p, ProjectileHitEvent e) {}
+
     public void onShootBow(Player p, EntityShootBowEvent e) {}
 
+    public void onShootBowShadow(Player p, EntityShootBowEvent e) {}
+
     public void onToggleGlide(Player p, EntityToggleGlideEvent e) {}
+
+    public void onToggleGlideShadow(Player p, EntityToggleGlideEvent e) {}
 
     protected final void playItemGainFeedback(Player p) {
         playFeedback(p, 12, 0.9f);

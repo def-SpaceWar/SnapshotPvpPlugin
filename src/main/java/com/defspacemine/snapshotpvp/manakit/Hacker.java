@@ -485,6 +485,8 @@ public class Hacker extends ManaKit implements Listener {
             // Retrieve snapshot from 5 seconds ago (or oldest available snapshot)
             PlayerSnapshot past = history.peekFirst();
             if (past == null) return;
+            Location destination = past.location();
+            if (!canUseTeleportAbility(p, destination)) return;
 
             // Consume rewind item
             item.setAmount(item.getAmount() - 1);
@@ -504,7 +506,7 @@ public class Hacker extends ManaKit implements Listener {
                 );
 
             // Restore state (Location, Velocity, Health)
-            p.teleport(past.location());
+            p.teleport(destination);
             p.setVelocity(past.velocity());
             p.setHealth(Math.min(p.getMaxHealth(), past.health()));
 

@@ -2,6 +2,9 @@ package com.defspacemine.snapshotpvp.manakit;
 
 import java.util.ArrayList;
 import java.util.Random;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.Consumable;
+import io.papermc.paper.datacomponent.item.FoodProperties;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -74,6 +77,13 @@ public class Cultist extends ManaKit {
 
     private ItemStack createRitualItem(Material mat, String name, NamedTextColor color, String model) {
         ItemStack item = new ItemStack(mat, 1);
+        item.setData(DataComponentTypes.CONSUMABLE, Consumable.consumable());
+        FoodProperties food = item.getData(DataComponentTypes.FOOD);
+        if (food != null) item.setData(
+            DataComponentTypes.FOOD,
+            food.toBuilder().canAlwaysEat(true)
+        );
+
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text(name).color(color).decorate(TextDecoration.BOLD)
                 .decoration(TextDecoration.ITALIC, false));

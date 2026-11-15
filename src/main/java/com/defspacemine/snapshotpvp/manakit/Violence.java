@@ -14,9 +14,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Trident;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -390,10 +388,7 @@ public class Violence extends ManaKit implements Listener {
     private void retrieveTrident(Player p) {
         p.getInventory().addItem(trident);
         playItemGainFeedback(p);
-        for (Entity e : p.getWorld().getEntities())
-            if (e instanceof Trident t) if (
-                t.getOwnerUniqueId().equals(p.getUniqueId())
-            ) t.remove();
+        removeOwnedTridents(p);
     }
 
     @Override

@@ -387,7 +387,12 @@ public class Titan extends ManaKit {
 
             @Override
             public void run() {
-                if (currentTick > ticks || !p.isOnline() || p.isDead()) {
+                if (
+                    currentTick > ticks ||
+                    !p.isOnline() ||
+                    p.isDead() ||
+                    !canUseTeleportAbility(p, startLoc)
+                ) {
                     this.cancel();
                     return;
                 }
