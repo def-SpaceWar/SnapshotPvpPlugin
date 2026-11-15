@@ -71,7 +71,7 @@ public class Shulkian extends ManaKit {
             arrows.setItemMeta(meta);
         }
 
-        teleportArrow = new ItemStack(Material.TIPPED_ARROW);
+        teleportArrow = new ItemStack(Material.TIPPED_ARROW, 3);
         PotionMeta teleportArrowMeta = (PotionMeta) teleportArrow.getItemMeta();
         teleportArrowMeta.displayName(
             Component.text("Arrow of Teleportation")
@@ -261,6 +261,11 @@ public class Shulkian extends ManaKit {
         Entity hitEntity = e.getHitEntity();
         Location destination =
             hitEntity == null ? arrow.getLocation() : hitEntity.getLocation();
+        if (hitEntity != null) {
+            Location playerLocation = p.getLocation();
+            destination.setYaw(playerLocation.getYaw());
+            destination.setPitch(playerLocation.getPitch());
+        }
         if (!canUseTeleportAbility(p, destination)) return;
 
         if (p.teleport(destination)) {
@@ -315,7 +320,6 @@ public class Shulkian extends ManaKit {
                 .set(teleportArrowKey, PersistentDataType.BYTE, (byte) 1);
             projectile.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
         }
-        playAbilityFeedback(p);
     }
 
     private boolean isTeleportArrow(ItemStack item) {
