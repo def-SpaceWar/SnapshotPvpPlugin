@@ -13,6 +13,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -56,6 +57,7 @@ public class ManaKitLobbyType extends LobbyType {
         // or manakitlistener has an array of all the worlds to run in?
         private World world;
         private World mapWorld;
+        private World shadowMap;
         private GameMap gameMap;
         private Gamemode gamemode;
 
@@ -63,7 +65,23 @@ public class ManaKitLobbyType extends LobbyType {
 
         public ManaKitLobbyInstance(World world) {
             this.world = world;
-            mapWorld = Bukkit.getWorld(world.getName() + "map");
+            mapWorld = Bukkit.getWorld(world.getName() + "_map");
+            if (mapWorld == null) {
+                throw new IllegalStateException(
+                    "Map world is not loaded: " + world.getName() + "_map"
+                );
+            }
+            String shadowMapName = world.getName() + "_map_shadow";
+            shadowMap = Bukkit.getWorld(shadowMapName);
+            if (shadowMap == null) {
+                shadowMap = Bukkit.createWorld(new WorldCreator(shadowMapName));
+            }
+            if (shadowMap == null) {
+                throw new IllegalStateException(
+                    "Could not load or create shadow map world: " +
+                    shadowMapName
+                );
+            }
             lobbyState = LobbyState.WAITING;
 
             // debug purposes
@@ -71,10 +89,12 @@ public class ManaKitLobbyType extends LobbyType {
                 Math.random() > 0.5
                     ? new BobLands(this, mapWorld)
                     : new BobInvasionRemaster(this, mapWorld);
+            gameMap.setShadowWorld(shadowMap);
             gamemode =
                 Math.random() > 0.5
                     ? new Deathmatch(this, mapWorld)
                     : new Streakmatch(this, mapWorld);
+            gamemode.setShadowWorld(shadowMap);
             // gamemode = new Streakmatch(this, mapWorld);
             gameMap.onCreate();
             gamemode.onStart();
@@ -93,6 +113,10 @@ public class ManaKitLobbyType extends LobbyType {
             List<Player> players = Stream.concat(
                 world.getPlayers().stream(),
                 mapWorld.getPlayers().stream()
+            ).toList();
+            players = Stream.concat(
+                players.stream(),
+                shadowMap.getPlayers().stream()
             ).toList();
 
             if (gamemode == null || !gamemode.isOver()) return players;
@@ -120,6 +144,30 @@ public class ManaKitLobbyType extends LobbyType {
                             );
                         }
                     }
+                    for (Player shadowPlayer : shadowMap.getPlayers()) {
+                        if (
+                            !shadowPlayer.getScoreboardTags().contains("fighting")
+                        ) {
+                            shadowPlayer.addScoreboardTag("fighting");
+                            Location[] spawnPoints = gameMap.getSpawnPoints();
+                            Location spawnPoint =
+                                spawnPoints[
+                                    (int) Math.floor(
+                                        Math.random() * spawnPoints.length
+                                    )
+                                ];
+                            shadowPlayer.teleport(
+                                new Location(
+                                    shadowMap,
+                                    spawnPoint.getX(),
+                                    spawnPoint.getY(),
+                                    spawnPoint.getZ(),
+                                    spawnPoint.getYaw(),
+                                    spawnPoint.getPitch()
+                                )
+                            );
+                        }
+                    }
                     for (Player p : world.getPlayers())
                         p.removeScoreboardTag("fighting");
                     gameMap.onTick();
@@ -141,7 +189,10 @@ public class ManaKitLobbyType extends LobbyType {
         @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
         public void onPlayerDeath(PlayerDeathEvent event) {
             Player p = event.getPlayer();
-            if (!p.getWorld().equals(mapWorld)) return;
+            if (
+                !p.getWorld().equals(mapWorld) &&
+                !p.getWorld().equals(shadowMap)
+            ) return;
             new BukkitRunnable() {
                 @Override
                 public void run() {

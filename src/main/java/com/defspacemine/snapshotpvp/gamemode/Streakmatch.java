@@ -56,6 +56,12 @@ public class Streakmatch extends Gamemode {
             world.getName(),
             this::scoreboardHandler
         );
+        if (shadowWorld != null) {
+            GlobalScoreboardManager.registerBoardHandler(
+                shadowWorld.getName(),
+                this::scoreboardHandler
+            );
+        }
     }
 
     private void scoreboardHandler(Player viewer) {
@@ -104,7 +110,14 @@ public class Streakmatch extends Gamemode {
                     ? ChatColor.valueOf(team.getColor().name())
                     : ChatColor.WHITE;
             String prefix = team == null ? "" : team.getPrefix();
-            String leftSide = nameColor + prefix + p.getName();
+            String shadowIndicator = p
+                .getWorld()
+                .getName()
+                .endsWith("_map_shadow")
+                ? ChatColor.LIGHT_PURPLE + "✦ "
+                : "";
+            String leftSide =
+                shadowIndicator + nameColor + prefix + p.getName();
             String rightSide;
 
             if (p.getScoreboardTags().contains("fighting")) {
@@ -176,5 +189,8 @@ public class Streakmatch extends Gamemode {
     public void onDestroy() {
         GlobalScoreboardManager.removeBoardHandler(lobby.getWorld().getName());
         GlobalScoreboardManager.removeBoardHandler(world.getName());
+        if (shadowWorld != null) {
+            GlobalScoreboardManager.removeBoardHandler(shadowWorld.getName());
+        }
     }
 }

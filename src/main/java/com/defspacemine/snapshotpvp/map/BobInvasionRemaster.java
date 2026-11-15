@@ -45,6 +45,12 @@ public class BobInvasionRemaster extends RegenerativeGameMap {
             world,
             worldLoc
         );
+        if (source != null) cloneMapToShadow(
+            source,
+            WORLD_MIN,
+            WORLD_MAX,
+            worldLoc
+        );
 
         setFluidFlowMinY(27);
     }
@@ -59,6 +65,7 @@ public class BobInvasionRemaster extends RegenerativeGameMap {
         super.onDestroy();
 
         GameMapUtil.removeMap(WORLD_MIN, WORLD_MAX, world, worldLoc);
+        removeShadowMap(WORLD_MIN, WORLD_MAX, worldLoc);
     }
 
     @Override

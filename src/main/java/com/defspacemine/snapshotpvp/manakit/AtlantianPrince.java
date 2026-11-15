@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameRules;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -150,6 +151,17 @@ public class AtlantianPrince extends ManaKit implements Listener {
 
         ItemStack item = e.getItem();
         if (item == null || item.getType() != Material.GOLDEN_HELMET) return;
+        if (
+            !Boolean.TRUE.equals(
+                p.getWorld().getGameRuleValue(GameRules.MOB_GRIEFING)
+            )
+        ) {
+            p.sendMessage(
+                ChatColor.RED +
+                    "Royal Flood requires mobGriefing to be enabled."
+            );
+            return;
+        }
 
         e.setCancelled(true);
         item.setAmount(item.getAmount() - 1);

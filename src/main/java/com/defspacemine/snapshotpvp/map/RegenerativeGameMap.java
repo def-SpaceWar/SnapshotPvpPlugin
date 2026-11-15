@@ -126,6 +126,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
     private final PriorityQueue<FluidDrain> drainQueue = new PriorityQueue<>();
     private final Set<Location> pendingDrains = new HashSet<>();
     private final Map<UUID, Integer> regenSuffocationTicks = new HashMap<>();
+    private final Set<Location> shadowSyncLocations = new HashSet<>();
 
     private long currentTick = 0;
 
@@ -231,6 +232,11 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
                 restoredThisTick++;
             }
         }
+
+        for (Location location : shadowSyncLocations) {
+            mirrorBlockToShadow(location.getBlock());
+        }
+        shadowSyncLocations.clear();
     }
 
     private boolean isSuitableSupport(Block supportBlock) {
@@ -331,6 +337,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
         pendingDrains.clear();
         originalBlockStates.clear();
         regenSuffocationTicks.clear();
+        shadowSyncLocations.clear();
 
         world.getEntities().forEach(e -> {
             e.remove();
@@ -367,6 +374,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             currentWorldBlock
         );
         originalState.update(true, applyPhysics);
+        shadowSyncLocations.add(loc);
     }
 
     private boolean isFluid(Material type) {
@@ -770,6 +778,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
         while (!toScan.isEmpty()) {
             Block current = toScan.poll();
             Location loc = current.getLocation();
+            shadowSyncLocations.add(loc);
 
             if (!originalBlockStates.containsKey(loc)) {
                 BlockState stateToSave;
@@ -1017,6 +1026,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             this.world == null ||
             !event.getBlock().getWorld().equals(this.world)
         ) return;
+        shadowSyncLocations.add(event.getBlock().getLocation());
         if (
             event.getEntityType() == EntityType.FALLING_BLOCK &&
             event.getTo() != Material.AIR
@@ -1070,6 +1080,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             !event.getBlock().getWorld().equals(this.world)
         ) return;
 
+        shadowSyncLocations.add(event.getBlock().getLocation());
         Material type = event.getBlock().getType();
         if (type == Material.FIRE || type == Material.SOUL_FIRE) {
             return;
@@ -1090,6 +1101,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
             !event.getBlock().getWorld().equals(this.world)
         ) return;
 
+        shadowSyncLocations.add(event.getBlock().getLocation());
         Material type = event.getBlock().getType();
         if (type == Material.FIRE || type == Material.SOUL_FIRE) {
             return;
@@ -1135,6 +1147,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
     public void onFluidLevelChange(FluidLevelChangeEvent event) {
         Block block = event.getBlock();
         if (this.world == null || !block.getWorld().equals(this.world)) return;
+        shadowSyncLocations.add(block.getLocation());
         if (!isFluid(block.getType())) return;
         if (isFluid(event.getNewData().getMaterial())) return; // just a level change
 

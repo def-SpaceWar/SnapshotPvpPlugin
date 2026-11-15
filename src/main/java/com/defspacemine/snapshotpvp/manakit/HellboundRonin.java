@@ -132,6 +132,10 @@ public class HellboundRonin extends ManaKit {
 
                 @Override
                 public void run() {
+                    if (isInShadowRealm(p)) {
+                        this.cancel();
+                        return;
+                    }
                     if (runsRemaining <= 0) {
                         this.cancel();
                         return;

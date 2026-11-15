@@ -8,6 +8,11 @@ public abstract class Gamemode {
 
     protected LobbyInstance lobby;
     protected World world;
+    protected World shadowWorld;
+
+    public final void setShadowWorld(World shadowWorld) {
+        this.shadowWorld = shadowWorld;
+    }
 
     public abstract void configure();
 

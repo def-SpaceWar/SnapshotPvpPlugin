@@ -35,10 +35,10 @@ import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -445,13 +445,22 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         server.sendMessage(Component.text(player.getName() + " left. ;["));
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onExplosion(EntityExplodeEvent e) {
-        if (e.getEntity() instanceof TNTPrimed tnt) {
-            if (
-                tnt.getWorld().getGameRuleValue(GameRules.MOB_GRIEFING) == false
-            ) e.blockList().clear();
-        }
+        if (
+            Boolean.FALSE.equals(
+                e.getLocation().getWorld().getGameRuleValue(GameRules.MOB_GRIEFING)
+            )
+        ) e.blockList().clear();
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onBlockExplosion(BlockExplodeEvent e) {
+        if (
+            Boolean.FALSE.equals(
+                e.getBlock().getWorld().getGameRuleValue(GameRules.MOB_GRIEFING)
+            )
+        ) e.blockList().clear();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

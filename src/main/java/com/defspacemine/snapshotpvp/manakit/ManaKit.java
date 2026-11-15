@@ -47,11 +47,17 @@ public abstract class ManaKit {
         return description;
     }
 
+    public static boolean isInShadowRealm(Player player) {
+        return player.getWorld().getName().endsWith("_map_shadow");
+    }
+
     public void giveKit(Player p) {}
 
     public void resetKit(Player p) {}
 
     public void onCombatTick(Player p) {}
+
+    public void onShadowTick(Player p) {}
 
     public void onIdleTick(Player p) {}
 
