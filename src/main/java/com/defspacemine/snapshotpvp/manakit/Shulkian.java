@@ -30,7 +30,7 @@ public class Shulkian extends ManaKit {
     private ItemStack arrows;
 
     public Shulkian() {
-        super("shulkian", "Shulkian", "[Ranged Knockback Tank]", 2);
+        super("shulkian", "Shulkian", "[Ranged Sniper Tank]", 2);
 
         {
             arrows = new ItemStack(Material.TIPPED_ARROW, 4);
