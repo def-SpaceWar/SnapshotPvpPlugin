@@ -2,6 +2,7 @@ package com.defspacemine.snapshotpvp.gamemode;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.lobby.LobbyType.LobbyInstance;
+import com.defspacemine.snapshotpvp.lobby.ManaKitLobbyType.ManaKitLobbyInstance;
 import com.defspacemine.snapshotpvp.scoreboard.GlobalScoreboardManager;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,7 +30,7 @@ public class Streakmatch extends Gamemode {
     public int streakRequired = 5; // -1 | 5 | 10 | 20
     public int timeLimit = 18000; // ticks ~ 15 minutess
 
-    public Streakmatch(LobbyInstance lobby, World world) {
+    public Streakmatch(ManaKitLobbyInstance lobby, World world) {
         this.lobby = lobby;
         this.world = world;
 
@@ -168,7 +169,11 @@ public class Streakmatch extends Gamemode {
     @Override
     public void sendGameOverMessage(Player player) {
         for (Player p : world.getPlayers()) {
-            player.sendMessage(p.getName() + ": " + SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak"));
+            player.sendMessage(
+                p.getName() +
+                    ": " +
+                    SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak")
+            );
         }
     }
 

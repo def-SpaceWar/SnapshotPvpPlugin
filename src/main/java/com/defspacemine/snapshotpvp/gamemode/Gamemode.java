@@ -1,12 +1,12 @@
 package com.defspacemine.snapshotpvp.gamemode;
 
-import com.defspacemine.snapshotpvp.lobby.LobbyType.LobbyInstance;
+import com.defspacemine.snapshotpvp.lobby.ManaKitLobbyType.ManaKitLobbyInstance;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 public abstract class Gamemode {
 
-    protected LobbyInstance lobby;
+    protected ManaKitLobbyInstance lobby;
     protected World world;
 
     public abstract void configure();
