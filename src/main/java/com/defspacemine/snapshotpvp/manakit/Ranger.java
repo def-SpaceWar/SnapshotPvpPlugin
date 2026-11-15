@@ -44,7 +44,7 @@ public class Ranger extends ManaKit {
             kbSword = new ItemStack(Material.IRON_SWORD, 1);
             ItemMeta meta = kbSword.getItemMeta();
             Damageable d = (Damageable) meta;
-            d.setDamage(249);
+            d.setMaxDamage(1);
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
             meta.addEnchant(Enchantment.KNOCKBACK, 10, true);
             meta.customName(
