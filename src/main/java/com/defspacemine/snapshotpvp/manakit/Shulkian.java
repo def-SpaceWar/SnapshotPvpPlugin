@@ -1,5 +1,8 @@
 package com.defspacemine.snapshotpvp.manakit;
 
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -19,12 +22,8 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextDecoration;
-
 public class Shulkian extends ManaKit {
+
     final int arrowRestock = 160; // 4 arrows every 8 seconds, they auto reset
     final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;
 
@@ -36,14 +35,16 @@ public class Shulkian extends ManaKit {
         {
             arrows = new ItemStack(Material.TIPPED_ARROW, 4);
             PotionMeta meta = (PotionMeta) arrows.getItemMeta();
-            meta.displayName(Component.text("Arrow of Levitation")
-                    .decoration(TextDecoration.ITALIC, false));
+            meta.displayName(
+                Component.text("Arrow of Levitation").decoration(
+                    TextDecoration.ITALIC,
+                    false
+                )
+            );
             meta.addCustomEffect(
-                    new PotionEffect(
-                            PotionEffectType.LEVITATION,
-                            480,
-                            1),
-                    true);
+                new PotionEffect(PotionEffectType.LEVITATION, 480, 1),
+                true
+            );
             meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
             arrows.setItemMeta(meta);
         }
@@ -53,7 +54,13 @@ public class Shulkian extends ManaKit {
     public void giveKit(Player p) {
         resetKit(p);
 
-		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -189, 4, -185);
+        ManaKitListener.giveItemsFromShulker(
+            p,
+            "goopshotpeshvp",
+            -189,
+            4,
+            -185
+        );
     }
 
     @Override
@@ -67,32 +74,41 @@ public class Shulkian extends ManaKit {
     public void onCombatTick(Player p) {
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        int arrowRestockC = pdc.get(arrowRestockCounter, PersistentDataType.INTEGER);
+        int arrowRestockC = pdc.get(
+            arrowRestockCounter,
+            PersistentDataType.INTEGER
+        );
 
-        p.sendActionBar(ChatColor.LIGHT_PURPLE + "Reload: " +
-                ChatColor.WHITE + arrowRestockC + "/" + arrowRestock +
-                ChatColor.GRAY + "  |  " +
-                ChatColor.RED + "Killstreak: " +
-                ChatColor.WHITE + killstreak + "/3");
+        p.sendActionBar(
+            ChatColor.LIGHT_PURPLE +
+                "Reload: " +
+                ChatColor.WHITE +
+                arrowRestockC +
+                "/" +
+                arrowRestock +
+                ChatColor.GRAY +
+                "  |  " +
+                ChatColor.RED +
+                "Killstreak: " +
+                ChatColor.WHITE +
+                killstreak +
+                "/2"
+        );
 
-        if (killstreak >= 1 && !p.hasPotionEffect(PotionEffectType.HEALTH_BOOST))
-            p.addPotionEffect(new PotionEffect(PotionEffectType.HEALTH_BOOST, -1, 1));
-        switch (killstreak) {
-            case 0, 1:
-                p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 3));
-                p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 2));
-                break;
-            case 2:
-                p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 1));
-                p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 2));
-                break;
-            default:
-                p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 1));
-                p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 3));
-                break;
-        }
+        if (killstreak >= 1) p.addPotionEffect(
+            new PotionEffect(PotionEffectType.RESISTANCE, 100, 1)
+        );
+        if (
+            killstreak >= 2 && !p.hasPotionEffect(PotionEffectType.HEALTH_BOOST)
+        ) p.addPotionEffect(
+            new PotionEffect(PotionEffectType.HEALTH_BOOST, -1, 1)
+        );
 
-        pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestockC + 1);
+        pdc.set(
+            arrowRestockCounter,
+            PersistentDataType.INTEGER,
+            arrowRestockC + 1
+        );
 
         PlayerInventory inv = p.getInventory();
         if (arrowRestockC >= arrowRestock) {
