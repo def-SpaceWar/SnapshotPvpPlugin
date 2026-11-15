@@ -28,7 +28,7 @@ public class Thief extends ManaKit {
 
     final int ammoRestock = 9; // 9 attacks for 2 ammo (it resets itself)
     final NamespacedKey ammoRestockCounter = ManaKitListener.MANA_KIT_DATA0;
-    final int shadowStepRestock = 750;
+    final int shadowStepRestock = 400;
     final int shadowRealmDuration = 100;
     final NamespacedKey shadowStepRestockCounter =
         ManaKitListener.MANA_KIT_DATA2;
