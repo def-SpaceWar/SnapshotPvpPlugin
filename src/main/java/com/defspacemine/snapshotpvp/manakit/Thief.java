@@ -176,7 +176,7 @@ public class Thief extends ManaKit {
         }
 
         if (shadowStepRestockC >= shadowStepRestock) {
-            SnapshotPvpPlugin.clearInv(p, Material.ENDER_PEARL);
+            SnapshotPvpPlugin.clearInv(p, Material.ENDER_EYE);
             inv.addItem(shadowStep);
             playItemGainFeedback(p);
             pdc.set(
