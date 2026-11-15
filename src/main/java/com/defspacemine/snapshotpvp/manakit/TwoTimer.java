@@ -3,6 +3,7 @@ package com.defspacemine.snapshotpvp.manakit;
 import com.defspacemine.snapshotpvp.MannequinFighter;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
+import com.defspacemine.snapshotpvp.map.RegenerativeGameMap;
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -472,6 +473,7 @@ public class TwoTimer extends ManaKit {
                 item.getType() == Material.STONE)
         ) {
             e.setCancelled(true);
+            if (p.getGameMode() == GameMode.ADVENTURE) return;
             placeAutoBreakingBlock(
                 p,
                 item,
@@ -1102,6 +1104,7 @@ public class TwoTimer extends ManaKit {
         }
 
         Material placedType = handItem.getType();
+        RegenerativeGameMap.recordCustomBlockPlacement(targetBlock);
         targetBlock.setType(placedType);
 
         if (p.getGameMode() != GameMode.CREATIVE) {

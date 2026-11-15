@@ -59,6 +59,9 @@ import org.bukkit.potion.PotionEffectType;
 
 public abstract class RegenerativeGameMap extends GameMap implements Listener {
 
+    private static final Map<UUID, RegenerativeGameMap> ACTIVE_MAPS =
+        new HashMap<>();
+
     private static final BlockFace[] CARDINAL_PLUS_UP_DOWN = {
         BlockFace.UP,
         BlockFace.DOWN,
@@ -140,7 +143,22 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
     @Override
     public void onCreate() {
         Plugin plugin = JavaPlugin.getProvidingPlugin(getClass());
+        ACTIVE_MAPS.put(world.getUID(), this);
         Bukkit.getPluginManager().registerEvents(this, plugin);
+    }
+
+    public static void recordCustomBlockPlacement(Block block) {
+        RegenerativeGameMap gameMap = ACTIVE_MAPS.get(
+            block.getWorld().getUID()
+        );
+        if (gameMap == null) return;
+
+        gameMap.recordBlockAndDependents(
+            block,
+            block.getState(),
+            Map.of(),
+            true
+        );
     }
 
     @Override
@@ -302,6 +320,7 @@ public abstract class RegenerativeGameMap extends GameMap implements Listener {
 
     @Override
     public void onDestroy() {
+        ACTIVE_MAPS.remove(world.getUID(), this);
         HandlerList.unregisterAll(this);
 
         Set<Location> restored = new HashSet<>();

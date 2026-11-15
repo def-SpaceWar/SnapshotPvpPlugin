@@ -1,6 +1,7 @@
 package com.defspacemine.snapshotpvp.manakit;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import com.defspacemine.snapshotpvp.map.RegenerativeGameMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -364,6 +365,7 @@ public class JadeTrio extends ManaKit {
             isEmeraldBlockItem(item)
         ) {
             e.setCancelled(true);
+            if (p.getGameMode() == GameMode.ADVENTURE) return;
             placeAutoBreakingBlock(
                 p,
                 item,
@@ -507,6 +509,7 @@ public class JadeTrio extends ManaKit {
                 .isEmpty()
         ) return;
 
+        RegenerativeGameMap.recordCustomBlockPlacement(targetBlock);
         targetBlock.setType(Material.EMERALD_BLOCK);
         if (p.getGameMode() != GameMode.CREATIVE) {
             handItem.setAmount(handItem.getAmount() - 1);
