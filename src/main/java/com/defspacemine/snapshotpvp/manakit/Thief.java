@@ -86,8 +86,6 @@ public class Thief extends ManaKit {
             1,
             -185
         );
-        SnapshotPvpPlugin.clearInv(p, Material.CHORUS_FRUIT);
-        SnapshotPvpPlugin.clearInv(p, Material.ENDER_PEARL);
         SnapshotPvpPlugin.clearInv(p, Material.ENDER_EYE);
     }
 
@@ -196,16 +194,12 @@ public class Thief extends ManaKit {
     @Override
     public void onLeaveCombat(Player p) {
         SnapshotPvpPlugin.clearInv(p, Material.TIPPED_ARROW);
-        SnapshotPvpPlugin.clearInv(p, Material.CHORUS_FRUIT);
-        SnapshotPvpPlugin.clearInv(p, Material.ENDER_PEARL);
         SnapshotPvpPlugin.clearInv(p, Material.ENDER_EYE);
         resetKit(p);
     }
 
     @Override
     public void onEnterCombat(Player p) {
-        SnapshotPvpPlugin.clearInv(p, Material.CHORUS_FRUIT);
-        SnapshotPvpPlugin.clearInv(p, Material.ENDER_PEARL);
         SnapshotPvpPlugin.clearInv(p, Material.ENDER_EYE);
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(ammoRestockCounter, PersistentDataType.INTEGER, ammoRestock);
