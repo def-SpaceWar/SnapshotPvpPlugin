@@ -26,7 +26,7 @@ public class Thief extends ManaKit {
 
     final double CLOSE_RADIUS = 1;
 
-    final int ammoRestock = 8; // 8 attacks for 3 ammo (it resets itself)
+    final int ammoRestock = 9; // 9 attacks for 2 ammo (it resets itself)
     final NamespacedKey ammoRestockCounter = ManaKitListener.MANA_KIT_DATA0;
     final int shadowStepRestock = 750;
     final int shadowRealmDuration = 100;
@@ -44,7 +44,7 @@ public class Thief extends ManaKit {
         super("thief", "Thief", "[Melee Assassin]", 3);
 
         {
-            ammo = new ItemStack(Material.TIPPED_ARROW, 3);
+            ammo = new ItemStack(Material.TIPPED_ARROW, 2);
             ammo.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
             PotionMeta meta = (PotionMeta) ammo.getItemMeta();
 
