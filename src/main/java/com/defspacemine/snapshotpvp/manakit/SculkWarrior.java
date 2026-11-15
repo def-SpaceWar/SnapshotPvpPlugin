@@ -56,7 +56,7 @@ public class SculkWarrior extends ManaKit {
     final NamespacedKey shriekerRestockCounter = ManaKitListener.MANA_KIT_DATA1;
 
     public SculkWarrior() {
-        super("sculk_warrior", "Sculk Warrior", "[Melee Assassin]", 0);
+        super("sculk_warrior", "Sculk Warrior", "[Melee Assassin]", 2);
     }
 
     @Override
@@ -152,10 +152,10 @@ public class SculkWarrior extends ManaKit {
             new PotionEffect(PotionEffectType.RESISTANCE, 40, 0)
         );
         if (killstreak >= 2) p.addPotionEffect(
-            new PotionEffect(PotionEffectType.HASTE, 40, 1)
+            new PotionEffect(PotionEffectType.HASTE, 40, 0)
         );
         if (killstreak >= 3) p.addPotionEffect(
-            new PotionEffect(PotionEffectType.STRENGTH, 40, 1)
+            new PotionEffect(PotionEffectType.STRENGTH, 40, 0)
         );
 
         PlayerInventory inv = p.getInventory();

@@ -45,7 +45,6 @@ public class LobbyManager {
                     loop: for (LobbyType lobbyType : registeredLobbies) {
                         if (
                             !wName.startsWith(lobbyType.getPrefix()) ||
-                            wName.endsWith("map") ||
                             wName.contains("_")
                         ) continue;
                         for (LobbyInstance active : activeLobbies)

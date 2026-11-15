@@ -12,6 +12,8 @@ import com.defspacemine.snapshotpvp.custommob.FITHBomb3;
 import com.defspacemine.snapshotpvp.custommob.FITHNuke;
 import com.defspacemine.snapshotpvp.custommob.FighterDummy;
 import com.defspacemine.snapshotpvp.custommob.FighterDummyEasy;
+import com.defspacemine.snapshotpvp.custommob.FighterDummyExpert;
+import com.defspacemine.snapshotpvp.custommob.FighterDummyMaster;
 import com.defspacemine.snapshotpvp.custommob.FighterDummyMedium;
 import com.defspacemine.snapshotpvp.custommob.MercAutoBomb;
 import com.defspacemine.snapshotpvp.custommob.MercGoodShotBhaiya;
@@ -169,6 +171,8 @@ public class CustomEggListener implements Listener {
         register(new FighterDummy());
         register(new FighterDummyMedium());
         register(new FighterDummyEasy());
+        register(new FighterDummyExpert());
+        register(new FighterDummyMaster());
 
         startGlobalAggroTask();
         startSlimeDamageTask();

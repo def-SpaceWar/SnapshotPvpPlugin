@@ -45,9 +45,9 @@ public class CactusChampion extends ManaKit {
     final int COUNTER_SPIKES_ARROW_COUNT = 50;
     final double COUNTER_SPIKES_ARROW_SPEED = 1.3;
 
-    final int counterSpikes = 100; // 100 damage sustained = launch cactus spikes and get temporary absorption 5
+    final int counterSpikes = 80; // 80 damage sustained = launch cactus spikes and get temporary absorption 3
     final NamespacedKey counterSpikesCounter = ManaKitListener.MANA_KIT_DATA0;
-    final int cactusTotem = 60; // 60 attacks/thornsdmg = 1 Cactus Totem
+    final int cactusTotem = 40; // 40 attacks/thornsdmg = 1 Cactus Totem
     final NamespacedKey cactusTotemCounter = ManaKitListener.MANA_KIT_DATA1;
 
     final NamespacedKey cactusTotemUUID = ManaKitListener.MANA_KIT_DATASTR0;
@@ -130,13 +130,13 @@ public class CactusChampion extends ManaKit {
         );
 
         if (killstreak >= 1) p.addPotionEffect(
-            new PotionEffect(PotionEffectType.HASTE, 100, 1)
+            new PotionEffect(PotionEffectType.RESISTANCE, 100, 0)
         );
         if (killstreak >= 2) p.addPotionEffect(
             new PotionEffect(PotionEffectType.SPEED, 100, 0)
         );
         if (killstreak >= 3) p.addPotionEffect(
-            new PotionEffect(PotionEffectType.STRENGTH, 100, 0)
+            new PotionEffect(PotionEffectType.RESISTANCE, 100, 0)
         );
 
         PlayerInventory inv = p.getInventory();
@@ -288,7 +288,7 @@ public class CactusChampion extends ManaKit {
 
     private void launchCounterSpikes(Player p) {
         p.addPotionEffect(
-            new PotionEffect(PotionEffectType.ABSORPTION, 200, 4)
+            new PotionEffect(PotionEffectType.ABSORPTION, 200, 1)
         );
 
         Location center = p.getEyeLocation();

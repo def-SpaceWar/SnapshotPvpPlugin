@@ -82,7 +82,7 @@ public class ManaKitLobbyType extends LobbyType {
                     shadowMapName
                 );
             }
-            lobbyState = LobbyState.WAITING;
+            lobbyState = LobbyState.IN_GAME; // debug purposes, havent setup a proper lobby loop yet
 
             // debug purposes
             gameMap =
@@ -124,12 +124,13 @@ public class ManaKitLobbyType extends LobbyType {
             for (Player p : players) gamemode.sendGameOverMessage(p);
             for (Player p : players)
                 p.teleport(new Location(world, 0.5, 65, 0.5));
+
+            // returning null in `getPlayers` ends the lobby.
             return null;
         }
 
         public void onTick() {
-            // if (lobbyState == LobbyState.IN_GAME)
-            {
+            if (lobbyState == LobbyState.IN_GAME) {
                 if (gameMap != null) {
                     for (Player p : mapWorld.getPlayers()) {
                         if (!p.getScoreboardTags().contains("fighting")) {

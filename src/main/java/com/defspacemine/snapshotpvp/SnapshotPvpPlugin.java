@@ -173,10 +173,7 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         return countInv(player, item -> item.isSimilar(type));
     }
 
-    public static int countInv(
-        Player player,
-        Predicate<ItemStack> matches
-    ) {
+    public static int countInv(Player player, Predicate<ItemStack> matches) {
         int count = 0;
         PlayerInventory inv = player.getInventory();
         for (ItemStack item : inv.getStorageContents()) {
@@ -422,14 +419,7 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         player.clearActivePotionEffects();
 
         player.teleport(
-            new Location(
-                Bukkit.getWorld("goopshotpeshvp"),
-                -299.5,
-                2,
-                -292.5,
-                180,
-                0
-            )
+            new Location(Bukkit.getWorld("hub"), 6, 98, 35, 0, 0)
         );
     }
 

@@ -1,8 +1,9 @@
 package com.defspacemine.snapshotpvp.gamemode;
 
-import com.defspacemine.snapshotpvp.scoreboard.GlobalScoreboardManager;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.lobby.LobbyType.LobbyInstance;
+import com.defspacemine.snapshotpvp.lobby.ManaKitLobbyType.ManaKitLobbyInstance;
+import com.defspacemine.snapshotpvp.scoreboard.GlobalScoreboardManager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,7 +32,7 @@ public class Deathmatch extends Gamemode implements Listener {
     // public int timeLimit = 912000000;
     public Map<Player, Integer> killCounts = new HashMap<Player, Integer>();
 
-    public Deathmatch(LobbyInstance lobby, World world) {
+    public Deathmatch(ManaKitLobbyInstance lobby, World world) {
         this.lobby = lobby;
         this.world = world;
 
@@ -98,8 +99,12 @@ public class Deathmatch extends Gamemode implements Listener {
             if (kills2 == null) kills2 = 0;
             if (kills1 != kills2) return Integer.compare(kills2, kills1);
 
-            int ks1 = p1.getScoreboardTags().contains("fighting") ? SnapshotPvpPlugin.getPlayerScore(p1, "dummyKillstreak") : -1;
-            int ks2 = p2.getScoreboardTags().contains("fighting") ? SnapshotPvpPlugin.getPlayerScore(p2, "dummyKillstreak") : -1;
+            int ks1 = p1.getScoreboardTags().contains("fighting")
+                ? SnapshotPvpPlugin.getPlayerScore(p1, "dummyKillstreak")
+                : -1;
+            int ks2 = p2.getScoreboardTags().contains("fighting")
+                ? SnapshotPvpPlugin.getPlayerScore(p2, "dummyKillstreak")
+                : -1;
             if (ks1 != ks2) return Integer.compare(ks2, ks1);
 
             double hp1 = p1.getHealth();
