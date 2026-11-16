@@ -1,5 +1,6 @@
 package com.defspacemine.snapshotpvp.manakit;
 
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Material;
@@ -17,9 +18,8 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-
 public class Frog extends ManaKit {
+
     final int chargeRestock = 5; // wind charges every 5 attacks
     final NamespacedKey chargeRestockCounter = ManaKitListener.MANA_KIT_DATA0;
 
@@ -36,7 +36,13 @@ public class Frog extends ManaKit {
     public void giveKit(Player p) {
         resetKit(p);
 
-        ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -184, 7, -185);
+        ManaKitListener.giveItemsFromShulker(
+            p,
+            "goopshotpeshvp",
+            -184,
+            7,
+            -185
+        );
     }
 
     @Override
@@ -50,18 +56,33 @@ public class Frog extends ManaKit {
     public void onCombatTick(Player p) {
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        int chargeRestockC = pdc.get(chargeRestockCounter, PersistentDataType.INTEGER);
+        int chargeRestockC = pdc.get(
+            chargeRestockCounter,
+            PersistentDataType.INTEGER
+        );
 
-        p.sendActionBar(ChatColor.BLUE + "Wind Charges: " +
-                ChatColor.WHITE + chargeRestockC + "/" + chargeRestock +
-                ChatColor.GRAY + "  |  " +
-                ChatColor.RED + "Killstreak: " +
-                ChatColor.WHITE + killstreak + "/2");
+        p.sendActionBar(
+            ChatColor.BLUE +
+                "Wind Charges: " +
+                ChatColor.WHITE +
+                chargeRestockC +
+                "/" +
+                chargeRestock +
+                ChatColor.GRAY +
+                "  |  " +
+                ChatColor.RED +
+                "Killstreak: " +
+                ChatColor.WHITE +
+                killstreak +
+                "/2"
+        );
 
-        if (killstreak >= 1)
-            p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 1));
-        if (killstreak >= 2)
-            p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 0));
+        if (killstreak >= 1) p.addPotionEffect(
+            new PotionEffect(PotionEffectType.SPEED, 100, 1)
+        );
+        if (killstreak >= 2) p.addPotionEffect(
+            new PotionEffect(PotionEffectType.STRENGTH, 100, 0)
+        );
 
         PlayerInventory inv = p.getInventory();
         if (chargeRestockC >= chargeRestock) {
@@ -72,6 +93,15 @@ public class Frog extends ManaKit {
         }
 
         ItemStack chestplate = inv.getChestplate();
+        ArmorMeta meta = (ArmorMeta) chestplate.getItemMeta();
+        meta.setGlider(p.getHealth() > 12);
+        chestplate.setItemMeta(meta);
+    }
+
+    @Override
+    public void onShadowTick(Player p) {
+        super.onShadowTick(p);
+        ItemStack chestplate = p.getInventory().getChestplate();
         ArmorMeta meta = (ArmorMeta) chestplate.getItemMeta();
         meta.setGlider(p.getHealth() > 12);
         chestplate.setItemMeta(meta);
@@ -92,22 +122,37 @@ public class Frog extends ManaKit {
     @Override
     public void onEnterCombat(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        pdc.set(chargeRestockCounter, PersistentDataType.INTEGER, chargeRestock);
+        pdc.set(
+            chargeRestockCounter,
+            PersistentDataType.INTEGER,
+            chargeRestock
+        );
     }
 
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        pdc.set(chargeRestockCounter, PersistentDataType.INTEGER,
-                pdc.get(chargeRestockCounter, PersistentDataType.INTEGER) + 1);
+        pdc.set(
+            chargeRestockCounter,
+            PersistentDataType.INTEGER,
+            pdc.get(chargeRestockCounter, PersistentDataType.INTEGER) + 1
+        );
     }
 
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
         playAbilityFeedback(p);
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        pdc.set(chargeRestockCounter, PersistentDataType.INTEGER, chargeRestock);
-        p.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 200, 2));
-        p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 100, 0));
+        pdc.set(
+            chargeRestockCounter,
+            PersistentDataType.INTEGER,
+            chargeRestock
+        );
+        p.addPotionEffect(
+            new PotionEffect(PotionEffectType.JUMP_BOOST, 200, 2)
+        );
+        p.addPotionEffect(
+            new PotionEffect(PotionEffectType.SATURATION, 100, 0)
+        );
     }
 }

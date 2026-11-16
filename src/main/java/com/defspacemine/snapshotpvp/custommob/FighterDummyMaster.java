@@ -52,7 +52,7 @@ public class FighterDummyMaster implements CustomMob {
                 .decoration(TextDecoration.BOLD, true)
                 .decoration(TextDecoration.ITALIC, false)
                 .append(
-                    Component.text("Expert")
+                    Component.text("Master")
                         .color(NamedTextColor.AQUA)
                         .decoration(TextDecoration.BOLD, true)
                         .decoration(TextDecoration.ITALIC, false)

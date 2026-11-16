@@ -78,6 +78,10 @@ public class Shulkian extends ManaKit {
                 .decoration(TextDecoration.ITALIC, false)
                 .color(NamedTextColor.GOLD)
         );
+        teleportArrowMeta.addCustomEffect(
+            new PotionEffect(PotionEffectType.LEVITATION, 480, 1),
+            true
+        );
         teleportArrowMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
         teleportArrowMeta.setColor(Color.fromRGB(0x9B59B6));
         teleportArrowMeta
@@ -94,7 +98,7 @@ public class Shulkian extends ManaKit {
         );
         knockbackBowMeta.addEnchant(Enchantment.KNOCKBACK, 10, true);
         knockbackBowMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
-        knockbackBowMeta.setMaxDamage(2);
+        knockbackBowMeta.setMaxDamage(1);
         knockbackBowMeta
             .getPersistentDataContainer()
             .set(knockbackBowKey, PersistentDataType.BYTE, (byte) 1);
@@ -165,8 +169,12 @@ public class Shulkian extends ManaKit {
                 "/2"
         );
 
-        if (killstreak >= 1) p.addPotionEffect(
-            new PotionEffect(PotionEffectType.RESISTANCE, 100, 1)
+        p.addPotionEffect(
+            new PotionEffect(
+                PotionEffectType.RESISTANCE,
+                100,
+                killstreak >= 1 ? 1 : 0
+            )
         );
         if (
             killstreak >= 2 && !p.hasPotionEffect(PotionEffectType.HEALTH_BOOST)
@@ -197,7 +205,7 @@ public class Shulkian extends ManaKit {
 
     private void applyShiftResistance(Player p) {
         if (p.isSneaking()) p.addPotionEffect(
-            new PotionEffect(PotionEffectType.RESISTANCE, 2, 3)
+            new PotionEffect(PotionEffectType.RESISTANCE, 2, 2)
         );
     }
 
@@ -214,6 +222,8 @@ public class Shulkian extends ManaKit {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, arrowRestock);
         pdc.set(damageHitsCounter, PersistentDataType.INTEGER, 0);
+        p.getInventory().addItem(teleportArrow);
+        playItemGainFeedback(p);
     }
 
     @Override
