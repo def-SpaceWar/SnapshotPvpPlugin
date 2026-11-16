@@ -97,6 +97,7 @@ public class Shulkian extends ManaKit {
                 .color(NamedTextColor.YELLOW)
         );
         knockbackBowMeta.addEnchant(Enchantment.KNOCKBACK, 10, true);
+        knockbackBowMeta.addEnchant(Enchantment.PUNCH, 10, true);
         knockbackBowMeta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
         knockbackBowMeta.setMaxDamage(1);
         knockbackBowMeta
