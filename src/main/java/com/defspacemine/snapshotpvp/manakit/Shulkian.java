@@ -256,6 +256,8 @@ public class Shulkian extends ManaKit {
 
         p.getInventory().addItem(knockbackBow.clone()).isEmpty();
         pdc.set(damageHitsCounter, PersistentDataType.INTEGER, 0);
+        SnapshotPvpPlugin.clearInv(p, teleportArrow);
+        p.getInventory().addItem(teleportArrow);
         playItemGainFeedback(p);
     }
 
