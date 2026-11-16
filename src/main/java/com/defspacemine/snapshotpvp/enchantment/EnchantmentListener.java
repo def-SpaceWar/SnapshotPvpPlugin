@@ -377,7 +377,7 @@ public class EnchantmentListener implements Listener {
 
         if (weapon.containsEnchantment(LIFE_STEAL) && !player.isDead()) {
             int level = weapon.getEnchantmentLevel(LIFE_STEAL);
-            player.heal(e.getFinalDamage() * level);
+            player.heal(e.getDamage() * level * .1);
         }
 
         if (weapon.containsEnchantment(HEAVY_HIT_CURSE)) {
