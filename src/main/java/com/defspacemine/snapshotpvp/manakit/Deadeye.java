@@ -38,7 +38,7 @@ public class Deadeye extends ManaKit {
     final NamespacedKey markedUntilKey = ManaKitListener.MANA_KIT_DATA1;
     final NamespacedKey markedTargetKey = ManaKitListener.MANA_KIT_DATASTR0;
 
-    final int requiredAttacks = 16;
+    final int requiredAttacks = 24;
     final int maxArrows = 20;
     final int markDurationTicks = 400;
 
@@ -46,7 +46,7 @@ public class Deadeye extends ManaKit {
     private final ItemStack spectralArrowItem;
 
     public Deadeye() {
-        super("deadeye", "Deadeye", "[Ranged Marksman]", 0);
+        super("deadeye", "Deadeye", "[Utility Debuff]", 0);
 
         normalArrowItem = new ItemStack(Material.ARROW, 1);
         ItemMeta normalMeta = normalArrowItem.getItemMeta();
