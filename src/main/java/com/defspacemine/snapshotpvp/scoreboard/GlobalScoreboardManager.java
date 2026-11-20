@@ -4,8 +4,10 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -165,6 +167,13 @@ public class GlobalScoreboardManager {
             viewer.setScoreboard(board);
         }
 
+        for (Team localTeam : new ArrayList<>(board.getTeams())) {
+            if (
+                localTeam.getName().startsWith("mk_") &&
+                mainBoard.getTeam(localTeam.getName()) == null
+            ) localTeam.unregister();
+        }
+
         for (Team mainTeam : mainBoard.getTeams()) {
             if (mainTeam.getName() == null) continue;
 
@@ -181,17 +190,23 @@ public class GlobalScoreboardManager {
             );
 
             World viewerWorld = viewer.getWorld();
-            for (String entry : mainTeam.getEntries()) {
+            Set<String> mainEntries = new HashSet<>(mainTeam.getEntries());
+            for (String entry : new ArrayList<>(localTeam.getEntries())) {
+                Entity entity = SnapshotPvpPlugin.getEntityFromEntry(entry);
+                if (
+                    !mainEntries.contains(entry) ||
+                    entity == null ||
+                    !viewerWorld.equals(entity.getWorld())
+                ) localTeam.removeEntry(entry);
+            }
+
+            for (String entry : mainEntries) {
                 Entity entity = SnapshotPvpPlugin.getEntityFromEntry(entry);
                 if (
                     !localTeam.hasEntry(entry) &&
                     entity != null &&
                     viewerWorld.equals(entity.getWorld())
                 ) localTeam.addEntry(entry);
-                else if (
-                    localTeam.hasEntry(entry) &&
-                    (entity == null || !viewerWorld.equals(entity.getWorld()))
-                ) localTeam.removeEntry(entry);
             }
         }
 

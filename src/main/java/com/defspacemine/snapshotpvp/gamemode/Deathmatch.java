@@ -1,7 +1,6 @@
 package com.defspacemine.snapshotpvp.gamemode;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import com.defspacemine.snapshotpvp.lobby.LobbyType.LobbyInstance;
 import com.defspacemine.snapshotpvp.lobby.ManaKitLobbyType.ManaKitLobbyInstance;
 import com.defspacemine.snapshotpvp.scoreboard.GlobalScoreboardManager;
 import java.util.ArrayList;
@@ -19,8 +18,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.scoreboard.Criteria;
-import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
@@ -54,6 +51,9 @@ public class Deathmatch extends Gamemode implements Listener {
             this,
             SnapshotPvpPlugin.instance
         );
+        for (Player player : lobby.getPlayers()) {
+            killCounts.putIfAbsent(player, 0);
+        }
 
         GlobalScoreboardManager.registerBoardHandler(
             lobby.getWorld().getName(),
@@ -197,6 +197,9 @@ public class Deathmatch extends Gamemode implements Listener {
     @Override
     public void onTick() {
         timeLimit--;
+        for (Player player : lobby.getPlayers()) {
+            if (lobby.isMatchPlayer(player)) killCounts.putIfAbsent(player, 0);
+        }
     }
 
     @Override
@@ -209,9 +212,58 @@ public class Deathmatch extends Gamemode implements Listener {
 
     @Override
     public void sendGameOverMessage(Player p) {
-        p.sendMessage(
-            "Bro the game finished. Someone shoulda payed attention to who won, just check chat. :|"
+        for (Player player : lobby.getPlayers()) {
+            if (lobby.isMatchPlayer(player)) killCounts.putIfAbsent(player, 0);
+        }
+        List<Map.Entry<Player, Integer>> leaderboard = new ArrayList<>(
+            killCounts.entrySet()
         );
+        leaderboard.sort((first, second) -> {
+            int kills = Integer.compare(second.getValue(), first.getValue());
+            if (kills != 0) return kills;
+            return first
+                .getKey()
+                .getName()
+                .compareToIgnoreCase(second.getKey().getName());
+        });
+
+        p.sendMessage(ChatColor.GOLD + "==== Deathmatch Results ====");
+        if (!leaderboard.isEmpty()) {
+            int winningScore = leaderboard.getFirst().getValue();
+            List<String> winners = leaderboard
+                .stream()
+                .filter(entry -> entry.getValue() == winningScore)
+                .map(entry -> entry.getKey().getName())
+                .toList();
+            p.sendMessage(
+                ChatColor.GREEN +
+                    (winners.size() == 1 ? "Winner: " : "Winners: ") +
+                    String.join(", ", winners) +
+                    ChatColor.GRAY +
+                    " (" +
+                    winningScore +
+                    " kills)"
+            );
+        }
+        for (int i = 0; i < leaderboard.size(); i++) {
+            Map.Entry<Player, Integer> entry = leaderboard.get(i);
+            Team team = SnapshotPvpPlugin.getTeam(entry.getKey());
+            ChatColor color = team == null
+                ? ChatColor.WHITE
+                : team.getColor();
+            p.sendMessage(
+                "" +
+                ChatColor.YELLOW +
+                    (i + 1) +
+                    ". " +
+                    color +
+                    entry.getKey().getName() +
+                    ChatColor.GRAY +
+                    " - " +
+                    entry.getValue() +
+                    " kills"
+            );
+        }
     }
 
     @Override
@@ -236,7 +288,11 @@ public class Deathmatch extends Gamemode implements Listener {
             vTeam.equals(SnapshotPvpPlugin.getTeam(attacker))
         ) return;
 
-        if (attacker == null) return;
+        if (
+            attacker == null ||
+            !lobby.isMatchPlayer(victim) ||
+            !lobby.isMatchPlayer(attacker)
+        ) return;
         Integer killCount = killCounts.get(attacker);
         if (killCount == null) killCount = 0;
         killCounts.put(attacker, killCount + 1);

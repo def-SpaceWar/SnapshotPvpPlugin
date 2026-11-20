@@ -1,13 +1,13 @@
 package com.defspacemine.snapshotpvp.gamemode;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import com.defspacemine.snapshotpvp.lobby.LobbyType.LobbyInstance;
 import com.defspacemine.snapshotpvp.lobby.ManaKitLobbyType.ManaKitLobbyInstance;
 import com.defspacemine.snapshotpvp.scoreboard.GlobalScoreboardManager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -19,16 +19,16 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.scoreboard.Criteria;
-import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
-public class Streakmatch extends Gamemode {
+public class Streakmatch extends Gamemode implements Listener {
 
     public int streakRequired = 5; // -1 | 5 | 10 | 20
     public int timeLimit = 18000; // ticks ~ 15 minutess
+    private final Map<UUID, Player> participants = new HashMap<>();
+    private final Map<UUID, Integer> highestStreaks = new HashMap<>();
 
     public Streakmatch(ManaKitLobbyInstance lobby, World world) {
         this.lobby = lobby;
@@ -48,6 +48,17 @@ public class Streakmatch extends Gamemode {
 
     @Override
     public void onStart() {
+        SnapshotPvpPlugin.pluginManager.registerEvents(
+            this,
+            SnapshotPvpPlugin.instance
+        );
+        for (Player player : lobby.getPlayers()) {
+            UUID playerId = player.getUniqueId();
+            participants.put(playerId, player);
+            highestStreaks.put(playerId, 0);
+            SnapshotPvpPlugin.setPlayerScore(player, "dummyKillstreak", 0);
+        }
+
         GlobalScoreboardManager.registerBoardHandler(
             lobby.getWorld().getName(),
             this::scoreboardHandler
@@ -86,10 +97,14 @@ public class Streakmatch extends Gamemode {
 
         List<Player> sortedPlayers = new ArrayList<>(playersInGame);
         sortedPlayers.sort((p1, p2) -> {
-            int ks1 = p1.getScoreboardTags().contains("fighting")
+            int ks1 = streakRequired == -1
+                ? highestStreaks.getOrDefault(p1.getUniqueId(), 0)
+                : p1.getScoreboardTags().contains("fighting")
                 ? SnapshotPvpPlugin.getPlayerScore(p1, "dummyKillstreak")
                 : -1;
-            int ks2 = p2.getScoreboardTags().contains("fighting")
+            int ks2 = streakRequired == -1
+                ? highestStreaks.getOrDefault(p2.getUniqueId(), 0)
+                : p2.getScoreboardTags().contains("fighting")
                 ? SnapshotPvpPlugin.getPlayerScore(p2, "dummyKillstreak")
                 : -1;
             if (ks1 != ks2) return Integer.compare(ks2, ks1);
@@ -122,7 +137,12 @@ public class Streakmatch extends Gamemode {
             String rightSide;
 
             if (p.getScoreboardTags().contains("fighting")) {
-                int ks = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
+                int ks = streakRequired == -1
+                    ? highestStreaks.getOrDefault(p.getUniqueId(), 0)
+                    : SnapshotPvpPlugin.getPlayerScore(
+                        p,
+                        "dummyKillstreak"
+                    );
                 int hp = (int) p.getHealth();
                 int absorp = (int) p.getAbsorptionAmount();
                 String hpText = "" + ChatColor.GREEN + hp + "❤";
@@ -131,14 +151,23 @@ public class Streakmatch extends Gamemode {
                 rightSide =
                     ChatColor.GOLD +
                     (streakRequired == -1
-                        ? "" + ks
+                        ? ks + " best"
                         : ks + "/" + streakRequired) +
                     "🔥" +
                     ChatColor.GRAY +
                     " | " +
                     hpText;
             } else {
-                rightSide = ChatColor.AQUA + "IN LOBBY";
+                rightSide =
+                    ChatColor.AQUA +
+                    "IN LOBBY" +
+                    (streakRequired == -1
+                        ? ChatColor.GRAY +
+                          " | " +
+                          ChatColor.GOLD +
+                          highestStreaks.getOrDefault(p.getUniqueId(), 0) +
+                          " best"
+                        : "");
             }
 
             GlobalScoreboardManager.setHiddenScore(
@@ -167,13 +196,32 @@ public class Streakmatch extends Gamemode {
     @Override
     public void onTick() {
         timeLimit--;
+        updateHighestStreaks();
+    }
+
+    private void updateHighestStreaks() {
+        for (Player player : lobby.getPlayers()) {
+            if (!lobby.isMatchPlayer(player)) continue;
+            UUID playerId = player.getUniqueId();
+            participants.putIfAbsent(playerId, player);
+            int currentStreak = SnapshotPvpPlugin.getPlayerScore(
+                player,
+                "dummyKillstreak"
+            );
+            highestStreaks.merge(
+                playerId,
+                currentStreak,
+                Math::max
+            );
+        }
     }
 
     @Override
     public boolean isOver() {
-        if (streakRequired != -1) for (Player p : world.getPlayers()) {
-            int ks = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
-            if (ks >= streakRequired) return true;
+        if (streakRequired != -1) {
+            for (int streak : highestStreaks.values()) {
+                if (streak >= streakRequired) return true;
+            }
         }
         if (timeLimit <= 0) return true;
         return false;
@@ -181,13 +229,83 @@ public class Streakmatch extends Gamemode {
 
     @Override
     public void sendGameOverMessage(Player player) {
-        for (Player p : world.getPlayers()) {
+        updateHighestStreaks();
+        List<Map.Entry<UUID, Player>> leaderboard = new ArrayList<>(
+            participants.entrySet()
+        );
+        leaderboard.sort((first, second) -> {
+            int streak = Integer.compare(
+                highestStreaks.getOrDefault(second.getKey(), 0),
+                highestStreaks.getOrDefault(first.getKey(), 0)
+            );
+            if (streak != 0) return streak;
+            return first
+                .getValue()
+                .getName()
+                .compareToIgnoreCase(second.getValue().getName());
+        });
+
+        player.sendMessage(ChatColor.GOLD + "==== Streakmatch Results ====");
+        if (!leaderboard.isEmpty()) {
+            int winningStreak = highestStreaks.getOrDefault(
+                leaderboard.getFirst().getKey(),
+                0
+            );
+            List<String> winners = leaderboard
+                .stream()
+                .filter(entry ->
+                    highestStreaks.getOrDefault(entry.getKey(), 0) ==
+                    winningStreak
+                )
+                .map(entry -> entry.getValue().getName())
+                .toList();
             player.sendMessage(
-                p.getName() +
-                    ": " +
-                    SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak")
+                ChatColor.GREEN +
+                    (winners.size() == 1 ? "Winner: " : "Winners: ") +
+                    String.join(", ", winners) +
+                    ChatColor.GRAY +
+                    " (best streak: " +
+                    winningStreak +
+                    ")"
             );
         }
+        for (int i = 0; i < leaderboard.size(); i++) {
+            Map.Entry<UUID, Player> entry = leaderboard.get(i);
+            Team team = SnapshotPvpPlugin.getTeam(entry.getValue());
+            ChatColor color = team == null
+                ? ChatColor.WHITE
+                : team.getColor();
+            player.sendMessage(
+                "" +
+                ChatColor.YELLOW +
+                    (i + 1) +
+                    ". " +
+                    color +
+                    entry.getValue().getName() +
+                    ChatColor.GRAY +
+                    " - " +
+                    highestStreaks.getOrDefault(entry.getKey(), 0) +
+                    " best streak"
+            );
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        Player attacker = event.getEntity().getKiller();
+        if (
+            attacker == null ||
+            !lobby.isMatchPlayer(event.getEntity()) ||
+            !lobby.isMatchPlayer(attacker)
+        ) return;
+
+        UUID playerId = attacker.getUniqueId();
+        participants.putIfAbsent(playerId, attacker);
+        highestStreaks.merge(
+            playerId,
+            SnapshotPvpPlugin.getPlayerScore(attacker, "dummyKillstreak"),
+            Math::max
+        );
     }
 
     @Override
@@ -197,5 +315,6 @@ public class Streakmatch extends Gamemode {
         if (shadowWorld != null) {
             GlobalScoreboardManager.removeBoardHandler(shadowWorld.getName());
         }
+        HandlerList.unregisterAll(this);
     }
 }
