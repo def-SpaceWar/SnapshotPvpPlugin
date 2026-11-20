@@ -689,10 +689,19 @@ public final class ManaKitListener implements Listener {
             .create();
         gui.setDefaultClickAction(event -> event.setCancelled(true));
 
+        ManaKit selectedKit = getPlayerKit(player);
         for (ManaKit kit : kits) {
             ItemStack icon = kit.getIcon();
             ItemMeta meta = icon.getItemMeta();
-            meta.setDisplayName(ChatColor.GOLD + kit.getDisplayName());
+            boolean selected = selectedKit != null &&
+                kit.getId().equals(selectedKit.getId());
+            meta.displayName(
+                Component.text(
+                    kit.getDisplayName() + (selected ? " [Selected]" : ""),
+                    selected ? NamedTextColor.GREEN : NamedTextColor.GOLD
+                )
+            );
+            meta.setEnchantmentGlintOverride(selected);
             meta.lore(
                 List.of(
                     Component.text(
@@ -704,8 +713,8 @@ public final class ManaKitListener implements Listener {
                         NamedTextColor.AQUA
                     ).append(kit.getStarRatingComponent()),
                     Component.text(
-                        "Click to select",
-                        NamedTextColor.YELLOW
+                        selected ? "Already selected" : "Click to select",
+                        selected ? NamedTextColor.GREEN : NamedTextColor.YELLOW
                     )
                 )
             );
@@ -778,9 +787,6 @@ public final class ManaKitListener implements Listener {
                 ChatColor.WHITE +
                 ". Your kit will be given when combat begins."
         );
-        ManaKitLobbyType.ManaKitLobbyInstance lobby =
-            ManaKitLobbyType.getLobbyForPlayer(player);
-        if (lobby != null) lobby.onKitSelected(player);
         if (player.getScoreboardTags().contains("combat")) {
             givePlayerKit(player, kit);
         }

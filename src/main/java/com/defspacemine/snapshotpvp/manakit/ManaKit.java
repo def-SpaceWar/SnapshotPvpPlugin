@@ -1,5 +1,7 @@
 package com.defspacemine.snapshotpvp.manakit;
 
+import java.util.List;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -11,6 +13,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Trident;
@@ -23,6 +26,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 public abstract class ManaKit {
@@ -98,9 +102,24 @@ public abstract class ManaKit {
             y,
             z
         );
-        return icon == null || icon.getType().isAir()
-            ? new ItemStack(Material.IRON_CHESTPLATE)
-            : icon.clone();
+        if (icon == null || icon.getType().isAir()) {
+            return new ItemStack(Material.IRON_CHESTPLATE);
+        }
+
+        ItemStack cleanIcon = icon.clone();
+        ItemMeta meta = cleanIcon.getItemMeta();
+        if (meta != null) {
+            for (
+                Enchantment enchantment : List.copyOf(
+                    meta.getEnchants().keySet()
+                )
+            ) {
+                meta.removeEnchant(enchantment);
+            }
+            meta.setEnchantmentGlintOverride(false);
+            cleanIcon.setItemMeta(meta);
+        }
+        return cleanIcon;
     }
 
     public static boolean isInShadowWorld(Player player) {
