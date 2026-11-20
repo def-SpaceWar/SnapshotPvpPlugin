@@ -143,7 +143,7 @@ public class ManaKitLobbyType extends LobbyType {
         implements Listener
     {
 
-        private static final int PHASE_DURATION_TICKS = 30 * 20;
+        private static final int PHASE_DURATION_TICKS = 20 * 20;
         private static final NamespacedKey LOBBY_ITEM = new NamespacedKey(
             "defspacemine",
             "manakit_lobby_item"
@@ -154,7 +154,7 @@ public class ManaKitLobbyType extends LobbyType {
         private final World shadowMap;
         private final String teamScope;
         private final BossBar phaseBossBar = BossBar.bossBar(
-            Component.text("Waiting - 0:30", NamedTextColor.GOLD),
+            Component.text("Waiting - 0:20", NamedTextColor.GOLD),
             1f,
             BossBar.Color.YELLOW,
             BossBar.Overlay.PROGRESS
@@ -183,6 +183,7 @@ public class ManaKitLobbyType extends LobbyType {
         private final Set<UUID> matchPlayers = new HashSet<>();
         private final Set<UUID> pendingJoiners = new HashSet<>();
         private final Set<UUID> earlyEndVotes = new HashSet<>();
+        private int tabUpdateTicks;
 
         public ManaKitLobbyInstance(World world) {
             this.world = world;
@@ -217,7 +218,7 @@ public class ManaKitLobbyType extends LobbyType {
                 this,
                 SnapshotPvpPlugin.instance
             );
-            broadcast(ChatColor.GOLD + "Lobby phase: Waiting (30 seconds)");
+            broadcast(ChatColor.GOLD + "Lobby phase: Waiting (20 seconds)");
             updatePhaseBossBar();
         }
 
@@ -240,7 +241,52 @@ public class ManaKitLobbyType extends LobbyType {
             return matchPlayers.contains(player.getUniqueId());
         }
 
+        private void updateLobbyTabVisibility() {
+            List<Player> lobbyPlayers = getPlayers();
+            for (Player viewer : lobbyPlayers) {
+                for (Player other : Bukkit.getOnlinePlayers()) {
+                    if (lobbyPlayers.contains(other)) {
+                        viewer.showPlayer(SnapshotPvpPlugin.instance, other);
+                    } else {
+                        viewer.hidePlayer(SnapshotPvpPlugin.instance, other);
+                    }
+                }
+            }
+        }
+
+        private void updateLobbyTabList() {
+            String map = selectedMap == null ? "Voting" : mapName(selectedMap);
+            String mode = selectedMode == null ? "Voting" : modeName(selectedMode);
+            Component header = Component.text()
+                .append(Component.text("MANA KIT", NamedTextColor.GOLD))
+                .append(Component.newline())
+                .append(Component.text("Lobby", NamedTextColor.AQUA))
+                .build();
+            Component footer = Component.text()
+                .append(Component.text("Map: ", NamedTextColor.GRAY))
+                .append(Component.text(map, NamedTextColor.WHITE))
+                .append(Component.text("  |  ", NamedTextColor.DARK_GRAY))
+                .append(Component.text("Mode: ", NamedTextColor.GRAY))
+                .append(Component.text(mode, NamedTextColor.WHITE))
+                .append(Component.newline())
+                .append(Component.text("Phase: ", NamedTextColor.GRAY))
+                .append(Component.text(phaseTitle(lobbyState), NamedTextColor.YELLOW))
+                .append(Component.text("  |  ", NamedTextColor.DARK_GRAY))
+                .append(Component.text("Players: ", NamedTextColor.GRAY))
+                .append(Component.text(String.valueOf(getPlayers().size()), NamedTextColor.GREEN))
+                .build();
+
+            for (Player player : getPlayers()) {
+                player.sendPlayerListHeaderAndFooter(header, footer);
+            }
+        }
+
         public void onTick() {
+            tabUpdateTicks++;
+            if (tabUpdateTicks >= 20) {
+                tabUpdateTicks = 0;
+                updateLobbyTabList();
+            }
             if (
                 lobbyState == LobbyState.KIT_SELECTION ||
                 lobbyState == LobbyState.IN_GAME
@@ -303,6 +349,11 @@ public class ManaKitLobbyType extends LobbyType {
                 player.hideBossBar(phaseBossBar);
                 restorePlayerTeam(player);
             }
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                for (Player other : Bukkit.getOnlinePlayers()) {
+                    player.showPlayer(SnapshotPvpPlugin.instance, other);
+                }
+            }
             removeEmptyLobbyTeams();
             destroyMatch();
             HandlerList.unregisterAll(this);
@@ -332,6 +383,12 @@ public class ManaKitLobbyType extends LobbyType {
             choiceGuis.remove(playerId);
             restorePlayerTeam(player);
             player.hideBossBar(phaseBossBar);
+            for (Player other : Bukkit.getOnlinePlayers()) {
+                player.showPlayer(SnapshotPvpPlugin.instance, other);
+                other.showPlayer(SnapshotPvpPlugin.instance, player);
+            }
+            updateLobbyTabVisibility();
+            updateLobbyTabList();
             if (
                 lobbyState == LobbyState.IN_GAME &&
                 !pendingJoiners.isEmpty()
@@ -352,6 +409,8 @@ public class ManaKitLobbyType extends LobbyType {
             UUID playerId = player.getUniqueId();
             player.removeScoreboardTag("fighting");
             player.removeScoreboardTag("combat");
+            updateLobbyTabVisibility();
+            updateLobbyTabList();
             if (lobbyState == LobbyState.IN_GAME) {
                 player.hideBossBar(phaseBossBar);
                 matchPlayers.add(playerId);
@@ -597,7 +656,7 @@ public class ManaKitLobbyType extends LobbyType {
                 kitGuiOpened.clear();
                 broadcast(
                     ChatColor.GOLD +
-                        "Kit selection is open for 30 seconds."
+                        "Kit selection is open for 20 seconds."
                 );
                 for (Player player : getPlayers()) {
                     player.closeInventory();
@@ -625,7 +684,7 @@ public class ManaKitLobbyType extends LobbyType {
             updatePhaseBossBar();
             broadcast(
                 ChatColor.GOLD + "Lobby phase: " + phaseTitle(state) +
-                    " (30 seconds)"
+                    " (20 seconds)"
             );
         }
 

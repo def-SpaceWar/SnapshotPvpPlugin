@@ -29,6 +29,8 @@ public class Streakmatch extends Gamemode implements Listener {
     public int timeLimit = 18000; // ticks ~ 15 minutess
     private final Map<UUID, Player> participants = new HashMap<>();
     private final Map<UUID, Integer> highestStreaks = new HashMap<>();
+    private final Map<UUID, Long> highestStreakAchievedAt = new HashMap<>();
+    private long matchStartNanos;
 
     public Streakmatch(ManaKitLobbyInstance lobby, World world) {
         this.lobby = lobby;
@@ -48,6 +50,7 @@ public class Streakmatch extends Gamemode implements Listener {
 
     @Override
     public void onStart() {
+        matchStartNanos = System.nanoTime();
         SnapshotPvpPlugin.pluginManager.registerEvents(
             this,
             SnapshotPvpPlugin.instance
@@ -56,6 +59,7 @@ public class Streakmatch extends Gamemode implements Listener {
             UUID playerId = player.getUniqueId();
             participants.put(playerId, player);
             highestStreaks.put(playerId, 0);
+            highestStreakAchievedAt.put(playerId, 0L);
             SnapshotPvpPlugin.setPlayerScore(player, "dummyKillstreak", 0);
         }
 
@@ -108,6 +112,16 @@ public class Streakmatch extends Gamemode implements Listener {
                 ? SnapshotPvpPlugin.getPlayerScore(p2, "dummyKillstreak")
                 : -1;
             if (ks1 != ks2) return Integer.compare(ks2, ks1);
+            long achieved1 = highestStreakAchievedAt.getOrDefault(
+                p1.getUniqueId(),
+                Long.MAX_VALUE
+            );
+            long achieved2 = highestStreakAchievedAt.getOrDefault(
+                p2.getUniqueId(),
+                Long.MAX_VALUE
+            );
+            int chronological = Long.compare(achieved1, achieved2);
+            if (chronological != 0) return chronological;
 
             double hp1 = p1.getHealth();
             double hp2 = p2.getHealth();
@@ -137,12 +151,13 @@ public class Streakmatch extends Gamemode implements Listener {
             String rightSide;
 
             if (p.getScoreboardTags().contains("fighting")) {
-                int ks = streakRequired == -1
+                int currentStreak = SnapshotPvpPlugin.getPlayerScore(
+                    p,
+                    "dummyKillstreak"
+                );
+                int bestStreak = streakRequired == -1
                     ? highestStreaks.getOrDefault(p.getUniqueId(), 0)
-                    : SnapshotPvpPlugin.getPlayerScore(
-                        p,
-                        "dummyKillstreak"
-                    );
+                    : highestStreaks.getOrDefault(p.getUniqueId(), 0);
                 int hp = (int) p.getHealth();
                 int absorp = (int) p.getAbsorptionAmount();
                 String hpText = "" + ChatColor.GREEN + hp + "❤";
@@ -150,9 +165,7 @@ public class Streakmatch extends Gamemode implements Listener {
 
                 rightSide =
                     ChatColor.GOLD +
-                    (streakRequired == -1
-                        ? ks + " best"
-                        : ks + "/" + streakRequired) +
+                    streakDisplay(currentStreak, bestStreak) +
                     "🔥" +
                     ChatColor.GRAY +
                     " | " +
@@ -161,13 +174,11 @@ public class Streakmatch extends Gamemode implements Listener {
                 rightSide =
                     ChatColor.AQUA +
                     "IN LOBBY" +
-                    (streakRequired == -1
-                        ? ChatColor.GRAY +
-                          " | " +
-                          ChatColor.GOLD +
-                          highestStreaks.getOrDefault(p.getUniqueId(), 0) +
-                          " best"
-                        : "");
+                    ChatColor.GRAY +
+                    " | " +
+                    ChatColor.GOLD +
+                    highestStreaks.getOrDefault(p.getUniqueId(), 0) +
+                    "🔥";
             }
 
             GlobalScoreboardManager.setHiddenScore(
@@ -199,6 +210,11 @@ public class Streakmatch extends Gamemode implements Listener {
         updateHighestStreaks();
     }
 
+    private String streakDisplay(int currentStreak, int bestStreak) {
+        if (currentStreak == bestStreak) return String.valueOf(currentStreak);
+        return currentStreak + "/" + bestStreak;
+    }
+
     private void updateHighestStreaks() {
         for (Player player : lobby.getPlayers()) {
             if (!lobby.isMatchPlayer(player)) continue;
@@ -208,12 +224,19 @@ public class Streakmatch extends Gamemode implements Listener {
                 player,
                 "dummyKillstreak"
             );
-            highestStreaks.merge(
+            recordHighestStreak(
                 playerId,
                 currentStreak,
-                Math::max
+                System.nanoTime() - matchStartNanos
             );
         }
+    }
+
+    private void recordHighestStreak(UUID playerId, int streak, long achievedAt) {
+        int previousBest = highestStreaks.getOrDefault(playerId, 0);
+        if (streak <= previousBest) return;
+        highestStreaks.put(playerId, streak);
+        highestStreakAchievedAt.put(playerId, achievedAt);
     }
 
     @Override
@@ -239,10 +262,19 @@ public class Streakmatch extends Gamemode implements Listener {
                 highestStreaks.getOrDefault(first.getKey(), 0)
             );
             if (streak != 0) return streak;
-            return first
-                .getValue()
-                .getName()
-                .compareToIgnoreCase(second.getValue().getName());
+            long firstAchieved = highestStreakAchievedAt.getOrDefault(
+                first.getKey(),
+                Long.MAX_VALUE
+            );
+            long secondAchieved = highestStreakAchievedAt.getOrDefault(
+                second.getKey(),
+                Long.MAX_VALUE
+            );
+            int chronological = Long.compare(firstAchieved, secondAchieved);
+            if (chronological != 0) return chronological;
+            return first.getValue().getName().compareToIgnoreCase(
+                second.getValue().getName()
+            );
         });
 
         player.sendMessage(ChatColor.GOLD + "==== Streakmatch Results ====");
@@ -251,20 +283,12 @@ public class Streakmatch extends Gamemode implements Listener {
                 leaderboard.getFirst().getKey(),
                 0
             );
-            List<String> winners = leaderboard
-                .stream()
-                .filter(entry ->
-                    highestStreaks.getOrDefault(entry.getKey(), 0) ==
-                    winningStreak
-                )
-                .map(entry -> entry.getValue().getName())
-                .toList();
             player.sendMessage(
                 ChatColor.GREEN +
-                    (winners.size() == 1 ? "Winner: " : "Winners: ") +
-                    String.join(", ", winners) +
+                    "Winner: " +
+                    leaderboard.getFirst().getValue().getName() +
                     ChatColor.GRAY +
-                    " (best streak: " +
+                    " (streak: " +
                     winningStreak +
                     ")"
             );
@@ -285,7 +309,7 @@ public class Streakmatch extends Gamemode implements Listener {
                     ChatColor.GRAY +
                     " - " +
                     highestStreaks.getOrDefault(entry.getKey(), 0) +
-                    " best streak"
+                    " streak"
             );
         }
     }
@@ -301,10 +325,10 @@ public class Streakmatch extends Gamemode implements Listener {
 
         UUID playerId = attacker.getUniqueId();
         participants.putIfAbsent(playerId, attacker);
-        highestStreaks.merge(
+        recordHighestStreak(
             playerId,
             SnapshotPvpPlugin.getPlayerScore(attacker, "dummyKillstreak"),
-            Math::max
+            System.nanoTime() - matchStartNanos
         );
     }
 
