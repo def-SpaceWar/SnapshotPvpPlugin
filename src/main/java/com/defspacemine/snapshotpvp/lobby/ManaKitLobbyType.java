@@ -1685,11 +1685,11 @@ public class ManaKitLobbyType extends LobbyType {
                     p.removeScoreboardTag("fighting");
                     p.getInventory().setItem(7, teamChangeItem());
                     p.getInventory().setItem(8, kitGuiReopenItem());
-                    p.sendMessage(
-                        ChatColor.YELLOW +
-                            "Reselect your team or kit here, then enter the " +
-                            "arena to rejoin."
-                    );
+                    // p.sendMessage(
+                    //     ChatColor.YELLOW +
+                    //         "Reselect your team or kit here, then enter the " +
+                    //         "arena to rejoin."
+                    // );
                     if (
                         lobbyState == LobbyState.KIT_SELECTION ||
                         lobbyState == LobbyState.IN_GAME

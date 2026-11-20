@@ -59,7 +59,7 @@ public class Cultist extends ManaKit {
     private ItemStack ritualDoom, ritualNecro, ritualDivine, ritualDark;
 
     public Cultist() {
-        super("cultist", "Cultist", "[Ritual Master]", 3);
+        super("cultist", "Cultist", "[Melee Damage]", 3);
         initRitualItems();
     }
 
