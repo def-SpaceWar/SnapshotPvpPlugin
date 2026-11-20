@@ -278,7 +278,6 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
         new LobbyManager(this);
         new GlobalScoreboardManager(this);
 
-        // move this to manakit lobby eventually
         getLifecycleManager().registerEventHandler(
             LifecycleEvents.COMMANDS,
             commands -> {
