@@ -28,6 +28,11 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 public class ICBM extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-188, 1, -185);
+    }
+
     public static final int RED_TERROR_RADIUS = 2;
     public static final double RED_TERROR_RADIUS_GROWTH = .1;
     final double DMG_PER_DISTANCE = 20;

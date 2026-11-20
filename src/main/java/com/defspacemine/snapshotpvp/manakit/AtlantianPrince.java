@@ -30,6 +30,11 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class AtlantianPrince extends ManaKit implements Listener {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-189, 7, -185);
+    }
+
 
     private final NamespacedKey floodChargeKey = ManaKitListener.MANA_KIT_DATA0;
     private final NamespacedKey bucketTimerKey = ManaKitListener.MANA_KIT_DATA1;

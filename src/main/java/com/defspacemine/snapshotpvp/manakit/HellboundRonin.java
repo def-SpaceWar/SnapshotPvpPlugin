@@ -22,6 +22,11 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Team;
 
 public class HellboundRonin extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-187, 10, -185);
+    }
+
 
     private final int flameCharge = 15;
     private final NamespacedKey flameChargeCounter = ManaKitListener.MANA_KIT_DATA0;

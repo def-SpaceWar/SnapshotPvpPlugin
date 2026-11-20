@@ -41,6 +41,11 @@ import org.bukkit.util.Vector;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Titan extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-183, 7, -185);
+    }
+
 
     private static final NamespacedKey FURY_SPEED = new NamespacedKey(
         "defspacemine",

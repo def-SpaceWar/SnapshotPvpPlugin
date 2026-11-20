@@ -30,6 +30,11 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 public class BuckshotViking extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-189, 10, -185);
+    }
+
 
     final int ammoRestock = 400; // 3 ammo every 20 seconds, they auto reset
     final NamespacedKey ammoRestockCounter = ManaKitListener.MANA_KIT_DATA0;

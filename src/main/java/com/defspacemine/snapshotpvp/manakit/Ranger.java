@@ -25,6 +25,11 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.w3c.dom.Text;
 
 public class Ranger extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-184, 10, -185);
+    }
+
 
     private static final int MAX_ARROWS = 3;
 

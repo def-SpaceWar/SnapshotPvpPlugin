@@ -1,10 +1,15 @@
 package com.defspacemine.snapshotpvp.manakit;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import dev.triumphteam.gui.guis.Gui;
+import dev.triumphteam.gui.guis.GuiItem;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -380,19 +385,7 @@ public final class ManaKitListener implements Listener {
             return true;
         }
 
-        ManaKit currentKit = getPlayerKit(player);
-        if (currentKit != null) unsetPlayerKit(player);
-
-        givePlayerKit(player, kit);
-        player.sendMessage(
-            ChatColor.WHITE +
-                "You have selected " +
-                ChatColor.GOLD +
-                kit.getDisplayName() +
-                ChatColor.WHITE +
-                " successfully!"
-        );
-
+        selectKit(player, kit, getPlayerKit(player));
         return true;
     }
 
@@ -603,53 +596,62 @@ public final class ManaKitListener implements Listener {
     }
 
     void showKits(Player player) {
-        player.sendMessage(ChatColor.GREEN + "===== Available Kits =====");
-        ArrayList<ManaKit> kits = new ArrayList();
-        for (ManaKit kit : manaKitRegistry.values()) kits.add(kit);
-        kits.sort((a, b) -> {
-            if (a.stars != b.stars) return a.stars - b.stars;
-            return a.getDisplayName().charAt(0) - b.getDisplayName().charAt(0);
-        });
+        List<ManaKit> kits = new ArrayList<>(manaKitRegistry.values());
+        kits.sort(
+            Comparator.comparingInt((ManaKit kit) -> kit.stars).thenComparing(
+                ManaKit::getDisplayName
+            )
+        );
+
+        Gui gui = Gui.gui()
+            .title(Component.text("Available Kits"))
+            .rows(6)
+            .create();
+        gui.setDefaultClickAction(event -> event.setCancelled(true));
+
         for (ManaKit kit : kits) {
-            String difficulty = ChatColor.MAGIC + "?????";
-            switch (kit.stars) {
-                case 1:
-                    difficulty = ChatColor.AQUA + "★";
-                    break;
-                case 2:
-                    difficulty = ChatColor.GREEN + "★★";
-                    break;
-                case 3:
-                    difficulty = ChatColor.DARK_PURPLE + "★★★";
-                    break;
-                case 4:
-                    difficulty = ChatColor.RED + "★★★★";
-                    break;
-                case 5:
-                    difficulty = ChatColor.DARK_GRAY + "★★★★★";
-                    break;
-            }
-            player.sendMessage(
-                ChatColor.GOLD +
-                    kit.getId() +
-                    ChatColor.GRAY +
-                    " [" +
-                    difficulty +
-                    ChatColor.GRAY +
-                    "] " +
-                    ChatColor.YELLOW +
-                    kit.getDisplayName() +
-                    " " +
-                    kit.getDescription()
+            ItemStack icon = kit.getIcon();
+            ItemMeta meta = icon.getItemMeta();
+            meta.setDisplayName(ChatColor.GOLD + kit.getDisplayName());
+            meta.setLore(
+                List.of(
+                    ChatColor.GRAY + kit.getDescription(),
+                    ChatColor.AQUA +
+                        "Difficulty: " +
+                        "★".repeat(kit.stars),
+                    ChatColor.YELLOW + "Click to select"
+                )
+            );
+            icon.setItemMeta(meta);
+            gui.addItem(
+                new GuiItem(icon, event -> {
+                    event.setCancelled(true);
+                    if (player.getScoreboardTags().contains("fighting")) {
+                        player.sendMessage(
+                            ChatColor.DARK_RED + "You are fighting!"
+                        );
+                        return;
+                    }
+
+                    gui.close(player);
+                    selectKit(player, kit, getPlayerKit(player));
+                })
             );
         }
+        gui.open(player);
+    }
+
+    private void selectKit(Player player, ManaKit kit, ManaKit currentKit) {
+        if (currentKit != null) unsetPlayerKit(player);
+
+        givePlayerKit(player, kit);
         player.sendMessage(
             ChatColor.WHITE +
-                "Use /kit " +
+                "You have selected " +
                 ChatColor.GOLD +
-                "<id>" +
+                kit.getDisplayName() +
                 ChatColor.WHITE +
-                " to select a kit!"
+                " successfully!"
         );
     }
 

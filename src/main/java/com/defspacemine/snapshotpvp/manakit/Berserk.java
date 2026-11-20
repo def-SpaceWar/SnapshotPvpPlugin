@@ -24,6 +24,11 @@ import org.bukkit.potion.PotionEffectType;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Berserk extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-186, 1, -185);
+    }
+
     final int enrage = 20; // 20 attacks or getting hit 20 times!
     final NamespacedKey enrageCounter = ManaKitListener.MANA_KIT_DATA0;
 

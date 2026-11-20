@@ -12,6 +12,11 @@ import org.bukkit.potion.PotionEffectType;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Colossus extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-186, 7, -185);
+    }
+
     public Colossus() {
         super("colossus", "Colossus", "[Melee Knockback Tank]", 1);
     }

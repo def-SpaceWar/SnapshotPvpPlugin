@@ -33,6 +33,11 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
 
 public class Poacher extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-183, 1, -185);
+    }
+
     final int killShot = 9; // 9 attacks = 1 power toxin!
     final NamespacedKey killShotCounter = ManaKitListener.MANA_KIT_DATA0;
 

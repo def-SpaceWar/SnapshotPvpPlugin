@@ -56,6 +56,11 @@ import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
 public class TwoTimer extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-185, 16, -185);
+    }
+
 
     private static final int SWORD_TP_HITS = 5;
     private static final double TP_DISTANCE = 3.5;

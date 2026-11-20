@@ -17,6 +17,11 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 public class Breezy extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-185, 7, -185);
+    }
+
     private final int glide = 200;
     private final NamespacedKey glideCounter = ManaKitListener.MANA_KIT_DATA0;
 

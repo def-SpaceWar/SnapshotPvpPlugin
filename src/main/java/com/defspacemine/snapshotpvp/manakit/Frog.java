@@ -19,6 +19,11 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 public class Frog extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-184, 7, -185);
+    }
+
 
     final int chargeRestock = 5; // wind charges every 5 attacks
     final NamespacedKey chargeRestockCounter = ManaKitListener.MANA_KIT_DATA0;

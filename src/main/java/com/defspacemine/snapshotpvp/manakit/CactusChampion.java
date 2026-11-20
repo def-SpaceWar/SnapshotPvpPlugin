@@ -35,6 +35,11 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 public class CactusChampion extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-182, 10, -185);
+    }
+
 
     final int CACTUS_TOTEM_HP = 200;
     final int CACTUS_TOTEM_RADIUS = 8;

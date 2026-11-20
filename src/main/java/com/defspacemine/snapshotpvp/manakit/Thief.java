@@ -23,6 +23,11 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 public class Thief extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-187, 1, -185);
+    }
+
 
     final double CLOSE_RADIUS = 1;
 

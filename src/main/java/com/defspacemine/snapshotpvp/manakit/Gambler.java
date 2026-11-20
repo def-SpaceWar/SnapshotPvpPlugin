@@ -38,6 +38,11 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class Gambler extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-187, 7, -185);
+    }
+
 
     final int arrowRestock = 6; // 6 hits for betting arrow
     final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;

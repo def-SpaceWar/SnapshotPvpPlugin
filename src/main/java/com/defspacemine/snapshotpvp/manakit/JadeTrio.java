@@ -43,6 +43,11 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.BoundingBox;
 
 public class JadeTrio extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-187, 4, -185);
+    }
+
 
     private static final int PORTAL_CHARGE_HITS = 20;
     private static final int PORTAL_DURATION_TICKS = 200;

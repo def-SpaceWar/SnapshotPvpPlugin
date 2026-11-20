@@ -31,6 +31,11 @@ import org.bukkit.util.Vector;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Squire extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-182, 1, -185);
+    }
+
     final int arrowRestock = 400; // 3 arrows every 20 seconds, they auto reset
     final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;
     final int honorableRestock = 12; // 12 attacks, arrow shots count too!

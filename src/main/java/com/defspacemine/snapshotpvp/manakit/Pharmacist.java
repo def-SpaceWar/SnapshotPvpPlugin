@@ -22,6 +22,11 @@ import org.bukkit.potion.PotionEffectType;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Pharmacist extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-185, 4, -185);
+    }
+
     final NamespacedKey potionStockCounter = ManaKitListener.MANA_KIT_DATA0;
     final NamespacedKey currentPotionCounter = ManaKitListener.MANA_KIT_DATA1;
 

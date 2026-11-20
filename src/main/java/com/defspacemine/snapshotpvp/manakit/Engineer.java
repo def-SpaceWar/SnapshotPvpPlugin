@@ -35,6 +35,11 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 public class Engineer extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-188, 7, -185);
+    }
+
 
     public static final double DROID_HEALTH = 20;
     public static final int DROID_AMOUNT = 5;

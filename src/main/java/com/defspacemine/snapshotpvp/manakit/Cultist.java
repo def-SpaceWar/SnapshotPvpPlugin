@@ -43,6 +43,11 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 public class Cultist extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-184, 4, -185);
+    }
+
     final int COST_NECRO = 30;
     final int COST_DARK = 60;
     final int COST_DOOM = 80;

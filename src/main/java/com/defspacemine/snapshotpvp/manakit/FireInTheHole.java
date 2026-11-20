@@ -27,6 +27,11 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 public class FireInTheHole extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-184, 1, -185);
+    }
+
 
     public static final double SMALL_BOMB_HEALTH = 15;
     public static final double SMALL_BOMB_SCALE = .75;

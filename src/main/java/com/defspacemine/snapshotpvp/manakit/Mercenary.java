@@ -25,6 +25,11 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 public class Mercenary extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-183, 4, -185);
+    }
+
     public static final int LAUNCHER_TICKS = 20;
     public static final int LAUNCHER_RADIUS = -3;
     public static final float LAUNCHER_DAMAGE = -15;

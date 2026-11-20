@@ -21,6 +21,11 @@ import org.bukkit.potion.PotionEffectType;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Tridentite extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-189, 1, -185);
+    }
+
     final NamespacedKey hasTridentCounter = ManaKitListener.MANA_KIT_DATA0;
     final int tridentReturn = 600; // 30 seconds before trident auto return
     final NamespacedKey tridentReturnCounter = ManaKitListener.MANA_KIT_DATA1;

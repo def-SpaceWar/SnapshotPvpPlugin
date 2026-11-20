@@ -84,6 +84,7 @@ dependencies {
     //testImplementation 'io.papermc.paper:paper-api:26.2-R0.1-SNAPSHOT'
     //testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     //testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.4'
+    implementation("dev.triumphteam:triumph-gui:3.1.13")
 }
 
 //test {
@@ -126,6 +127,7 @@ processResources {
 shadowJar {
     archiveClassifier.set('')
     relocate 'io.papermc.lib', 'shadow.io.papermc.paperlib'
+    relocate 'dev.triumphteam.gui', 'com.defspacemine.snapshotpvp.shadow.gui'
     minimize()
 }
 

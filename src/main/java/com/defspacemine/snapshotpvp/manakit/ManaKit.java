@@ -5,6 +5,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -60,6 +61,23 @@ public abstract class ManaKit {
 
     public final String getDescription() {
         return description;
+    }
+
+    public ItemStack getIcon() {
+        return new ItemStack(Material.IRON_CHESTPLATE);
+    }
+
+    protected final ItemStack getIconFromShulker(int x, int y, int z) {
+        ItemStack icon = ManaKitListener.getItemFromShulker(
+            2,
+            "goopshotpeshvp",
+            x,
+            y,
+            z
+        );
+        return icon == null || icon.getType().isAir()
+            ? new ItemStack(Material.IRON_CHESTPLATE)
+            : icon.clone();
     }
 
     public static boolean isInShadowWorld(Player player) {

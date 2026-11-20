@@ -32,6 +32,11 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 public class HeadlessHorseman extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-182, 13, -185);
+    }
+
 
     final int midnightRide = 10; // 10 attacks landed earns the Pale Steed egg
     final NamespacedKey midnightRideCounter = ManaKitListener.MANA_KIT_DATA0;

@@ -31,6 +31,11 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 public class Deadeye extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-188, 10, -185);
+    }
+
 
     final double MARK_MULTIPLIER = 2;
 

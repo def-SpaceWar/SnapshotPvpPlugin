@@ -36,6 +36,11 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class SlimeKing extends ManaKit implements Listener {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-183, 13, -185);
+    }
+
 
     final int SLIME_COLOR = 0xAAFF99;
     final int MAGMA_COLOR = 0xAA3322;

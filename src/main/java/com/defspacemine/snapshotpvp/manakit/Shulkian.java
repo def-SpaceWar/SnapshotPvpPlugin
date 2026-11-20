@@ -31,6 +31,11 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 public class Shulkian extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-189, 4, -185);
+    }
+
 
     final int arrowRestock = 120; // 4 arrows every 6 seconds, they auto reset
     final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;

@@ -38,6 +38,11 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 public class Voodoo extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-183, 10, -185);
+    }
+
 
     private final double DOLL_HP = 30.0;
     private final double DOLL_DAMAGE_FACTOR = .5;

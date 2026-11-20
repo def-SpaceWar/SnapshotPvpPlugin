@@ -27,6 +27,11 @@ import org.bukkit.util.Vector;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Incendiary extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-186, 4, -185);
+    }
+
     private final double SIPHON_RADIUS = 24;
     private final int HEAT_PER_TICK = 15;
     private final int COOL_RATE = 2;

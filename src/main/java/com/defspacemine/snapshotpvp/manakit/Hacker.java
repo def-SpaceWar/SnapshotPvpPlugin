@@ -42,6 +42,11 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 public class Hacker extends ManaKit implements Listener {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-184, 13, -185);
+    }
+
 
     private static final double TROJAN_SEARCH_RADIUS = 32;
 

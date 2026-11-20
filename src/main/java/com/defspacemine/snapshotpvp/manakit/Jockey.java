@@ -31,6 +31,11 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Team;
 
 public class Jockey extends ManaKit implements Listener {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-185, 10, -185);
+    }
+
 
     public static final NamespacedKey ENEMY_TARGET_KEY = new NamespacedKey(
         "snapshotpvp",

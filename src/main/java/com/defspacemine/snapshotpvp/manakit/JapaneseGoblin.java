@@ -32,6 +32,11 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 public class JapaneseGoblin extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-182, 7, -185);
+    }
+
 
     static final double KUNAI_DAMAGE = 8;
     static final int KUNAI_TICKS = 80;

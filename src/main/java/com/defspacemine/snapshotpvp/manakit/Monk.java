@@ -39,6 +39,11 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 public class Monk extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-185, 13, -185);
+    }
+
 
     final int maxMoves = 3; // 3 moves held at a time
     final int flowRestock = 200; // flow needed for the next random move

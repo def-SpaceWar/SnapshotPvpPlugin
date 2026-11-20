@@ -22,6 +22,11 @@ import org.bukkit.scoreboard.Team;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Barbarian extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-188, 4, -185);
+    }
+
     final int bloodlust = 10; // 10 attacks given above 5 hearts gives regeneration
     final NamespacedKey bloodlustCounter = ManaKitListener.MANA_KIT_DATA0;
     final int secondWind = 10; // 10 hits taken below 5 hearts gives absorption

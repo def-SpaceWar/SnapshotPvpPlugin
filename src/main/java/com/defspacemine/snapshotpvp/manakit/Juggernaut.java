@@ -20,6 +20,11 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class Juggernaut extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-185, 1, -185);
+    }
+
 
     private final int SMASH_COOLDOWN = 400;
     private final int SMASH_IMMUNITY_DURATION = 100;

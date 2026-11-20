@@ -30,6 +30,11 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 public class Violence extends ManaKit implements Listener {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-182, 16, -185);
+    }
+
 
     private final NamespacedKey progressKey = ManaKitListener.MANA_KIT_DATA0;
     private final NamespacedKey violenceDamageModKey = new NamespacedKey(

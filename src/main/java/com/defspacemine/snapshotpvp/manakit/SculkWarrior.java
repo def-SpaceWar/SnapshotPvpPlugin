@@ -42,6 +42,11 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 public class SculkWarrior extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-186, 10, -185);
+    }
+
 
     private static final double SONIC_BOOM_RANGE = 15.0;
     private static final double SONIC_BOOM_DAMAGE = 10.0;

@@ -30,6 +30,11 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 public class LightPaladin extends ManaKit {
+    @Override
+    public org.bukkit.inventory.ItemStack getIcon() {
+        return getIconFromShulker(-182, 4, -185);
+    }
+
 
     public static final float BLINDING_LIGHT_RADIUS = 5;
     public static final float HEAL_AMOUNT = .3f;
