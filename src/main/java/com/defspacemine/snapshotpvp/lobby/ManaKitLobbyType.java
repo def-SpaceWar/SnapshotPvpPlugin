@@ -530,10 +530,11 @@ public class ManaKitLobbyType extends LobbyType {
                     )
                     .append(
                         Component.text(
-                            " " + "★".repeat(kit.getStars()),
-                            NamedTextColor.YELLOW
+                            " ",
+                            NamedTextColor.WHITE
                         )
                     )
+                    .append(kit.getStarRatingComponent())
                     .append(
                         Component.text(
                             " - " + kit.getDescription(),

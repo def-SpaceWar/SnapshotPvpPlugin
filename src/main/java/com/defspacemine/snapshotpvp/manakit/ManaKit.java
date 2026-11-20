@@ -2,6 +2,7 @@ package com.defspacemine.snapshotpvp.manakit;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -65,6 +66,24 @@ public abstract class ManaKit {
 
     public final int getStars() {
         return stars;
+    }
+
+    public final Component getStarRatingComponent() {
+        NamedTextColor color = switch (stars) {
+            case 1 -> NamedTextColor.AQUA;
+            case 2 -> NamedTextColor.GREEN;
+            case 3 -> NamedTextColor.DARK_PURPLE;
+            case 4 -> NamedTextColor.RED;
+            case 5 -> NamedTextColor.DARK_GRAY;
+            default -> NamedTextColor.GRAY;
+        };
+        String rating = stars >= 1 && stars <= 5
+            ? "★".repeat(stars)
+            : "★ unknown";
+        return Component.text(rating, color).decoration(
+            TextDecoration.ITALIC,
+            false
+        );
     }
 
     public ItemStack getIcon() {

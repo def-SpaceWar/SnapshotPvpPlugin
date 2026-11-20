@@ -12,6 +12,7 @@ import com.defspacemine.snapshotpvp.lobby.ManaKitLobbyType;
 import dev.triumphteam.gui.guis.Gui;
 import dev.triumphteam.gui.guis.GuiItem;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -692,13 +693,20 @@ public final class ManaKitListener implements Listener {
             ItemStack icon = kit.getIcon();
             ItemMeta meta = icon.getItemMeta();
             meta.setDisplayName(ChatColor.GOLD + kit.getDisplayName());
-            meta.setLore(
+            meta.lore(
                 List.of(
-                    ChatColor.GRAY + kit.getDescription(),
-                    ChatColor.AQUA +
-                        "Difficulty: " +
-                        "★".repeat(kit.stars),
-                    ChatColor.YELLOW + "Click to select"
+                    Component.text(
+                        kit.getDescription(),
+                        NamedTextColor.GRAY
+                    ),
+                    Component.text(
+                        "Difficulty: ",
+                        NamedTextColor.AQUA
+                    ).append(kit.getStarRatingComponent()),
+                    Component.text(
+                        "Click to select",
+                        NamedTextColor.YELLOW
+                    )
                 )
             );
             icon.setItemMeta(meta);
