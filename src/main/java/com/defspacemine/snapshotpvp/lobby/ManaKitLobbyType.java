@@ -960,7 +960,7 @@ public class ManaKitLobbyType extends LobbyType {
             if (lobbyState == LobbyState.TEAM_SELECTION) {
                 player.getInventory().setItem(7, teamChangeItem());
             }
-            if (lobbyState != LobbyState.WAITING) openChoiceGui(player);
+            openChoiceGui(player);
         }
 
         private void openChoiceGui(Player player) {
@@ -1450,6 +1450,18 @@ public class ManaKitLobbyType extends LobbyType {
                             "Your next choice will be forced and advance the phase."
                     );
                 }
+                LobbyState phase = lobbyState;
+                player.closeInventory();
+                Bukkit.getScheduler().runTask(
+                    SnapshotPvpPlugin.instance,
+                    () -> {
+                        if (
+                            player.isOnline() &&
+                            lobbyState == phase &&
+                            isLobbyWorld(player.getWorld())
+                        ) openChoiceGui(player);
+                    }
+                );
                 return;
             }
 
