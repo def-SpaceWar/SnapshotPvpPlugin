@@ -63,6 +63,10 @@ public abstract class ManaKit {
         return description;
     }
 
+    public final int getStars() {
+        return stars;
+    }
+
     public ItemStack getIcon() {
         return new ItemStack(Material.IRON_CHESTPLATE);
     }

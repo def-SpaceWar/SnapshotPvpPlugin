@@ -304,6 +304,18 @@ public final class ManaKitListener implements Listener {
         kit.playItemGainFeedback(player);
     }
 
+    public void enterCombat(Player player) {
+        if (
+            ManaKit.isInShadowWorld(player) ||
+            !player.getScoreboardTags().contains("fighting")
+        ) return;
+        ManaKit kit = getPlayerKit(player);
+        if (kit == null || !player.addScoreboardTag("combat")) return;
+        player.clearActivePotionEffects();
+        givePlayerKit(player, kit);
+        kit.onEnterCombat(player);
+    }
+
     public static void clearManaKitData(Player player) {
         PersistentDataContainer pdc = player.getPersistentDataContainer();
         for (
@@ -845,10 +857,7 @@ public final class ManaKitListener implements Listener {
 
                     if (playerTags.contains("fighting")) {
                         if (!playerTags.contains("combat")) {
-                            player.addScoreboardTag("combat");
-                            player.clearActivePotionEffects();
-                            givePlayerKit(player, kit);
-                            kit.onEnterCombat(player);
+                            enterCombat(player);
                         }
                         kit.onCombatTick(player);
                     } else {
