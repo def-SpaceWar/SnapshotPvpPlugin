@@ -770,6 +770,9 @@ public final class ManaKitListener implements Listener {
                 ChatColor.WHITE +
                 ". Your kit will be given when combat begins."
         );
+        ManaKitLobbyType.ManaKitLobbyInstance lobby =
+            ManaKitLobbyType.getLobbyForPlayer(player);
+        if (lobby != null) lobby.onKitSelected(player);
         if (player.getScoreboardTags().contains("combat")) {
             givePlayerKit(player, kit);
         }

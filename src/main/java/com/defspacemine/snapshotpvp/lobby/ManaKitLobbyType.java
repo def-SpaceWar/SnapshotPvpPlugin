@@ -82,6 +82,7 @@ public class ManaKitLobbyType extends LobbyType {
         VOTE_MODE,
         VOTE_CONFIG,
         VOTE_KIT_SELECTION,
+        VOTE_TEAM_CHANGE,
         TEAM_SELECTION,
         KIT_SELECTION, // choose kits
         IN_GAME,
@@ -166,16 +167,20 @@ public class ManaKitLobbyType extends LobbyType {
         private ModeChoice selectedMode;
         private int selectedWinCondition = -1;
         private boolean kitSelectionLimited;
+        private boolean teamChangeLimited;
         private final Map<UUID, MapChoice> mapVotes = new HashMap<>();
         private final Map<UUID, ModeChoice> modeVotes = new HashMap<>();
         private final Map<UUID, Integer> configVotes = new HashMap<>();
         private final Map<UUID, Boolean> kitSelectionVotes = new HashMap<>();
+        private final Map<UUID, Boolean> teamChangeVotes = new HashMap<>();
         private final Map<UUID, TeamChoice> teamSelections = new HashMap<>();
         private final Map<UUID, String> previousTeamNames = new HashMap<>();
         private final Map<UUID, Inventory> choiceGuis = new HashMap<>();
         private final Set<UUID> skipVotes = new HashSet<>();
         private final Set<UUID> forceNextVote = new HashSet<>();
         private final Set<UUID> kitGuiOpened = new HashSet<>();
+        private final Set<UUID> lateJoinKitSelectionAvailable = new HashSet<>();
+        private final Set<UUID> lateJoinTeamSelectionAvailable = new HashSet<>();
         private final Set<UUID> matchPlayers = new HashSet<>();
         private final Set<UUID> pendingJoiners = new HashSet<>();
         private final Set<UUID> earlyEndVotes = new HashSet<>();
@@ -320,8 +325,12 @@ public class ManaKitLobbyType extends LobbyType {
             modeVotes.remove(playerId);
             configVotes.remove(playerId);
             kitSelectionVotes.remove(playerId);
+            teamChangeVotes.remove(playerId);
             skipVotes.remove(playerId);
             forceNextVote.remove(playerId);
+            kitGuiOpened.remove(playerId);
+            lateJoinKitSelectionAvailable.remove(playerId);
+            lateJoinTeamSelectionAvailable.remove(playerId);
             choiceGuis.remove(playerId);
             restorePlayerTeam(player);
             player.hideBossBar(phaseBossBar);
@@ -347,21 +356,6 @@ public class ManaKitLobbyType extends LobbyType {
             player.removeScoreboardTag("combat");
             if (lobbyState == LobbyState.IN_GAME) {
                 player.hideBossBar(phaseBossBar);
-                if (kitSelectionLimited) {
-                    pendingJoiners.add(playerId);
-                    if (!player.getWorld().equals(world)) {
-                        player.teleport(new Location(world, 0.5, 65, 0.5));
-                    }
-                    player.getInventory().clear();
-                    player.sendMessage(
-                        ChatColor.YELLOW +
-                            "A match is in progress. You can join after " +
-                            "everyone votes to end it early."
-                    );
-                    promptEarlyEndVote();
-                    return;
-                }
-
                 matchPlayers.add(playerId);
                 if (!teamSelections.containsKey(playerId)) {
                     TeamChoice[] choices = TeamChoice.values();
@@ -372,10 +366,28 @@ public class ManaKitLobbyType extends LobbyType {
                         ]
                     );
                 }
+                if (kitSelectionLimited) {
+                    player
+                        .getPersistentDataContainer()
+                        .remove(ManaKitListener.MANA_KIT);
+                }
                 if (ManaKitListener.instance.getPlayerKit(player) == null) {
                     ManaKitListener.instance.selectRandomKit(player);
                 }
                 spawnPlayer(player);
+                if (teamChangeLimited) {
+                    lateJoinTeamSelectionAvailable.add(playerId);
+                }
+                giveLobbyItem(player, teamChangeItem());
+                if (kitSelectionLimited) {
+                    lateJoinKitSelectionAvailable.add(playerId);
+                    giveLobbyItem(player, kitGuiReopenItem());
+                    player.sendMessage(
+                        ChatColor.YELLOW +
+                            "Choose a team and kit, or keep the random selections."
+                    );
+                    openKitSelectionGui(player);
+                }
                 return;
             }
 
@@ -383,15 +395,31 @@ public class ManaKitLobbyType extends LobbyType {
                 player.showBossBar(phaseBossBar);
                 updatePhaseBossBar();
                 player.getInventory().clear();
+                if (!teamSelections.containsKey(playerId)) {
+                    TeamChoice[] choices = TeamChoice.values();
+                    setPlayerTeam(
+                        player,
+                        choices[
+                            ThreadLocalRandom.current().nextInt(choices.length)
+                        ]
+                    );
+                }
                 if (kitSelectionLimited) {
                     player
                         .getPersistentDataContainer()
                         .remove(ManaKitListener.MANA_KIT);
-                    setKitGuiReopenItem(player);
-                    openLimitedKitGui(player);
-                } else {
-                    player.sendMessage(ChatColor.YELLOW + "Use /kit to choose your kit.");
                 }
+                setKitGuiReopenItem(player);
+                giveLobbyItem(player, teamChangeItem());
+                if (teamChangeLimited) {
+                    lateJoinTeamSelectionAvailable.add(playerId);
+                }
+                player.sendMessage(
+                    ChatColor.YELLOW +
+                        "Use /kit or the chest to choose or change your kit; " +
+                        "use the team item to choose your team."
+                );
+                openKitSelectionGui(player);
                 return;
             }
 
@@ -411,13 +439,32 @@ public class ManaKitLobbyType extends LobbyType {
         public boolean canSelectKit(Player player) {
             return (
                 !kitSelectionLimited ||
-                lobbyState == LobbyState.KIT_SELECTION
+                lobbyState == LobbyState.KIT_SELECTION ||
+                lateJoinKitSelectionAvailable.contains(player.getUniqueId())
             );
         }
 
         public boolean tryOpenKitGui(Player player) {
-            if (!canSelectKit(player)) return false;
-            return !kitSelectionLimited || lobbyState == LobbyState.KIT_SELECTION;
+            return canSelectKit(player);
+        }
+
+        public void onKitSelected(Player player) {
+            if (lobbyState == LobbyState.IN_GAME) {
+                lateJoinKitSelectionAvailable.remove(player.getUniqueId());
+                removeLobbyItem(player, "kit_gui");
+            }
+        }
+
+        private boolean canChangeTeam(Player player) {
+            if (lobbyState == LobbyState.TEAM_SELECTION) return true;
+            if (
+                lobbyState != LobbyState.KIT_SELECTION &&
+                lobbyState != LobbyState.IN_GAME
+            ) return false;
+            return (
+                !teamChangeLimited ||
+                lateJoinTeamSelectionAvailable.contains(player.getUniqueId())
+            );
         }
 
         public void voteToEndMatch(Player player) {
@@ -533,6 +580,7 @@ public class ManaKitLobbyType extends LobbyType {
             modeVotes.clear();
             configVotes.clear();
             kitSelectionVotes.clear();
+            teamChangeVotes.clear();
             choiceGuis.clear();
 
             if (state == LobbyState.KIT_SELECTION) {
@@ -548,14 +596,16 @@ public class ManaKitLobbyType extends LobbyType {
                         player
                             .getPersistentDataContainer()
                             .remove(ManaKitListener.MANA_KIT);
-                        setKitGuiReopenItem(player);
-                        openLimitedKitGui(player);
-                    } else {
-                        player.sendMessage(
-                            ChatColor.YELLOW +
-                                "Kit selection is unlimited. Use /kit to choose."
-                        );
                     }
+                    setKitGuiReopenItem(player);
+                    if (!teamChangeLimited) {
+                        giveLobbyItem(player, teamChangeItem());
+                    }
+                    player.sendMessage(
+                        ChatColor.YELLOW +
+                            "Use /kit or the chest to choose or change your kit."
+                    );
+                    openKitSelectionGui(player);
                 }
                 updatePhaseBossBar();
                 return;
@@ -570,33 +620,51 @@ public class ManaKitLobbyType extends LobbyType {
         }
 
         private void setKitGuiReopenItem(Player player) {
-            player.getInventory().setItem(
-                8,
-                lobbyItem(
-                    Material.CHEST,
-                    "Open kit selection",
-                    "kit_gui"
-                )
+            player.getInventory().setItem(8, kitGuiReopenItem());
+        }
+
+        private ItemStack kitGuiReopenItem() {
+            return lobbyItem(Material.CHEST, "Open kit selection", "kit_gui");
+        }
+
+        private ItemStack teamChangeItem() {
+            return lobbyItem(
+                Material.WHITE_BANNER,
+                "Change team",
+                "team_gui"
             );
         }
 
-        private void openLimitedKitGui(Player player) {
+        private void giveLobbyItem(Player player, ItemStack item) {
+            if (!player.getInventory().addItem(item).isEmpty()) {
+                player.sendMessage(
+                    ChatColor.RED +
+                        "Make room in your inventory to receive " +
+                        item.getItemMeta().getDisplayName() +
+                        "."
+                );
+            }
+        }
+
+        private void openKitSelectionGui(Player player) {
             if (!kitGuiOpened.add(player.getUniqueId())) return;
             ManaKitListener.instance.showKits(player);
         }
 
-        private void reopenLimitedKitGui(Player player) {
-            if (
-                lobbyState == LobbyState.KIT_SELECTION &&
-                kitSelectionLimited &&
-                canSelectKit(player)
-            ) ManaKitListener.instance.showKits(player);
+        private void reopenKitSelectionGui(Player player) {
+            if (canSelectKit(player)) ManaKitListener.instance.showKits(player);
         }
 
         private void skipPhase() {
             if (lobbyState == LobbyState.VOTE_KIT_SELECTION) {
                 kitSelectionLimited = false;
                 announceResult("Kit selection", "Unlimited");
+                beginPhase(LobbyState.VOTE_TEAM_CHANGE);
+                return;
+            }
+            if (lobbyState == LobbyState.VOTE_TEAM_CHANGE) {
+                teamChangeLimited = false;
+                announceResult("Team changes", "Unlimited");
                 beginPhase(LobbyState.TEAM_SELECTION);
                 return;
             }
@@ -652,6 +720,19 @@ public class ManaKitLobbyType extends LobbyType {
                         "Kit selection",
                         kitSelectionLimited ? "Limited" : "Unlimited"
                     );
+                    beginPhase(LobbyState.VOTE_TEAM_CHANGE);
+                }
+                case VOTE_TEAM_CHANGE -> {
+                    teamChangeLimited = teamChangeVotes.isEmpty()
+                        ? false
+                        : resolveVote(
+                            teamChangeVotes,
+                            List.of(Boolean.TRUE, Boolean.FALSE)
+                        );
+                    announceResult(
+                        "Team changes",
+                        teamChangeLimited ? "Limited" : "Unlimited"
+                    );
                     beginPhase(LobbyState.TEAM_SELECTION);
                 }
                 case TEAM_SELECTION -> {
@@ -698,6 +779,9 @@ public class ManaKitLobbyType extends LobbyType {
             for (Player player : getPlayers()) {
                 matchPlayers.add(player.getUniqueId());
                 if (player.getWorld().equals(world)) spawnPlayer(player);
+                if (!teamChangeLimited) {
+                    giveLobbyItem(player, teamChangeItem());
+                }
             }
             for (Player player : getPlayers()) player.hideBossBar(phaseBossBar);
             broadcast(
@@ -742,6 +826,8 @@ public class ManaKitLobbyType extends LobbyType {
             pendingJoiners.clear();
             earlyEndVotes.clear();
             kitGuiOpened.clear();
+            lateJoinKitSelectionAvailable.clear();
+            lateJoinTeamSelectionAvailable.clear();
             beginPhase(LobbyState.WAITING);
             if (earlyMessage != null) broadcast(ChatColor.YELLOW + earlyMessage);
         }
@@ -790,6 +876,7 @@ public class ManaKitLobbyType extends LobbyType {
                 case VOTE_CONFIG ->
                     "Win condition vote for " + modeName(selectedMode);
                 case VOTE_KIT_SELECTION -> "Kit selection vote";
+                case VOTE_TEAM_CHANGE -> "Team change vote";
                 case TEAM_SELECTION -> "Team selection";
                 case KIT_SELECTION -> "Kit selection";
                 case IN_GAME -> "In game";
@@ -875,6 +962,9 @@ public class ManaKitLobbyType extends LobbyType {
                     "reopen"
                 )
             );
+            if (lobbyState == LobbyState.TEAM_SELECTION) {
+                player.getInventory().setItem(7, teamChangeItem());
+            }
             if (lobbyState != LobbyState.WAITING) openChoiceGui(player);
         }
 
@@ -959,6 +1049,24 @@ public class ManaKitLobbyType extends LobbyType {
                         )
                     );
                 }
+                case VOTE_TEAM_CHANGE -> {
+                    gui.setItem(
+                        11,
+                        lobbyItem(
+                            Material.BARRIER,
+                            "Limited team changes",
+                            "team_change:limited"
+                        )
+                    );
+                    gui.setItem(
+                        15,
+                        lobbyItem(
+                            Material.WHITE_BANNER,
+                            "Unlimited team changes",
+                            "team_change:unlimited"
+                        )
+                    );
+                }
                 case TEAM_SELECTION -> {
                     int[] slots = { 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23 };
                     TeamChoice[] choices = TeamChoice.values();
@@ -1011,6 +1119,7 @@ public class ManaKitLobbyType extends LobbyType {
                 state == LobbyState.VOTE_MODE ||
                 state == LobbyState.VOTE_CONFIG ||
                 state == LobbyState.VOTE_KIT_SELECTION ||
+                state == LobbyState.VOTE_TEAM_CHANGE ||
                 state == LobbyState.TEAM_SELECTION;
         }
 
@@ -1022,6 +1131,8 @@ public class ManaKitLobbyType extends LobbyType {
                 case VOTE_CONFIG -> configVotes.containsKey(playerId);
                 case VOTE_KIT_SELECTION ->
                     kitSelectionVotes.containsKey(playerId);
+                case VOTE_TEAM_CHANGE ->
+                    teamChangeVotes.containsKey(playerId);
                 case TEAM_SELECTION -> teamSelections.containsKey(playerId);
                 default -> true;
             };
@@ -1035,11 +1146,50 @@ public class ManaKitLobbyType extends LobbyType {
             openChoiceGui(player);
         }
 
+        private void openTeamSelectionGui(Player player) {
+            if (!canChangeTeam(player)) return;
+            if (lobbyState == LobbyState.TEAM_SELECTION) {
+                reopenChoiceGui(player);
+                return;
+            }
+            if (
+                lobbyState != LobbyState.KIT_SELECTION &&
+                lobbyState != LobbyState.IN_GAME
+            ) return;
+
+            Inventory gui = Bukkit.createInventory(null, 27, "Change team");
+            int[] slots = { 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23 };
+            TeamChoice[] choices = TeamChoice.values();
+            for (int i = 0; i < choices.length; i++) {
+                TeamChoice choice = choices[i];
+                gui.setItem(
+                    slots[i],
+                    lobbyItem(
+                        choice.icon,
+                        choice.color + choice.displayName(),
+                        "team:" + choice.name()
+                    )
+                );
+            }
+            choiceGuis.put(player.getUniqueId(), gui);
+            player.openInventory(gui);
+        }
+
         private void clearLobbyItems(Player player) {
             for (int slot = 0; slot < player.getInventory().getSize(); slot++) {
                 if (isLobbyItem(player.getInventory().getItem(slot))) {
                     player.getInventory().setItem(slot, null);
                 }
+            }
+        }
+
+        private void removeLobbyItem(Player player, String action) {
+            for (int slot = 0; slot < player.getInventory().getSize(); slot++) {
+                if (
+                    action.equals(
+                        lobbyItemAction(player.getInventory().getItem(slot))
+                    )
+                ) player.getInventory().setItem(slot, null);
             }
         }
 
@@ -1051,7 +1201,15 @@ public class ManaKitLobbyType extends LobbyType {
             ItemStack item = new ItemStack(material);
             ItemMeta meta = item.getItemMeta();
             meta.setDisplayName(ChatColor.GOLD + name);
-            meta.setLore(List.of(ChatColor.GRAY + "Click or right-click to vote."));
+            String lore = switch (action) {
+                case "reopen" -> "Click, right-click, or drop to reopen.";
+                case "kit_gui" ->
+                    "Click, right-click, or drop to open kit selection.";
+                case "team_gui" ->
+                    "Click, right-click, or drop to change teams.";
+                default -> "Click or right-click to vote.";
+            };
+            meta.setLore(List.of(ChatColor.GRAY + lore));
             meta.getPersistentDataContainer().set(
                 LOBBY_ITEM,
                 PersistentDataType.STRING,
@@ -1096,6 +1254,11 @@ public class ManaKitLobbyType extends LobbyType {
                 LobbyState clickedState = lobbyState;
                 handleLobbyItem(player, guiAction);
                 if (
+                    guiAction.startsWith("team:") &&
+                    !requiresChoice(clickedState)
+                ) {
+                    player.closeInventory();
+                } else if (
                     lobbyState == clickedState &&
                     requiresChoice(clickedState) &&
                     hasMadeChoice(player, clickedState)
@@ -1155,7 +1318,13 @@ public class ManaKitLobbyType extends LobbyType {
             String action = lobbyItemAction(event.getItemDrop().getItemStack());
             if (action == null) return;
             event.setCancelled(true);
-            if (action.equals("kit_gui")) handleLobbyItem(player, action);
+            if (
+                action.equals("reopen") ||
+                action.equals("kit_gui") ||
+                action.equals("team_gui")
+            ) {
+                handleLobbyItem(player, action);
+            }
         }
 
         @EventHandler(ignoreCancelled = true)
@@ -1227,7 +1396,11 @@ public class ManaKitLobbyType extends LobbyType {
                 return;
             }
             if (action.equals("kit_gui")) {
-                reopenLimitedKitGui(player);
+                reopenKitSelectionGui(player);
+                return;
+            }
+            if (action.equals("team_gui")) {
+                openTeamSelectionGui(player);
                 return;
             }
             if (action.equals("force")) {
@@ -1249,8 +1422,12 @@ public class ManaKitLobbyType extends LobbyType {
                 case VOTE_MODE -> voteForMode(player, action);
                 case VOTE_CONFIG -> voteForConfig(player, action);
                 case VOTE_KIT_SELECTION -> voteForKitSelection(player, action);
-                case TEAM_SELECTION -> voteForTeam(player, action);
+                case VOTE_TEAM_CHANGE -> voteForTeamChange(player, action);
+                case TEAM_SELECTION -> {}
                 default -> {}
+            }
+            if (action.startsWith("team:") && canChangeTeam(player)) {
+                voteForTeam(player, action);
             }
         }
 
@@ -1285,6 +1462,13 @@ public class ManaKitLobbyType extends LobbyType {
             team.setColor(choice.color);
             team.addEntry(player.getName());
             teamSelections.put(playerId, choice);
+            if (
+                lobbyState != LobbyState.TEAM_SELECTION &&
+                teamChangeLimited
+            ) {
+                lateJoinTeamSelectionAvailable.remove(playerId);
+                removeLobbyItem(player, "team_gui");
+            }
             player.sendMessage(
                 ChatColor.GREEN +
                     "You joined the " +
@@ -1403,9 +1587,28 @@ public class ManaKitLobbyType extends LobbyType {
                     "Kit selection",
                     limited ? "Limited" : "Unlimited"
                 );
-                beginPhase(LobbyState.KIT_SELECTION);
+                beginPhase(LobbyState.VOTE_TEAM_CHANGE);
             } else {
                 kitSelectionVotes.put(player.getUniqueId(), limited);
+            }
+        }
+
+        private void voteForTeamChange(Player player, String action) {
+            Boolean limited = switch (action) {
+                case "team_change:limited" -> true;
+                case "team_change:unlimited" -> false;
+                default -> null;
+            };
+            if (limited == null) return;
+            if (consumeForceVote(player)) {
+                teamChangeLimited = limited;
+                announceResult(
+                    "Team changes",
+                    limited ? "Limited" : "Unlimited"
+                );
+                beginPhase(LobbyState.TEAM_SELECTION);
+            } else {
+                teamChangeVotes.put(player.getUniqueId(), limited);
             }
         }
 
