@@ -517,11 +517,11 @@ public class ManaKitLobbyType extends LobbyType {
         private void showSelectedKit(Player player) {
             ManaKit kit = ManaKitListener.instance.getPlayerKit(player);
             if (kit == null) {
-                player.sendActionBar(Component.text("Selected kit: None"));
+                player.sendActionBar(Component.text("Kit: None"));
                 return;
             }
             player.sendActionBar(
-                Component.text("Selected kit: ", NamedTextColor.WHITE)
+                Component.text("Kit: ", NamedTextColor.WHITE)
                     .append(
                         Component.text(
                             kit.getDisplayName(),
