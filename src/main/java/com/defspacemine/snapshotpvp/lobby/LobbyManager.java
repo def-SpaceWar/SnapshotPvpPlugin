@@ -69,14 +69,21 @@ public class LobbyManager {
         Player player,
         Class<? extends LobbyInstance> lobbyClass
     ) {
+        return getLobbyForPlayer(player, lobbyClass) != null;
+    }
+
+    public <T extends LobbyInstance> T getLobbyForPlayer(
+        Player player,
+        Class<T> lobbyClass
+    ) {
         UUID playerId = player.getUniqueId();
-        return lobbyPlayers
-            .entrySet()
-            .stream()
-            .anyMatch(entry ->
+        for (Map.Entry<LobbyInstance, Map<UUID, Player>> entry : lobbyPlayers.entrySet()) {
+            if (
                 lobbyClass.isInstance(entry.getKey()) &&
                 entry.getValue().containsKey(playerId)
-            );
+            ) return lobbyClass.cast(entry.getKey());
+        }
+        return null;
     }
 
     private void updateLobbyPlayers(

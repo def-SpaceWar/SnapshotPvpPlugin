@@ -6,7 +6,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
+import com.defspacemine.snapshotpvp.lobby.ManaKitLobbyType;
 import dev.triumphteam.gui.guis.Gui;
 import dev.triumphteam.gui.guis.GuiItem;
 import net.kyori.adventure.text.Component;
@@ -416,25 +418,37 @@ public final class ManaKitListener implements Listener {
     public boolean kit(CommandSender sender, String id) {
         if (!(sender instanceof Player player)) return true;
 
-        if (player.getScoreboardTags().contains("fighting")) {
-            player.sendMessage(ChatColor.DARK_RED + "You are fighting!");
+        ManaKitLobbyType.ManaKitLobbyInstance lobby =
+            ManaKitLobbyType.getLobbyForPlayer(player);
+        if (lobby == null || !lobby.canSelectKit(player)) {
+            player.sendMessage(
+                ChatColor.DARK_RED +
+                    "Kit selection is not available during this match."
+            );
             return true;
         }
 
         if (id == null) {
+            if (!lobby.tryOpenKitGui(player)) {
+                player.sendMessage(
+                    ChatColor.DARK_RED +
+                        "Your kit selection GUI has already been used this match."
+                );
+                return true;
+            }
             showKits(player);
             return true;
         }
 
         ManaKit kit = getKit(id);
         if (kit == null) {
-            showKits(player);
             player.sendMessage(
                 ChatColor.DARK_RED +
                     "You selected an invalid <id> of " +
                     id +
                     "."
             );
+            if (lobby.tryOpenKitGui(player)) showKits(player);
             return true;
         }
 
@@ -648,7 +662,7 @@ public final class ManaKitListener implements Listener {
         else kit.onProjectileHit(p, e);
     }
 
-    void showKits(Player player) {
+    public void showKits(Player player) {
         List<ManaKit> kits = new ArrayList<>(manaKitRegistry.values());
         kits.sort(
             Comparator.comparingInt((ManaKit kit) -> kit.stars).thenComparing(
@@ -679,9 +693,12 @@ public final class ManaKitListener implements Listener {
             gui.addItem(
                 new GuiItem(icon, event -> {
                     event.setCancelled(true);
-                    if (player.getScoreboardTags().contains("fighting")) {
+                    ManaKitLobbyType.ManaKitLobbyInstance lobby =
+                        ManaKitLobbyType.getLobbyForPlayer(player);
+                    if (lobby == null || !lobby.canSelectKit(player)) {
                         player.sendMessage(
-                            ChatColor.DARK_RED + "You are fighting!"
+                            ChatColor.DARK_RED +
+                                "Kit selection is no longer available."
                         );
                         return;
                     }
@@ -691,7 +708,39 @@ public final class ManaKitListener implements Listener {
                 })
             );
         }
+        ItemStack randomKit = new ItemStack(Material.NETHER_STAR);
+        ItemMeta randomMeta = randomKit.getItemMeta();
+        randomMeta.setDisplayName(ChatColor.GREEN + "Random kit");
+        randomKit.setItemMeta(randomMeta);
+        gui.setItem(
+            53,
+            new GuiItem(randomKit, event -> {
+                event.setCancelled(true);
+                ManaKitLobbyType.ManaKitLobbyInstance lobby =
+                    ManaKitLobbyType.getLobbyForPlayer(player);
+                if (lobby == null || !lobby.canSelectKit(player)) {
+                    player.sendMessage(
+                        ChatColor.DARK_RED +
+                            "Kit selection is no longer available."
+                    );
+                    return;
+                }
+
+                gui.close(player);
+                selectRandomKit(player);
+            })
+        );
         gui.open(player);
+    }
+
+    public ManaKit selectRandomKit(Player player) {
+        List<ManaKit> kits = new ArrayList<>(manaKitRegistry.values());
+        if (kits.isEmpty()) return null;
+        ManaKit kit = kits.get(
+            ThreadLocalRandom.current().nextInt(kits.size())
+        );
+        selectKit(player, kit, getPlayerKit(player));
+        return kit;
     }
 
     private void selectKit(Player player, ManaKit kit, ManaKit currentKit) {
@@ -709,6 +758,9 @@ public final class ManaKitListener implements Listener {
                 ChatColor.WHITE +
                 ". Your kit will be given when combat begins."
         );
+        if (player.getScoreboardTags().contains("combat")) {
+            givePlayerKit(player, kit);
+        }
     }
 
     private void unsetPlayerKit(Player player) {
