@@ -1,15 +1,17 @@
 package com.defspacemine.snapshotpvp.lobby;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import com.defspacemine.snapshotpvp.gamemode.Deathmatch;
 import com.defspacemine.snapshotpvp.gamemode.Gamemode;
-import com.defspacemine.snapshotpvp.gamemode.Streakmatch;
+import com.defspacemine.snapshotpvp.gamemode.GamemodeRegistry;
+import com.defspacemine.snapshotpvp.gamemode.GamemodeRegistry.GamemodeDefinition;
 import com.defspacemine.snapshotpvp.manakit.ManaKit;
 import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
-import com.defspacemine.snapshotpvp.map.BobInvasionRemaster;
-import com.defspacemine.snapshotpvp.map.BobLands;
 import com.defspacemine.snapshotpvp.map.GameMap;
+import com.defspacemine.snapshotpvp.map.GameMapRegistry;
+import com.defspacemine.snapshotpvp.map.GameMapRegistry.MapDefinition;
+import com.defspacemine.snapshotpvp.map.GameMapRegistry.GamemodeCompatibility;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -88,16 +90,6 @@ public class ManaKitLobbyType extends LobbyType {
         IN_GAME,
     }
 
-    private enum MapChoice {
-        BOB_LANDS,
-        BOB_INVASION_REMASTER,
-    }
-
-    private enum ModeChoice {
-        DEATHMATCH,
-        STREAKMATCH,
-    }
-
     private enum TeamChoice {
         RED(ChatColor.RED, Material.RED_WOOL, "a"),
         DARK_RED(ChatColor.DARK_RED, Material.REDSTONE_BLOCK, "b"),
@@ -163,13 +155,13 @@ public class ManaKitLobbyType extends LobbyType {
         private Gamemode gamemode;
         private LobbyState lobbyState = LobbyState.WAITING;
         private int phaseTicksRemaining = PHASE_DURATION_TICKS;
-        private MapChoice selectedMap;
-        private ModeChoice selectedMode;
+        private MapDefinition selectedMap;
+        private GamemodeDefinition selectedMode;
         private int selectedWinCondition = -1;
         private boolean kitSelectionLimited;
         private boolean teamChangeLimited;
-        private final Map<UUID, MapChoice> mapVotes = new HashMap<>();
-        private final Map<UUID, ModeChoice> modeVotes = new HashMap<>();
+        private final Map<UUID, MapDefinition> mapVotes = new HashMap<>();
+        private final Map<UUID, GamemodeDefinition> modeVotes = new HashMap<>();
         private final Map<UUID, Integer> configVotes = new HashMap<>();
         private final Map<UUID, Boolean> kitSelectionVotes = new HashMap<>();
         private final Map<UUID, Boolean> teamChangeVotes = new HashMap<>();
@@ -214,12 +206,21 @@ public class ManaKitLobbyType extends LobbyType {
                 );
             }
             shadowMap = loadedShadowMap;
+            clearCombatWorldBlocks();
             SnapshotPvpPlugin.pluginManager.registerEvents(
                 this,
                 SnapshotPvpPlugin.instance
             );
             broadcast(ChatColor.GOLD + "Lobby phase: Waiting (20 seconds)");
             updatePhaseBossBar();
+        }
+
+        private void clearCombatWorldBlocks() {
+            for (World combatWorld : List.of(mapWorld, shadowMap)) {
+                for (MapDefinition map : GameMapRegistry.options()) {
+                    map.clear(combatWorld);
+                }
+            }
         }
 
         public World getWorld() {
@@ -740,10 +741,7 @@ public class ManaKitLobbyType extends LobbyType {
                 case VOTE_MAP -> {
                     selectedMap = resolveVote(
                         mapVotes,
-                        List.of(
-                            MapChoice.BOB_LANDS,
-                            MapChoice.BOB_INVASION_REMASTER
-                        )
+                        Arrays.asList(GameMapRegistry.options())
                     );
                     announceResult("Map", mapName(selectedMap));
                     beginPhase(LobbyState.VOTE_MODE);
@@ -751,7 +749,7 @@ public class ManaKitLobbyType extends LobbyType {
                 case VOTE_MODE -> {
                     selectedMode = resolveVote(
                         modeVotes,
-                        List.of(ModeChoice.DEATHMATCH, ModeChoice.STREAKMATCH)
+                        availableGamemodes()
                     );
                     announceResult("Gamemode", modeName(selectedMode));
                     beginPhase(LobbyState.VOTE_CONFIG);
@@ -812,21 +810,12 @@ public class ManaKitLobbyType extends LobbyType {
                 }
             }
 
-            gameMap = selectedMap == MapChoice.BOB_LANDS
-                ? new BobLands(this, mapWorld)
-                : new BobInvasionRemaster(this, mapWorld);
+            gameMap = selectedMap.create(this, mapWorld);
             gameMap.setShadowWorld(shadowMap);
             gameMap.onCreate();
 
-            if (selectedMode == ModeChoice.DEATHMATCH) {
-                Deathmatch deathmatch = new Deathmatch(this, mapWorld);
-                deathmatch.killsRequired = selectedWinCondition;
-                gamemode = deathmatch;
-            } else {
-                Streakmatch streakmatch = new Streakmatch(this, mapWorld);
-                streakmatch.streakRequired = selectedWinCondition;
-                gamemode = streakmatch;
-            }
+            gamemode = selectedMode.create(this, mapWorld);
+            selectedMode.applyConfig(gamemode, selectedWinCondition);
             gamemode.setShadowWorld(shadowMap);
             gamemode.onStart();
 
@@ -965,25 +954,41 @@ public class ManaKitLobbyType extends LobbyType {
             return (seconds / 60) + ":" + String.format("%02d", seconds % 60);
         }
 
-        private String mapName(MapChoice map) {
-            return map == MapChoice.BOB_LANDS
-                ? "Bob Lands"
-                : "Bob Invasion Remaster";
+        private String mapName(MapDefinition map) {
+            return map == null ? "Voting" : map.displayName();
         }
 
-        private String modeName(ModeChoice mode) {
-            return mode == ModeChoice.DEATHMATCH ? "Deathmatch" : "Streakmatch";
+        private String modeName(GamemodeDefinition mode) {
+            return mode == null ? "Voting" : mode.displayName();
         }
 
         private String winConditionName(int value) {
-            return value == -1 ? "No limit" : value + " " +
-                (selectedMode == ModeChoice.DEATHMATCH ? "kills" : "streak");
+            return value == -1
+                ? "No limit"
+                : value + " " + selectedMode.configLabel();
         }
 
         private List<Integer> winConditionOptions() {
-            return selectedMode == ModeChoice.DEATHMATCH
-                ? List.of(-1, 10, 20)
-                : List.of(-1, 5, 10);
+            if (selectedMap == null || selectedMode == null) return List.of();
+            for (GamemodeCompatibility compatibility :
+                selectedMap.gamemodes()) {
+                if (compatibility.gamemodeId().equals(selectedMode.id())) {
+                    return compatibility.winConditions();
+                }
+            }
+            return List.of();
+        }
+
+        private List<GamemodeDefinition> availableGamemodes() {
+            if (selectedMap == null) return List.of();
+            List<GamemodeDefinition> modes = new java.util.ArrayList<>();
+            for (GamemodeCompatibility compatibility :
+                selectedMap.gamemodes()) {
+                GamemodeDefinition mode =
+                    GamemodeRegistry.findById(compatibility.gamemodeId());
+                if (mode != null) modes.add(mode);
+            }
+            return modes;
         }
 
         private <T> T resolveVote(Map<UUID, T> votes, List<T> options) {
@@ -1036,44 +1041,37 @@ public class ManaKitLobbyType extends LobbyType {
             switch (lobbyState) {
                 case WAITING -> {}
                 case VOTE_MAP -> {
-                    gui.setItem(
-                        11,
-                        choiceItem(
-                            player,
-                            Material.GRASS_BLOCK,
-                            "Bob Lands",
-                            "map:bob_lands"
-                        )
-                    );
-                    gui.setItem(
-                        15,
-                        choiceItem(
-                            player,
-                            Material.IRON_SWORD,
-                            "Bob Invasion Remaster",
-                            "map:bob_invasion_remaster"
-                        )
-                    );
+                    int[] slots = {10, 12, 14, 16, 19, 21, 23, 25};
+                    for (int i = 0; i < GameMapRegistry.options().length; i++) {
+                        if (i >= slots.length) break;
+                        MapDefinition map = GameMapRegistry.options()[i];
+                        gui.setItem(
+                            slots[i],
+                            choiceItem(
+                                player,
+                                map.icon(),
+                                map.displayName(),
+                                map.voteAction()
+                            )
+                        );
+                    }
                 }
                 case VOTE_MODE -> {
-                    gui.setItem(
-                        11,
-                        choiceItem(
-                            player,
-                            Material.IRON_SWORD,
-                            "Deathmatch",
-                            "mode:deathmatch"
-                        )
-                    );
-                    gui.setItem(
-                        15,
-                        choiceItem(
-                            player,
-                            Material.BLAZE_POWDER,
-                            "Streakmatch",
-                            "mode:streakmatch"
-                        )
-                    );
+                    int[] slots = {10, 12, 14, 16, 19, 21, 23, 25};
+                    List<GamemodeDefinition> modes = availableGamemodes();
+                    for (int i = 0; i < modes.size(); i++) {
+                        if (i >= slots.length) break;
+                        GamemodeDefinition mode = modes.get(i);
+                        gui.setItem(
+                            slots[i],
+                            choiceItem(
+                                player,
+                                mode.icon(),
+                                mode.displayName(),
+                                mode.voteAction()
+                            )
+                        );
+                    }
                 }
                 case VOTE_CONFIG -> {
                     List<Integer> options = winConditionOptions();
@@ -1263,16 +1261,18 @@ public class ManaKitLobbyType extends LobbyType {
                 return selected != null &&
                     action.equals("team:" + selected.name());
             }
+            if (action.startsWith("map:")) {
+                MapDefinition selected = mapVotes.get(playerId);
+                return selected != null &&
+                    action.equals(selected.voteAction());
+            }
+            if (action.startsWith("mode:")) {
+                GamemodeDefinition selected = modeVotes.get(playerId);
+                return selected != null &&
+                    action.equals(selected.voteAction());
+            }
 
             return switch (action) {
-                case "map:bob_lands" ->
-                    mapVotes.get(playerId) == MapChoice.BOB_LANDS;
-                case "map:bob_invasion_remaster" ->
-                    mapVotes.get(playerId) == MapChoice.BOB_INVASION_REMASTER;
-                case "mode:deathmatch" ->
-                    modeVotes.get(playerId) == ModeChoice.DEATHMATCH;
-                case "mode:streakmatch" ->
-                    modeVotes.get(playerId) == ModeChoice.STREAKMATCH;
                 case "kit_selection:limited" ->
                     Boolean.TRUE.equals(kitSelectionVotes.get(playerId));
                 case "kit_selection:unlimited" ->
@@ -1631,12 +1631,10 @@ public class ManaKitLobbyType extends LobbyType {
         }
 
         private void voteForMap(Player player, String action) {
-            MapChoice choice = switch (action) {
-                case "map:bob_lands" -> MapChoice.BOB_LANDS;
-                case "map:bob_invasion_remaster" ->
-                    MapChoice.BOB_INVASION_REMASTER;
-                default -> null;
-            };
+            String id = action.startsWith("map:")
+                ? action.substring("map:".length())
+                : "";
+            MapDefinition choice = GameMapRegistry.findById(id);
             if (choice == null) return;
             if (consumeForceVote(player)) {
                 selectedMap = choice;
@@ -1648,11 +1646,16 @@ public class ManaKitLobbyType extends LobbyType {
         }
 
         private void voteForMode(Player player, String action) {
-            ModeChoice choice = switch (action) {
-                case "mode:deathmatch" -> ModeChoice.DEATHMATCH;
-                case "mode:streakmatch" -> ModeChoice.STREAKMATCH;
-                default -> null;
-            };
+            String id = action.startsWith("mode:")
+                ? action.substring("mode:".length())
+                : "";
+            GamemodeDefinition choice = GamemodeRegistry.findById(id);
+            if (
+                choice == null ||
+                availableGamemodes().stream().noneMatch(
+                    available -> available.id().equals(choice.id())
+                )
+            ) return;
             if (choice == null) return;
             if (consumeForceVote(player)) {
                 selectedMode = choice;
