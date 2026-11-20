@@ -20,7 +20,12 @@ public abstract class LobbyType {
 
         public abstract void onDestroy();
 
-        public void onLobbyJoin(Player player) {}
+        public void onLobbyJoin(Player player) {
+            player.getInventory().clear();
+            for (String tag : player.getScoreboardTags()) {
+                player.removeScoreboardTag(tag);
+            }
+        }
 
         public void onLeaveLobby(Player player) {
             player.getInventory().clear();
