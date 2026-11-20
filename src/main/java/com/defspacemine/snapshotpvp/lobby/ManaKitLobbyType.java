@@ -1119,15 +1119,6 @@ public class ManaKitLobbyType extends LobbyType {
             player.openInventory(gui);
         }
 
-        private boolean requiresChoice(LobbyState state) {
-            return state == LobbyState.VOTE_MAP ||
-                state == LobbyState.VOTE_MODE ||
-                state == LobbyState.VOTE_CONFIG ||
-                state == LobbyState.VOTE_KIT_SELECTION ||
-                state == LobbyState.VOTE_TEAM_CHANGE ||
-                state == LobbyState.TEAM_SELECTION;
-        }
-
         private boolean hasMadeChoice(Player player, LobbyState state) {
             UUID playerId = player.getUniqueId();
             return switch (state) {
@@ -1316,12 +1307,11 @@ public class ManaKitLobbyType extends LobbyType {
                 handleLobbyItem(player, guiAction);
                 if (
                     guiAction.startsWith("team:") &&
-                    !requiresChoice(clickedState)
+                    clickedState != LobbyState.TEAM_SELECTION
                 ) {
                     player.closeInventory();
                 } else if (
                     lobbyState == clickedState &&
-                    requiresChoice(clickedState) &&
                     hasMadeChoice(player, clickedState)
                 ) player.closeInventory();
                 return;
@@ -1345,21 +1335,6 @@ public class ManaKitLobbyType extends LobbyType {
             if (gui == null || !gui.equals(event.getInventory())) return;
 
             choiceGuis.remove(playerId);
-            LobbyState closedState = lobbyState;
-            if (
-                !requiresChoice(closedState) ||
-                hasMadeChoice(player, closedState)
-            ) return;
-
-            Bukkit.getScheduler().runTask(SnapshotPvpPlugin.instance, () -> {
-                if (
-                    player.isOnline() &&
-                    lobbyState == closedState &&
-                    isLobbyWorld(player.getWorld()) &&
-                    requiresChoice(closedState) &&
-                    !hasMadeChoice(player, closedState)
-                ) openChoiceGui(player);
-            });
         }
 
         @EventHandler(ignoreCancelled = true)
