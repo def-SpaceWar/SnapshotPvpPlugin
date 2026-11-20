@@ -12,6 +12,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 public class LobbyManager {
 
@@ -20,6 +21,7 @@ public class LobbyManager {
     private final JavaPlugin plugin;
     public static List<LobbyType> registeredLobbies = new ArrayList<>();
     private List<LobbyInstance> activeLobbies;
+    private BukkitTask lobbyTask;
     private final Map<LobbyInstance, Map<UUID, Player>> lobbyPlayers =
         new HashMap<>();
 
@@ -30,7 +32,7 @@ public class LobbyManager {
 
         registeredLobbies.add(new ManaKitLobbyType());
 
-        new BukkitRunnable() {
+        lobbyTask = new BukkitRunnable() {
             @Override
             public void run() {
                 activeLobbies.removeIf(active -> {
@@ -113,11 +115,16 @@ public class LobbyManager {
     }
 
     public void onDestroy() {
+        if (lobbyTask != null) {
+            lobbyTask.cancel();
+            lobbyTask = null;
+        }
         for (LobbyInstance active : new ArrayList<>(activeLobbies)) {
-            updateLobbyPlayers(active, List.of());
             active.onDestroy();
         }
         activeLobbies.clear();
         lobbyPlayers.clear();
+        registeredLobbies.clear();
+        if (instance == this) instance = null;
     }
 }
