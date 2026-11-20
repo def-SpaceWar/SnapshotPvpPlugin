@@ -4,6 +4,7 @@ import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.gamemode.Deathmatch;
 import com.defspacemine.snapshotpvp.gamemode.Gamemode;
 import com.defspacemine.snapshotpvp.gamemode.Streakmatch;
+import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
 import com.defspacemine.snapshotpvp.map.BobInvasionRemaster;
 import com.defspacemine.snapshotpvp.map.BobLands;
 import com.defspacemine.snapshotpvp.map.GameMap;
@@ -23,6 +24,13 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class ManaKitLobbyType extends LobbyType {
+
+    public static boolean isInManaKitLobby(Player player) {
+        return LobbyManager.instance.isPlayerInLobby(
+            player,
+            ManaKitLobbyInstance.class
+        );
+    }
 
     public String getPrefix() {
         return "manakit";
@@ -185,6 +193,12 @@ public class ManaKitLobbyType extends LobbyType {
             SnapshotPvpPlugin.server.sendMessage(
                 Component.text("No more lobby. ;( " + world.getName())
             );
+        }
+
+        @Override
+        public void onLeaveLobby(Player player) {
+            super.onLeaveLobby(player);
+            ManaKitListener.clearManaKitData(player);
         }
 
         @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

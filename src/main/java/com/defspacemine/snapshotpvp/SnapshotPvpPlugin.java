@@ -3,6 +3,7 @@ package com.defspacemine.snapshotpvp;
 import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
 import com.defspacemine.snapshotpvp.lobby.LobbyManager;
+import com.defspacemine.snapshotpvp.lobby.ManaKitLobbyType;
 import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
 import com.defspacemine.snapshotpvp.scoreboard.GlobalScoreboardManager;
 import com.destroystokyo.paper.event.player.PlayerJumpEvent;
@@ -292,6 +293,10 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
 
                 commands.registrar().register(
                     Commands.literal("kit")
+                        .requires(source ->
+                            source.getExecutor() instanceof Player player &&
+                            ManaKitLobbyType.isInManaKitLobby(player)
+                        )
                         .executes((CommandContext<CommandSourceStack> ctx) -> {
                             ManaKitListener.instance.kit(
                                 ctx.getSource().getExecutor(),

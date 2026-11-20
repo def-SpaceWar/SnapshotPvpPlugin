@@ -302,6 +302,59 @@ public final class ManaKitListener implements Listener {
         kit.playItemGainFeedback(player);
     }
 
+    public static void clearManaKitData(Player player) {
+        PersistentDataContainer pdc = player.getPersistentDataContainer();
+        for (
+            NamespacedKey key : List.of(
+                ManaKit.SHADOW_WORLD_TIMER,
+                MANA_KIT,
+                MANA_FOOD,
+                MANA_KIT_DATA0,
+                MANA_KIT_DATA1,
+                MANA_KIT_DATA2,
+                MANA_KIT_DATA3,
+                MANA_KIT_DATA4,
+                MANA_KIT_DATA5,
+                MANA_KIT_DATA6,
+                MANA_KIT_DATA7,
+                MANA_KIT_DATA8,
+                MANA_KIT_DATA9,
+                MANA_KIT_DATASTR0,
+                MANA_KIT_DATASTR1,
+                MANA_KIT_DATASTR2,
+                MANA_KIT_DATASTR3,
+                MANA_KIT_DATASTR4,
+                MANA_KIT_DATASTR5,
+                MANA_KIT_DATASTR6,
+                MANA_KIT_DATASTR7,
+                MANA_KIT_DATASTR8,
+                MANA_KIT_DATASTR9,
+                MANA_KIT_DATABOOL0,
+                MANA_KIT_DATABOOL1,
+                MANA_KIT_DATABOOL2,
+                MANA_KIT_DATABOOL3,
+                MANA_KIT_DATABOOL4,
+                MANA_KIT_DATABOOL5,
+                MANA_KIT_DATABOOL6,
+                MANA_KIT_DATABOOL7,
+                MANA_KIT_DATABOOL8,
+                MANA_KIT_DATABOOL9,
+                MANA_KIT_DATADBL0,
+                MANA_KIT_DATADBL1,
+                MANA_KIT_DATADBL2,
+                MANA_KIT_DATADBL3,
+                MANA_KIT_DATADBL4,
+                MANA_KIT_DATADBL5,
+                MANA_KIT_DATADBL6,
+                MANA_KIT_DATADBL7,
+                MANA_KIT_DATADBL8,
+                MANA_KIT_DATADBL9
+            )
+        ) {
+            pdc.remove(key);
+        }
+    }
+
     public static void giveItemsFromShulker(
         Player p,
         String worldName,
@@ -642,16 +695,19 @@ public final class ManaKitListener implements Listener {
     }
 
     private void selectKit(Player player, ManaKit kit, ManaKit currentKit) {
-        if (currentKit != null) unsetPlayerKit(player);
-
-        givePlayerKit(player, kit);
+        if (currentKit != null && !currentKit.equals(kit)) {
+            unsetPlayerKit(player);
+        }
+        player
+            .getPersistentDataContainer()
+            .set(MANA_KIT, PersistentDataType.STRING, kit.getId());
         player.sendMessage(
             ChatColor.WHITE +
                 "You have selected " +
                 ChatColor.GOLD +
                 kit.getDisplayName() +
                 ChatColor.WHITE +
-                " successfully!"
+                ". Your kit will be given when combat begins."
         );
     }
 
@@ -672,34 +728,25 @@ public final class ManaKitListener implements Listener {
         PersistentDataContainer pdc = player.getPersistentDataContainer();
 
         ItemStack chestplate = player.getInventory().getChestplate();
-        if (chestplate == null || !chestplate.hasItemMeta()) {
-            unsetPlayerKit(player);
-            pdc.remove(MANA_KIT);
-            return;
-        }
+        if (chestplate == null || !chestplate.hasItemMeta()) return;
 
         ItemMeta meta = chestplate.getItemMeta();
         if (
             !meta
                 .getPersistentDataContainer()
                 .has(MANA_KIT, PersistentDataType.STRING)
-        ) {
-            unsetPlayerKit(player);
-            pdc.remove(MANA_KIT);
-            return;
-        }
+        ) return;
 
         String kitId = meta
             .getPersistentDataContainer()
             .get(MANA_KIT, PersistentDataType.STRING);
+        if (kitId == null) return;
         ManaKit kit = getPlayerKit(player);
 
-        if (kit != null && kitId.equals(kit.getId())) return;
-
-        ManaKit currentKit = getPlayerKit(player);
-        if (currentKit != null) unsetPlayerKit(player);
+        if (kit != null) return;
 
         kit = getKit(kitId);
+        if (kit == null) return;
         pdc.set(MANA_KIT, PersistentDataType.STRING, kit.getId());
         kit.resetKit(player);
         player.sendMessage(
@@ -748,6 +795,7 @@ public final class ManaKitListener implements Listener {
                         if (!playerTags.contains("combat")) {
                             player.addScoreboardTag("combat");
                             player.clearActivePotionEffects();
+                            givePlayerKit(player, kit);
                             kit.onEnterCombat(player);
                         }
                         kit.onCombatTick(player);
