@@ -17,8 +17,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -103,6 +105,12 @@ public class ManaKitLobbyType extends LobbyType {
         private final World world;
         private final World mapWorld;
         private final World shadowMap;
+        private final BossBar phaseBossBar = BossBar.bossBar(
+            Component.text("Waiting - 0:30", NamedTextColor.GOLD),
+            1f,
+            BossBar.Color.YELLOW,
+            BossBar.Overlay.PROGRESS
+        );
         private GameMap gameMap;
         private Gamemode gamemode;
         private LobbyState lobbyState = LobbyState.WAITING;
@@ -150,6 +158,7 @@ public class ManaKitLobbyType extends LobbyType {
                 SnapshotPvpPlugin.instance
             );
             broadcast(ChatColor.GOLD + "Lobby phase: Waiting (30 seconds)");
+            updatePhaseBossBar();
         }
 
         public World getWorld() {
@@ -196,19 +205,25 @@ public class ManaKitLobbyType extends LobbyType {
                     player.removeScoreboardTag("fighting");
                 }
                 if (matchPlayers.isEmpty() && !pendingJoiners.isEmpty()) {
-                    finishMatch(true);
+                    finishMatch(
+                        true,
+                        "The match ended because all participants left."
+                    );
                     return;
                 }
                 if (gameMap != null) gameMap.onTick();
                 if (gamemode != null) gamemode.onTick();
+                updatePhaseBossBar();
                 return;
             }
 
             phaseTicksRemaining--;
             if (phaseTicksRemaining <= 0) advancePhase();
+            updatePhaseBossBar();
         }
 
         public void onDestroy() {
+            for (Player player : getPlayers()) player.hideBossBar(phaseBossBar);
             destroyMatch();
             HandlerList.unregisterAll(this);
 
@@ -232,18 +247,26 @@ public class ManaKitLobbyType extends LobbyType {
             kitSelectionVotes.remove(playerId);
             skipVotes.remove(playerId);
             forceNextVote.remove(playerId);
+            player.hideBossBar(phaseBossBar);
             if (
                 lobbyState == LobbyState.IN_GAME &&
-                !pendingJoiners.isEmpty() &&
-                (
-                    matchPlayers.isEmpty() ||
-                    earlyEndVotes.containsAll(matchPlayers)
-                )
-            ) finishMatch(true);
+                !pendingJoiners.isEmpty()
+            ) {
+                if (matchPlayers.isEmpty()) {
+                    finishMatch(
+                        true,
+                        "The match ended because all participants left."
+                    );
+                } else if (earlyEndVotes.containsAll(matchPlayers)) {
+                    finishMatch(true);
+                }
+            }
         }
 
         @Override
         public void onLobbyJoin(Player player) {
+            player.showBossBar(phaseBossBar);
+            updatePhaseBossBar();
             UUID playerId = player.getUniqueId();
             player.removeScoreboardTag("fighting");
             player.removeScoreboardTag("combat");
@@ -273,6 +296,7 @@ public class ManaKitLobbyType extends LobbyType {
 
             if (lobbyState == LobbyState.KIT_SELECTION) {
                 player.getInventory().clear();
+                setOperatorSkipItem(player);
                 if (kitSelectionLimited) {
                     player
                         .getPersistentDataContainer()
@@ -340,6 +364,23 @@ public class ManaKitLobbyType extends LobbyType {
             );
         }
 
+        public void skipCurrentPhase(Player player) {
+            if (!player.isOp()) {
+                player.sendMessage(ChatColor.RED + "Only operators can skip phases.");
+                return;
+            }
+
+            if (lobbyState == LobbyState.IN_GAME) {
+                finishMatch(true, "The match was ended early by an operator.");
+                return;
+            }
+
+            player.sendMessage(
+                ChatColor.YELLOW + "Skipping " + phaseTitle(lobbyState) + "."
+            );
+            advancePhase();
+        }
+
         private void showSelectedKit(Player player) {
             ManaKit kit = ManaKitListener.instance.getPlayerKit(player);
             player.sendActionBar(
@@ -404,11 +445,14 @@ public class ManaKitLobbyType extends LobbyType {
                                 "Kit selection is unlimited. Use /kit to choose."
                         );
                     }
+                    setOperatorSkipItem(player);
                 }
+                updatePhaseBossBar();
                 return;
             }
 
             for (Player player : getPlayers()) setupVotingInventory(player);
+            updatePhaseBossBar();
             broadcast(
                 ChatColor.GOLD + "Lobby phase: " + phaseTitle(state) +
                     " (30 seconds)"
@@ -472,6 +516,7 @@ public class ManaKitLobbyType extends LobbyType {
         private void beginMatch() {
             for (Player player : getPlayers()) {
                 player.closeInventory();
+                clearLobbyItems(player);
                 if (ManaKitListener.instance.getPlayerKit(player) == null) {
                     ManaKitListener.instance.selectRandomKit(player);
                 }
@@ -504,6 +549,7 @@ public class ManaKitLobbyType extends LobbyType {
                 matchPlayers.add(player.getUniqueId());
                 if (player.getWorld().equals(world)) spawnPlayer(player);
             }
+            updatePhaseBossBar();
             broadcast(
                 ChatColor.GREEN +
                     "The match has started on " +
@@ -515,6 +561,15 @@ public class ManaKitLobbyType extends LobbyType {
         }
 
         private void finishMatch(boolean early) {
+            finishMatch(
+                early,
+                early
+                    ? "The match ended early by unanimous vote. A new match will begin soon."
+                    : null
+            );
+        }
+
+        private void finishMatch(boolean early, String earlyMessage) {
             if (!early && gamemode != null) {
                 for (Player player : getPlayers()) {
                     gamemode.sendGameOverMessage(player);
@@ -538,12 +593,7 @@ public class ManaKitLobbyType extends LobbyType {
             eliminatedPlayers.clear();
             kitGuiOpened.clear();
             beginPhase(LobbyState.WAITING);
-            if (early) {
-                broadcast(
-                    ChatColor.YELLOW +
-                        "The match ended early by unanimous vote. A new match will begin soon."
-                );
-            }
+            if (earlyMessage != null) broadcast(ChatColor.YELLOW + earlyMessage);
         }
 
         private void destroyMatch() {
@@ -593,6 +643,39 @@ public class ManaKitLobbyType extends LobbyType {
                 case KIT_SELECTION -> "Kit selection";
                 case IN_GAME -> "In game";
             };
+        }
+
+        private void updatePhaseBossBar() {
+            int ticksRemaining;
+            int totalTicks;
+            String title;
+            if (lobbyState == LobbyState.IN_GAME) {
+                ticksRemaining = gamemode instanceof Deathmatch deathmatch
+                    ? deathmatch.timeLimit
+                    : gamemode instanceof Streakmatch streakmatch
+                      ? streakmatch.timeLimit
+                      : 0;
+                totalTicks = 15 * 60 * 20;
+                title = modeName(selectedMode) + " - " + formatTime(ticksRemaining);
+            } else {
+                ticksRemaining = phaseTicksRemaining;
+                totalTicks = PHASE_DURATION_TICKS;
+                title = phaseTitle(lobbyState) + " - " + formatTime(ticksRemaining);
+            }
+
+            phaseBossBar.name(Component.text(title, NamedTextColor.GOLD));
+            phaseBossBar.progress(
+                Math.max(
+                    0f,
+                    Math.min(1f, ticksRemaining / (float) totalTicks)
+                )
+            );
+            for (Player player : getPlayers()) player.showBossBar(phaseBossBar);
+        }
+
+        private String formatTime(int ticks) {
+            int seconds = Math.max(0, ticks) / 20;
+            return (seconds / 60) + ":" + String.format("%02d", seconds % 60);
         }
 
         private String mapName(MapChoice map) {
@@ -706,23 +789,47 @@ public class ManaKitLobbyType extends LobbyType {
                 case KIT_SELECTION, IN_GAME -> {}
             }
 
-            if (
-                lobbyState != LobbyState.KIT_SELECTION &&
-                lobbyState != LobbyState.IN_GAME
-            ) {
+            if (lobbyState != LobbyState.IN_GAME) {
                 player.getInventory().setItem(
-                    45,
-                    lobbyItem(Material.CLOCK, "Vote to skip this phase", "skip")
+                    8,
+                    lobbyItem(
+                        Material.CLOCK,
+                        player.isOp()
+                            ? "Skip phase"
+                            : "Vote to skip this phase",
+                        "skip"
+                    )
                 );
-                if (player.isOp() && lobbyState != LobbyState.WAITING) {
+                if (
+                    player.isOp() &&
+                    lobbyState != LobbyState.WAITING &&
+                    lobbyState != LobbyState.KIT_SELECTION
+                ) {
                     player.getInventory().setItem(
-                        53,
+                        7,
                         lobbyItem(
                             Material.NETHER_STAR,
                             "Force next choice",
                             "force"
                         )
                     );
+                }
+            }
+        }
+
+        private void setOperatorSkipItem(Player player) {
+            if (player.isOp()) {
+                player.getInventory().setItem(
+                    8,
+                    lobbyItem(Material.CLOCK, "Skip phase", "skip")
+                );
+            }
+        }
+
+        private void clearLobbyItems(Player player) {
+            for (int slot = 0; slot < player.getInventory().getSize(); slot++) {
+                if (isLobbyItem(player.getInventory().getItem(slot))) {
+                    player.getInventory().setItem(slot, null);
                 }
             }
         }
@@ -822,6 +929,10 @@ public class ManaKitLobbyType extends LobbyType {
         private void handleLobbyItem(Player player, String action) {
             UUID playerId = player.getUniqueId();
             if (action.equals("skip")) {
+                if (player.isOp()) {
+                    skipCurrentPhase(player);
+                    return;
+                }
                 if (lobbyState == LobbyState.IN_GAME) return;
                 skipVotes.add(playerId);
                 player.sendMessage(

@@ -363,6 +363,28 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
                 );
 
                 commands.registrar().register(
+                    Commands.literal("skipphase")
+                        .requires(source ->
+                            source.getExecutor() instanceof Player player &&
+                            player.isOp() &&
+                            ManaKitLobbyType.isInManaKitLobby(player)
+                        )
+                        .executes(ctx -> {
+                            if (
+                                ctx.getSource().getExecutor() instanceof Player player
+                            ) {
+                                ManaKitLobbyType.ManaKitLobbyInstance lobby =
+                                    ManaKitLobbyType.getLobbyForPlayer(player);
+                                if (lobby != null) {
+                                    lobby.skipCurrentPhase(player);
+                                }
+                            }
+                            return Command.SINGLE_SUCCESS;
+                        })
+                        .build()
+                );
+
+                commands.registrar().register(
                     Commands.literal("weatherqueue")
                         .requires(source ->
                             source.getSender().hasPermission("admin.weather")
