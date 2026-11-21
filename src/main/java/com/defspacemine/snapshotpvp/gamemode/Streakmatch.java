@@ -187,9 +187,6 @@ public class Streakmatch extends Gamemode implements Listener {
                         : ChatColor.AQUA + "IN LOBBY") +
                     ChatColor.GRAY +
                     " | " +
-                    ChatColor.GOLD +
-                    currentStreak +
-                    "🔥" +
                     goalStreakDisplay(p);
             }
 
