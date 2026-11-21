@@ -83,7 +83,8 @@ public final class GameMapRegistry {
             BobLands.worldLoc,
             List.of(
                 new GamemodeCompatibility("deathmatch", List.of(-1, 10, 20)),
-                new GamemodeCompatibility("streakmatch", List.of(-1, 5, 10))
+                new GamemodeCompatibility("streakmatch", List.of(-1, 5, 10)),
+                new GamemodeCompatibility("kit_rotation", List.of(-1, 3, 5))
             ),
             BobLands::new
         ),
@@ -96,7 +97,8 @@ public final class GameMapRegistry {
             BobInvasionRemaster.worldLoc,
             List.of(
                 new GamemodeCompatibility("deathmatch", List.of(-1, 10, 20)),
-                new GamemodeCompatibility("streakmatch", List.of(-1, 5, 10))
+                new GamemodeCompatibility("streakmatch", List.of(-1, 5, 10)),
+                new GamemodeCompatibility("kit_rotation", List.of(-1, 3, 5))
             ),
             BobInvasionRemaster::new
         )

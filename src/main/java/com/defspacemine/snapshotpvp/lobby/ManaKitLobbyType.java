@@ -3,6 +3,7 @@ package com.defspacemine.snapshotpvp.lobby;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.gamemode.Gamemode;
 import com.defspacemine.snapshotpvp.gamemode.GamemodeRegistry;
+import com.defspacemine.snapshotpvp.gamemode.KitRotation;
 import com.defspacemine.snapshotpvp.gamemode.GamemodeRegistry.GamemodeDefinition;
 import com.defspacemine.snapshotpvp.manakit.ManaKit;
 import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
@@ -26,6 +27,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -42,6 +44,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
@@ -175,6 +178,7 @@ public class ManaKitLobbyType extends LobbyType {
         private final Set<UUID> matchPlayers = new HashSet<>();
         private final Set<UUID> pendingJoiners = new HashSet<>();
         private final Set<UUID> earlyEndVotes = new HashSet<>();
+        private final Set<UUID> eliminatedSpectators = new HashSet<>();
         private int tabUpdateTicks;
 
         public ManaKitLobbyInstance(World world) {
@@ -305,10 +309,29 @@ public class ManaKitLobbyType extends LobbyType {
                     return;
                 }
 
+                for (UUID spectatorId : eliminatedSpectators) {
+                    Player spectator = Bukkit.getPlayer(spectatorId);
+                    if (
+                        spectator == null ||
+                        !matchPlayers.contains(spectatorId) ||
+                        !spectator.getWorld().equals(mapWorld) &&
+                        !spectator.getWorld().equals(shadowMap)
+                    ) continue;
+                    if (spectator.getGameMode() != GameMode.SPECTATOR) {
+                        spectator.setGameMode(GameMode.SPECTATOR);
+                    }
+                    spectator.removeScoreboardTag("fighting");
+                    spectator.removeScoreboardTag("combat");
+                    spectator
+                        .getPersistentDataContainer()
+                        .remove(ManaKitListener.MANA_KIT);
+                }
+
                 for (Player player : mapWorld.getPlayers()) {
                     if (
                         !matchPlayers.contains(player.getUniqueId()) ||
-                        player.isDead()
+                        player.isDead() ||
+                        player.getGameMode() == GameMode.SPECTATOR
                     ) continue;
                     if (!player.getScoreboardTags().contains("fighting")) {
                         spawnPlayer(player);
@@ -317,10 +340,35 @@ public class ManaKitLobbyType extends LobbyType {
                 for (Player player : shadowMap.getPlayers()) {
                     if (
                         !matchPlayers.contains(player.getUniqueId()) ||
-                        player.isDead()
+                        player.isDead() ||
+                        player.getGameMode() == GameMode.SPECTATOR
                     ) continue;
                     if (!player.getScoreboardTags().contains("fighting")) {
                         spawnPlayer(player, shadowMap);
+                    }
+                }
+                boolean shadowCombatantsPresent = shadowMap
+                    .getPlayers()
+                    .stream()
+                    .anyMatch(player ->
+                        player.getScoreboardTags().contains("combat") &&
+                        player.getScoreboardTags().contains("fighting")
+                    );
+                if (!shadowCombatantsPresent) {
+                    for (Player player : List.copyOf(shadowMap.getPlayers())) {
+                        if (player.getGameMode() == GameMode.SPECTATOR) {
+                            player.setSpectatorTarget(null);
+                            player.teleport(
+                                new Location(
+                                    mapWorld,
+                                    player.getLocation().getX(),
+                                    player.getLocation().getY(),
+                                    player.getLocation().getZ(),
+                                    player.getLocation().getYaw(),
+                                    player.getLocation().getPitch()
+                                )
+                            );
+                        }
                     }
                 }
                 for (Player player : world.getPlayers()) {
@@ -350,6 +398,7 @@ public class ManaKitLobbyType extends LobbyType {
                 player.hideBossBar(phaseBossBar);
                 restorePlayerTeam(player);
             }
+            eliminatedSpectators.clear();
             for (Player player : Bukkit.getOnlinePlayers()) {
                 for (Player other : Bukkit.getOnlinePlayers()) {
                     player.showPlayer(SnapshotPvpPlugin.instance, other);
@@ -380,6 +429,7 @@ public class ManaKitLobbyType extends LobbyType {
             skipVotes.remove(playerId);
             forceNextVote.remove(playerId);
             kitGuiOpened.remove(playerId);
+            eliminatedSpectators.remove(playerId);
             lateJoinTeamSelectionAvailable.remove(playerId);
             choiceGuis.remove(playerId);
             restorePlayerTeam(player);
@@ -511,7 +561,39 @@ public class ManaKitLobbyType extends LobbyType {
                 !kitSelectionLimited ||
                 lobbyState == LobbyState.KIT_SELECTION ||
                 isInMatchLobby(player)
+            ) &&
+                !(
+                    gamemode instanceof KitRotation rotation &&
+                    kitSelectionLimited &&
+                    rotation.getDeaths(player) > 0
+                );
+        }
+
+        public boolean isKitAvailable(Player player, String kitId) {
+            return !(
+                gamemode instanceof KitRotation rotation &&
+                rotation.hasUsedKit(player, kitId)
             );
+        }
+
+        public boolean sendSpectatorToLobby(Player player) {
+            UUID playerId = player.getUniqueId();
+            if (
+                lobbyState != LobbyState.IN_GAME ||
+                !matchPlayers.contains(playerId) ||
+                !eliminatedSpectators.contains(playerId)
+            ) return false;
+
+            player.setSpectatorTarget(null);
+            player.removeScoreboardTag("fighting");
+            player.removeScoreboardTag("combat");
+            player
+                .getPersistentDataContainer()
+                .remove(ManaKitListener.MANA_KIT);
+            if (!player.teleport(new Location(world, 0.5, 65, 0.5))) {
+                return false;
+            }
+            return true;
         }
 
         public boolean tryOpenKitGui(Player player) {
@@ -617,6 +699,46 @@ public class ManaKitLobbyType extends LobbyType {
 
         private void spawnPlayer(Player player, World targetWorld) {
             if (gameMap == null) return;
+            if (
+                gamemode instanceof KitRotation rotation &&
+                rotation.isEliminated(player)
+            ) {
+                boolean newlyEliminated =
+                    player.getGameMode() != GameMode.SPECTATOR;
+                eliminatedSpectators.add(player.getUniqueId());
+                player.removeScoreboardTag("fighting");
+                player.removeScoreboardTag("combat");
+                player.getInventory().clear();
+                player
+                    .getPersistentDataContainer()
+                    .remove(ManaKitListener.MANA_KIT);
+                player.setGameMode(GameMode.SPECTATOR);
+                player.setSpectatorTarget(null);
+                if (newlyEliminated) {
+                    player.sendMessage(
+                        ChatColor.YELLOW +
+                            "You are out of lives and now spectating."
+                    );
+                }
+                return;
+            }
+
+            if (gamemode instanceof KitRotation rotation) {
+                ManaKit selectedKit = ManaKitListener.instance.getPlayerKit(
+                    player
+                );
+                if (
+                    kitSelectionLimited &&
+                    rotation.getDeaths(player) > 0 ||
+                    selectedKit != null &&
+                    !isKitAvailable(player, selectedKit.getId())
+                ) {
+                    player
+                        .getPersistentDataContainer()
+                        .remove(ManaKitListener.MANA_KIT);
+                    ManaKitListener.instance.selectRandomKit(player);
+                }
+            }
             Location[] spawnPoints = gameMap.getSpawnPoints();
             Location spawnPoint = spawnPoints[
                 ThreadLocalRandom.current().nextInt(spawnPoints.length)
@@ -871,6 +993,7 @@ public class ManaKitLobbyType extends LobbyType {
             earlyEndVotes.clear();
             kitGuiOpened.clear();
             lateJoinTeamSelectionAvailable.clear();
+            eliminatedSpectators.clear();
             beginPhase(LobbyState.WAITING);
             if (earlyMessage != null) broadcast(ChatColor.YELLOW + earlyMessage);
         }
@@ -963,6 +1086,11 @@ public class ManaKitLobbyType extends LobbyType {
         }
 
         private String winConditionName(int value) {
+            if (
+                value == -1 &&
+                selectedMode != null &&
+                selectedMode.id().equals("kit_rotation")
+            ) return "All kits";
             return value == -1
                 ? "No limit"
                 : value + " " + selectedMode.configLabel();
@@ -1032,21 +1160,24 @@ public class ManaKitLobbyType extends LobbyType {
                 lobbyState == LobbyState.KIT_SELECTION ||
                 lobbyState == LobbyState.IN_GAME
             ) return;
+            boolean compactChoices =
+                lobbyState == LobbyState.VOTE_MAP ||
+                lobbyState == LobbyState.VOTE_MODE;
             Inventory gui = Bukkit.createInventory(
                 null,
-                27,
+                compactChoices ? 18 : 27,
                 phaseTitle(lobbyState)
             );
 
             switch (lobbyState) {
                 case WAITING -> {}
                 case VOTE_MAP -> {
-                    int[] slots = {10, 12, 14, 16, 19, 21, 23, 25};
-                    for (int i = 0; i < GameMapRegistry.options().length; i++) {
-                        if (i >= slots.length) break;
+                    MapDefinition[] maps = GameMapRegistry.options();
+                    int startSlot = (9 - maps.length) / 2;
+                    for (int i = 0; i < maps.length; i++) {
                         MapDefinition map = GameMapRegistry.options()[i];
                         gui.setItem(
-                            slots[i],
+                            startSlot + i,
                             choiceItem(
                                 player,
                                 map.icon(),
@@ -1057,13 +1188,12 @@ public class ManaKitLobbyType extends LobbyType {
                     }
                 }
                 case VOTE_MODE -> {
-                    int[] slots = {10, 12, 14, 16, 19, 21, 23, 25};
                     List<GamemodeDefinition> modes = availableGamemodes();
+                    int startSlot = (9 - modes.size()) / 2;
                     for (int i = 0; i < modes.size(); i++) {
-                        if (i >= slots.length) break;
                         GamemodeDefinition mode = modes.get(i);
                         gui.setItem(
-                            slots[i],
+                            startSlot + i,
                             choiceItem(
                                 player,
                                 mode.icon(),
@@ -1148,7 +1278,9 @@ public class ManaKitLobbyType extends LobbyType {
             }
 
             gui.setItem(
-                lobbyState == LobbyState.TEAM_SELECTION ? 25 : 22,
+                compactChoices
+                    ? 13
+                    : lobbyState == LobbyState.TEAM_SELECTION ? 25 : 22,
                 lobbyItem(
                     Material.CLOCK,
                     player.isOp()
@@ -1163,7 +1295,7 @@ public class ManaKitLobbyType extends LobbyType {
                 lobbyState != LobbyState.TEAM_SELECTION
             ) {
                 gui.setItem(
-                    26,
+                    compactChoices ? 17 : 26,
                     lobbyItem(
                         Material.NETHER_STAR,
                         "Force next choice",
@@ -1406,6 +1538,24 @@ public class ManaKitLobbyType extends LobbyType {
             ) event.setCancelled(true);
         }
 
+        @EventHandler
+        public void onSpectatorStartSpectating(
+            PlayerStartSpectatingEntityEvent event
+        ) {
+            Player spectator = event.getPlayer();
+            if (
+                spectator.getGameMode() != GameMode.SPECTATOR ||
+                !matchPlayers.contains(spectator.getUniqueId())
+            ) return;
+            if (
+                !(event.getNewSpectatorTarget() instanceof Player target) ||
+                !matchPlayers.contains(target.getUniqueId()) ||
+                !target.getScoreboardTags().contains("fighting") ||
+                !target.getScoreboardTags().contains("combat") ||
+                !isLobbyWorld(target.getWorld())
+            ) event.setCancelled(true);
+        }
+
         @EventHandler(ignoreCancelled = true)
         public void onLobbyItemDrop(PlayerDropItemEvent event) {
             Player player = event.getPlayer();
@@ -1566,6 +1716,7 @@ public class ManaKitLobbyType extends LobbyType {
                     choice.scoreboardTeamName(teamScope)
                 );
             }
+            team.setAllowFriendlyFire(false);
             team.setColor(choice.color);
             team.addEntry(player.getName());
             teamSelections.put(playerId, choice);
@@ -1732,6 +1883,7 @@ public class ManaKitLobbyType extends LobbyType {
             ) return;
             event.getDrops().clear();
             p.removeScoreboardTag("fighting");
+            p.removeScoreboardTag("combat");
             new BukkitRunnable() {
                 @Override
                 public void run() {

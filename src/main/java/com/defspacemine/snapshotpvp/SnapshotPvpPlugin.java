@@ -292,6 +292,33 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
                 );
 
                 commands.registrar().register(
+                    Commands.literal("lobby")
+                        .requires(source ->
+                            source.getExecutor() instanceof Player
+                        )
+                        .executes((CommandContext<CommandSourceStack> ctx) -> {
+                            CommandSender sender = ctx
+                                .getSource()
+                                .getExecutor();
+                            if (sender instanceof Player player) {
+                                ManaKitLobbyType.ManaKitLobbyInstance lobby =
+                                    ManaKitLobbyType.getLobbyForPlayer(player);
+                                if (
+                                    lobby == null ||
+                                    !lobby.sendSpectatorToLobby(player)
+                                ) {
+                                    player.sendMessage(
+                                        ChatColor.RED +
+                                            "Only Kit Rotation spectators can use /lobby."
+                                    );
+                                }
+                            }
+                            return Command.SINGLE_SUCCESS;
+                        })
+                        .build()
+                );
+
+                commands.registrar().register(
                     Commands.literal("kit")
                         .requires(source ->
                             source.getExecutor() instanceof Player player &&

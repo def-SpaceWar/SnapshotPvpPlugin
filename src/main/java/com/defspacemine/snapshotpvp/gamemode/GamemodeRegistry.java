@@ -53,6 +53,15 @@ public final class GamemodeRegistry {
             Streakmatch::new,
             (gamemode, winCondition) ->
                 ((Streakmatch) gamemode).streakRequired = winCondition
+        ),
+        new GamemodeDefinition(
+            "kit_rotation",
+            "Kit Rotation",
+            Material.SPECTRAL_ARROW,
+            "lives",
+            KitRotation::new,
+            (gamemode, winCondition) ->
+                ((KitRotation) gamemode).lives = winCondition
         )
     };
 

@@ -691,6 +691,11 @@ public final class ManaKitListener implements Listener {
 
         ManaKit selectedKit = getPlayerKit(player);
         for (ManaKit kit : kits) {
+            ManaKitLobbyType.ManaKitLobbyInstance lobby =
+                ManaKitLobbyType.getLobbyForPlayer(player);
+            if (lobby != null && !lobby.isKitAvailable(player, kit.getId())) {
+                continue;
+            }
             ItemStack icon = kit.getIcon();
             ItemMeta meta = icon.getItemMeta();
             boolean selected = selectedKit != null &&
@@ -722,8 +727,6 @@ public final class ManaKitListener implements Listener {
             gui.addItem(
                 new GuiItem(icon, event -> {
                     event.setCancelled(true);
-                    ManaKitLobbyType.ManaKitLobbyInstance lobby =
-                        ManaKitLobbyType.getLobbyForPlayer(player);
                     if (lobby == null || !lobby.canSelectKit(player)) {
                         player.sendMessage(
                             ChatColor.DARK_RED +
@@ -764,6 +767,11 @@ public final class ManaKitListener implements Listener {
 
     public ManaKit selectRandomKit(Player player) {
         List<ManaKit> kits = new ArrayList<>(manaKitRegistry.values());
+        ManaKitLobbyType.ManaKitLobbyInstance lobby =
+            ManaKitLobbyType.getLobbyForPlayer(player);
+        if (lobby != null) {
+            kits.removeIf(kit -> !lobby.isKitAvailable(player, kit.getId()));
+        }
         if (kits.isEmpty()) return null;
         ManaKit kit = kits.get(
             ThreadLocalRandom.current().nextInt(kits.size())
@@ -773,6 +781,14 @@ public final class ManaKitListener implements Listener {
     }
 
     private void selectKit(Player player, ManaKit kit, ManaKit currentKit) {
+        ManaKitLobbyType.ManaKitLobbyInstance lobby =
+            ManaKitLobbyType.getLobbyForPlayer(player);
+        if (lobby != null && !lobby.isKitAvailable(player, kit.getId())) {
+            player.sendMessage(
+                ChatColor.RED + "You have already used that kit this match."
+            );
+            return;
+        }
         if (currentKit != null && !currentKit.equals(kit)) {
             unsetPlayerKit(player);
         }
