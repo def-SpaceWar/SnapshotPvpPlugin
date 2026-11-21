@@ -838,6 +838,9 @@ public final class ManaKitListener implements Listener {
             .getPersistentDataContainer()
             .get(MANA_KIT, PersistentDataType.STRING);
         if (kitId == null) return;
+        ManaKitLobbyType.ManaKitLobbyInstance lobby =
+            ManaKitLobbyType.getLobbyForPlayer(player);
+        if (lobby != null && !lobby.isKitAvailable(player, kitId)) return;
         ManaKit kit = getPlayerKit(player);
 
         if (kit != null) return;

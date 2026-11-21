@@ -172,6 +172,7 @@ public class ManaKitLobbyType extends LobbyType {
         private final Map<UUID, String> previousTeamNames = new HashMap<>();
         private final Map<UUID, Inventory> choiceGuis = new HashMap<>();
         private final Set<UUID> skipVotes = new HashSet<>();
+        private final Set<UUID> readyPlayers = new HashSet<>();
         private final Set<UUID> forceNextVote = new HashSet<>();
         private final Set<UUID> kitGuiOpened = new HashSet<>();
         private final Set<UUID> lateJoinTeamSelectionAvailable = new HashSet<>();
@@ -393,6 +394,7 @@ public class ManaKitLobbyType extends LobbyType {
 
         public void onDestroy() {
             choiceGuis.clear();
+            readyPlayers.clear();
             for (Player player : getPlayers()) {
                 player.closeInventory();
                 player.hideBossBar(phaseBossBar);
@@ -419,6 +421,7 @@ public class ManaKitLobbyType extends LobbyType {
             ManaKitListener.clearManaKitData(player);
             UUID playerId = player.getUniqueId();
             matchPlayers.remove(playerId);
+            readyPlayers.remove(playerId);
             pendingJoiners.remove(playerId);
             earlyEndVotes.remove(playerId);
             mapVotes.remove(playerId);
@@ -458,6 +461,7 @@ public class ManaKitLobbyType extends LobbyType {
         @Override
         public void onLobbyJoin(Player player) {
             UUID playerId = player.getUniqueId();
+            readyPlayers.remove(playerId);
             player.removeScoreboardTag("fighting");
             player.removeScoreboardTag("combat");
             updateLobbyTabVisibility();
@@ -730,9 +734,8 @@ public class ManaKitLobbyType extends LobbyType {
                     player
                 );
                 if (
-                    kitSelectionLimited &&
-                    rotation.getDeaths(player) > 0 ||
-                    selectedKit != null &&
+                    (kitSelectionLimited && rotation.getDeaths(player) > 0) ||
+                    selectedKit == null ||
                     !isKitAvailable(player, selectedKit.getId())
                 ) {
                     player
@@ -768,6 +771,7 @@ public class ManaKitLobbyType extends LobbyType {
         private void beginPhase(LobbyState state) {
             lobbyState = state;
             phaseTicksRemaining = PHASE_DURATION_TICKS;
+            readyPlayers.clear();
             skipVotes.clear();
             forceNextVote.clear();
             mapVotes.clear();
@@ -1060,7 +1064,9 @@ public class ManaKitLobbyType extends LobbyType {
             }
 
             int ticksRemaining = phaseTicksRemaining;
-            String title = phaseTitle(lobbyState) + " - " + formatTime(ticksRemaining);
+            String title = lobbyState == LobbyState.WAITING
+                ? "Waiting - " + readyPlayers.size() + "/" + getPlayers().size() + " ready"
+                : phaseTitle(lobbyState) + " - " + formatTime(ticksRemaining);
             phaseBossBar.name(Component.text(title, NamedTextColor.GOLD));
             phaseBossBar.progress(
                 Math.max(
@@ -1172,7 +1178,18 @@ public class ManaKitLobbyType extends LobbyType {
             );
 
             switch (lobbyState) {
-                case WAITING -> {}
+                case WAITING -> gui.setItem(
+                    13,
+                    lobbyItem(
+                        readyPlayers.contains(player.getUniqueId())
+                            ? Material.RED_DYE
+                            : Material.LIME_DYE,
+                        readyPlayers.contains(player.getUniqueId())
+                            ? "Unready"
+                            : "Ready up",
+                        "ready"
+                    )
+                );
                 case VOTE_MAP -> {
                     MapDefinition[] maps = GameMapRegistry.options();
                     int startSlot = (9 - maps.length) / 2;
@@ -1279,18 +1296,20 @@ public class ManaKitLobbyType extends LobbyType {
                 case KIT_SELECTION, IN_GAME -> {}
             }
 
-            gui.setItem(
-                compactChoices
-                    ? 13
-                    : lobbyState == LobbyState.TEAM_SELECTION ? 25 : 22,
-                lobbyItem(
-                    Material.CLOCK,
-                    player.isOp()
-                        ? "Skip phase"
-                        : "Vote to skip this phase",
-                    "skip"
-                )
-            );
+            if (lobbyState != LobbyState.WAITING) {
+                gui.setItem(
+                    compactChoices
+                        ? 13
+                        : lobbyState == LobbyState.TEAM_SELECTION ? 25 : 22,
+                    lobbyItem(
+                        Material.CLOCK,
+                        player.isOp()
+                            ? "Skip phase"
+                            : "Vote to skip this phase",
+                        "skip"
+                    )
+                );
+            }
             if (
                 player.isOp() &&
                 lobbyState != LobbyState.WAITING &&
@@ -1313,6 +1332,7 @@ public class ManaKitLobbyType extends LobbyType {
         private boolean hasMadeChoice(Player player, LobbyState state) {
             UUID playerId = player.getUniqueId();
             return switch (state) {
+                case WAITING -> false;
                 case VOTE_MAP -> mapVotes.containsKey(playerId);
                 case VOTE_MODE -> modeVotes.containsKey(playerId);
                 case VOTE_CONFIG -> configVotes.containsKey(playerId);
@@ -1447,6 +1467,7 @@ public class ManaKitLobbyType extends LobbyType {
                 ? "Already selected."
                 : switch (action) {
                     case "reopen" -> "Click, right-click, or drop to reopen.";
+                    case "ready" -> "Click to ready up or cancel readiness.";
                     case "kit_gui" ->
                         "Click, right-click, or drop to open kit selection.";
                     case "team_gui" ->
@@ -1610,12 +1631,57 @@ public class ManaKitLobbyType extends LobbyType {
 
         private void handleLobbyItem(Player player, String action) {
             UUID playerId = player.getUniqueId();
+            if (action.equals("ready")) {
+                if (lobbyState != LobbyState.WAITING) return;
+                if (!readyPlayers.add(playerId)) readyPlayers.remove(playerId);
+                boolean ready = readyPlayers.contains(playerId);
+                List<Player> players = getPlayers();
+                long readyCount = players
+                    .stream()
+                    .filter(candidate ->
+                        readyPlayers.contains(candidate.getUniqueId())
+                    )
+                    .count();
+                player.sendMessage(
+                    (ready ? ChatColor.GREEN : ChatColor.YELLOW) +
+                        (ready ? "You are ready" : "You are no longer ready") +
+                        " (" +
+                        readyCount +
+                        "/" +
+                        players.size() +
+                        ")."
+                );
+                Inventory gui = choiceGuis.get(playerId);
+                if (gui != null) {
+                    gui.setItem(
+                        13,
+                        lobbyItem(
+                            ready ? Material.RED_DYE : Material.LIME_DYE,
+                            ready ? "Unready" : "Ready up",
+                            "ready"
+                        )
+                    );
+                }
+                updatePhaseBossBar();
+                if (
+                    !players.isEmpty() &&
+                    readyCount == players.size()
+                ) {
+                    broadcast(
+                        ChatColor.GREEN +
+                            "Everyone is ready. Lobby setup is starting."
+                    );
+                    beginPhase(LobbyState.VOTE_MAP);
+                }
+                return;
+            }
             if (action.equals("skip")) {
                 if (player.isOp()) {
                     skipCurrentPhase(player);
                     return;
                 }
                 if (lobbyState == LobbyState.IN_GAME) return;
+                if (lobbyState == LobbyState.WAITING) return;
                 if (
                     lobbyState == LobbyState.WAITING &&
                     getPlayers().size() <= 1

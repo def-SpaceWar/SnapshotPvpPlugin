@@ -158,7 +158,11 @@ public class KitRotation extends Gamemode implements Listener {
 
             int killCount = kills.getOrDefault(player.getUniqueId(), 0);
             int deathCount = deaths.getOrDefault(player.getUniqueId(), 0);
-            int streak = player.getScoreboardTags().contains("combat")
+            boolean inCombat =
+                player.getScoreboardTags().contains("fighting") &&
+                player.getScoreboardTags().contains("combat") &&
+                player.getGameMode() != GameMode.SPECTATOR;
+            int streak = inCombat
                 ? SnapshotPvpPlugin.getPlayerScore(player, "dummyKillstreak")
                 : 0;
             String deathText = ChatColor.GRAY + "" + deathCount;
@@ -166,8 +170,6 @@ public class KitRotation extends Gamemode implements Listener {
 
             String status = player.getGameMode() == GameMode.SPECTATOR
                 ? ChatColor.YELLOW + "SPECTATOR"
-                : player.getScoreboardTags().contains("fighting")
-                ? ""
                 : ChatColor.AQUA + "IN LOBBY";
             int hp = (int) player.getHealth();
             int absorption = (int) player.getAbsorptionAmount();
@@ -189,11 +191,12 @@ public class KitRotation extends Gamemode implements Listener {
                 " | " +
                 ChatColor.GOLD +
                 streak +
-                "🔥" +
-                ChatColor.GRAY +
-                " | " +
-                (status.isEmpty() ? "" : status + ChatColor.GRAY + " | ") +
-                hpText;
+                "🔥";
+            if (inCombat) {
+                right += ChatColor.GRAY + " | " + hpText;
+            } else {
+                right += ChatColor.GRAY + " | " + status;
+            }
             GlobalScoreboardManager.setHiddenScore(
                 objective,
                 left,
@@ -293,6 +296,7 @@ public class KitRotation extends Gamemode implements Listener {
                 .computeIfAbsent(victim.getUniqueId(), ignored -> new HashSet<>())
                 .add(kit.getId());
         }
+        ManaKitListener.clearManaKitData(victim);
 
         Player attacker = victim.getKiller();
         if (

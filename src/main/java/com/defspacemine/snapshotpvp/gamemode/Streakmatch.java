@@ -12,6 +12,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -28,6 +29,8 @@ public class Streakmatch extends Gamemode implements Listener {
     public int streakRequired = 5; // -1 | 5 | 10 | 20
     public int timeLimit = 18000; // ticks ~ 15 minutess
     private final Map<UUID, Player> participants = new HashMap<>();
+    private final Map<UUID, Integer> killCounts = new HashMap<>();
+    private final Map<UUID, Integer> deaths = new HashMap<>();
     private final Map<UUID, Integer> highestStreaks = new HashMap<>();
     private final Map<UUID, Long> highestStreakAchievedAt = new HashMap<>();
     private long matchStartNanos;
@@ -58,6 +61,8 @@ public class Streakmatch extends Gamemode implements Listener {
         for (Player player : lobby.getPlayers()) {
             UUID playerId = player.getUniqueId();
             participants.put(playerId, player);
+            killCounts.put(playerId, 0);
+            deaths.put(playerId, 0);
             highestStreaks.put(playerId, 0);
             highestStreakAchievedAt.put(playerId, 0L);
             SnapshotPvpPlugin.setPlayerScore(player, "dummyKillstreak", 0);
@@ -150,7 +155,13 @@ public class Streakmatch extends Gamemode implements Listener {
                 shadowIndicator + nameColor + prefix + p.getName();
             String rightSide;
 
-            if (p.getScoreboardTags().contains("fighting")) {
+            int killCount = killCounts.getOrDefault(p.getUniqueId(), 0);
+            int deathCount = deaths.getOrDefault(p.getUniqueId(), 0);
+            boolean inCombat =
+                p.getScoreboardTags().contains("fighting") &&
+                p.getScoreboardTags().contains("combat") &&
+                p.getGameMode() != GameMode.SPECTATOR;
+            if (inCombat) {
                 int currentStreak = SnapshotPvpPlugin.getPlayerScore(
                     p,
                     "dummyKillstreak"
@@ -163,7 +174,7 @@ public class Streakmatch extends Gamemode implements Listener {
                 String hpText = "" + ChatColor.GREEN + hp + "❤";
                 if (absorp > 0) hpText += " " + ChatColor.YELLOW + absorp + "❤";
 
-                rightSide =
+                rightSide = statsDisplay(killCount, deathCount) +
                     ChatColor.GOLD +
                     streakDisplay(currentStreak, bestStreak) +
                     "🔥" +
@@ -172,8 +183,10 @@ public class Streakmatch extends Gamemode implements Listener {
                     hpText;
             } else {
                 rightSide =
-                    ChatColor.AQUA +
-                    "IN LOBBY" +
+                    statsDisplay(killCount, deathCount) +
+                    (p.getGameMode() == GameMode.SPECTATOR
+                        ? ChatColor.YELLOW + "SPECTATOR"
+                        : ChatColor.AQUA + "IN LOBBY") +
                     ChatColor.GRAY +
                     " | " +
                     ChatColor.GOLD +
@@ -215,11 +228,26 @@ public class Streakmatch extends Gamemode implements Listener {
         return currentStreak + "/" + bestStreak;
     }
 
+    private String statsDisplay(int killCount, int deathCount) {
+        return ChatColor.RED +
+            "" +
+            killCount +
+            "🗡" +
+            ChatColor.GRAY +
+            " | " +
+            deathCount +
+            "☠" +
+            ChatColor.GRAY +
+            " | ";
+    }
+
     private void updateHighestStreaks() {
         for (Player player : lobby.getPlayers()) {
             if (!lobby.isMatchPlayer(player)) continue;
             UUID playerId = player.getUniqueId();
             participants.putIfAbsent(playerId, player);
+            killCounts.putIfAbsent(playerId, 0);
+            deaths.putIfAbsent(playerId, 0);
             int currentStreak = SnapshotPvpPlugin.getPlayerScore(
                 player,
                 "dummyKillstreak"
@@ -316,15 +344,25 @@ public class Streakmatch extends Gamemode implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerDeath(PlayerDeathEvent event) {
-        Player attacker = event.getEntity().getKiller();
+        Player victim = event.getEntity();
+        if (!lobby.isMatchPlayer(victim)) return;
+        deaths.merge(victim.getUniqueId(), 1, Integer::sum);
+
+        Player attacker = victim.getKiller();
         if (
             attacker == null ||
-            !lobby.isMatchPlayer(event.getEntity()) ||
             !lobby.isMatchPlayer(attacker)
+        ) return;
+
+        Team victimTeam = SnapshotPvpPlugin.getTeam(victim);
+        if (
+            victimTeam != null &&
+            victimTeam.equals(SnapshotPvpPlugin.getTeam(attacker))
         ) return;
 
         UUID playerId = attacker.getUniqueId();
         participants.putIfAbsent(playerId, attacker);
+        killCounts.merge(playerId, 1, Integer::sum);
         recordHighestStreak(
             playerId,
             SnapshotPvpPlugin.getPlayerScore(attacker, "dummyKillstreak"),

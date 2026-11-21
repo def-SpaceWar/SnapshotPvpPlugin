@@ -13,6 +13,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -239,12 +240,17 @@ public class GlobalScoreboardManager {
         }
 
         for (Player p : playersInWorld) {
-            healthObj
-                .getScore(p)
-                .setScore((int) (p.getHealth() + p.getAbsorptionAmount()));
-            healthObjTablist
-                .getScore(p)
-                .setScore((int) (p.getHealth() + p.getAbsorptionAmount()));
+            if (
+                p.getScoreboardTags().contains("fighting") &&
+                p.getGameMode() != GameMode.SPECTATOR
+            ) {
+                int health = (int) (p.getHealth() + p.getAbsorptionAmount());
+                healthObj.getScore(p).setScore(health);
+                healthObjTablist.getScore(p).setScore(health);
+            } else {
+                healthObj.getScore(p).resetScore();
+                healthObjTablist.getScore(p).resetScore();
+            }
         }
     }
 

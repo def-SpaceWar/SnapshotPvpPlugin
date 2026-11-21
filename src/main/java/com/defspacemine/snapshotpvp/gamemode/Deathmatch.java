@@ -7,10 +7,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -28,6 +30,7 @@ public class Deathmatch extends Gamemode implements Listener {
     public int timeLimit = 18000; // ticks ~ 15 minutess
     // public int timeLimit = 912000000;
     public Map<Player, Integer> killCounts = new HashMap<Player, Integer>();
+    private final Map<UUID, Integer> deaths = new HashMap<>();
 
     public Deathmatch(ManaKitLobbyInstance lobby, World world) {
         this.lobby = lobby;
@@ -53,6 +56,7 @@ public class Deathmatch extends Gamemode implements Listener {
         );
         for (Player player : lobby.getPlayers()) {
             killCounts.putIfAbsent(player, 0);
+            deaths.putIfAbsent(player.getUniqueId(), 0);
         }
 
         GlobalScoreboardManager.registerBoardHandler(
@@ -120,6 +124,7 @@ public class Deathmatch extends Gamemode implements Listener {
         for (Player p : sortedPlayers) {
             Integer killCount = killCounts.get(p);
             if (killCount == null) killCount = 0;
+            int deathCount = deaths.getOrDefault(p.getUniqueId(), 0);
 
             Team team = SnapshotPvpPlugin.getTeam(p);
             ChatColor nameColor =
@@ -137,7 +142,10 @@ public class Deathmatch extends Gamemode implements Listener {
                 shadowIndicator + nameColor + prefix + p.getName();
             String rightSide;
 
-            if (p.getScoreboardTags().contains("fighting")) {
+            if (
+                p.getScoreboardTags().contains("fighting") &&
+                p.getGameMode() != GameMode.SPECTATOR
+            ) {
                 int ks = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
                 int hp = (int) p.getHealth();
                 int absorp = (int) p.getAbsorptionAmount();
@@ -150,6 +158,10 @@ public class Deathmatch extends Gamemode implements Listener {
                     killCount +
                     (killsRequired == -1 ? "" : "/" + killsRequired) +
                     "🗡" +
+                    ChatColor.GRAY +
+                    " | " +
+                    deathCount +
+                    "☠" +
                     ChatColor.GRAY +
                     " | " +
                     ChatColor.GOLD +
@@ -167,8 +179,13 @@ public class Deathmatch extends Gamemode implements Listener {
                     "🗡" +
                     ChatColor.GRAY +
                     " | " +
-                    ChatColor.AQUA +
-                    "IN LOBBY";
+                    deathCount +
+                    "☠" +
+                    ChatColor.GRAY +
+                    " | " +
+                    (p.getGameMode() == GameMode.SPECTATOR
+                        ? ChatColor.YELLOW + "SPECTATOR"
+                        : ChatColor.AQUA + "IN LOBBY");
             }
 
             GlobalScoreboardManager.setHiddenScore(
@@ -198,7 +215,10 @@ public class Deathmatch extends Gamemode implements Listener {
     public void onTick() {
         timeLimit--;
         for (Player player : lobby.getPlayers()) {
-            if (lobby.isMatchPlayer(player)) killCounts.putIfAbsent(player, 0);
+            if (lobby.isMatchPlayer(player)) {
+                killCounts.putIfAbsent(player, 0);
+                deaths.putIfAbsent(player.getUniqueId(), 0);
+            }
         }
     }
 
@@ -279,6 +299,9 @@ public class Deathmatch extends Gamemode implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player victim = event.getPlayer();
+        if (lobby.isMatchPlayer(victim)) {
+            deaths.merge(victim.getUniqueId(), 1, Integer::sum);
+        }
         Player attacker = victim.getKiller();
 
         Team vTeam = SnapshotPvpPlugin.getTeam(victim);
