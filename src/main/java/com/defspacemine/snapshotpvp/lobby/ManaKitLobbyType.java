@@ -620,6 +620,8 @@ public class ManaKitLobbyType extends LobbyType {
             UUID playerId = player.getUniqueId();
             if (
                 lobbyState != LobbyState.IN_GAME ||
+                gamemode == null ||
+                !gamemode.allowsEarlyEndVote() ||
                 !kitSelectionLimited ||
                 pendingJoiners.isEmpty() ||
                 !matchPlayers.contains(playerId)

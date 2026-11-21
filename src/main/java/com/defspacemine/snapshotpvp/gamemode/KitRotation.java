@@ -104,6 +104,13 @@ public class KitRotation extends Gamemode implements Listener {
         );
     }
 
+    private String teamKey(Player player) {
+        Team team = SnapshotPvpPlugin.getTeam(player);
+        return team == null
+            ? player.getUniqueId().toString()
+            : team.getName();
+    }
+
     private void scoreboardHandler(Player viewer) {
         List<Player> players = lobby
             .getPlayers()
@@ -214,34 +221,50 @@ public class KitRotation extends Gamemode implements Listener {
         Set<String> survivingTeams = new HashSet<>();
         for (Player player : participants.values()) {
             if (!isAlive(player)) continue;
-            Team team = SnapshotPvpPlugin.getTeam(player);
-            survivingTeams.add(
-                team == null ? player.getUniqueId().toString() : team.getName()
-            );
+            survivingTeams.add(teamKey(player));
         }
         return survivingTeams.size() <= 1;
     }
 
     @Override
+    public boolean allowsEarlyEndVote() {
+        return false;
+    }
+
+    @Override
     public void sendGameOverMessage(Player recipient) {
+        Set<String> winningTeams = new HashSet<>();
+        for (Player player : participants.values()) {
+            if (isAlive(player)) winningTeams.add(teamKey(player));
+        }
+
         List<Player> winners = participants
             .values()
             .stream()
-            .filter(this::isAlive)
+            .filter(player ->
+                lobby.isMatchPlayer(player) &&
+                winningTeams.contains(teamKey(player))
+            )
+            .sorted((first, second) ->
+                first.getName().compareToIgnoreCase(second.getName())
+            )
             .toList();
         recipient.sendMessage(ChatColor.GOLD + "==== Kit Rotation Results ====");
         if (!winners.isEmpty()) {
-            Set<String> winnerNames = new HashSet<>();
-            for (Player winner : winners) {
-                Team team = SnapshotPvpPlugin.getTeam(winner);
-                winnerNames.add(team == null ? winner.getName() : team.getName());
-            }
-            recipient.sendMessage(
+            StringBuilder result = new StringBuilder(
                 ChatColor.GREEN +
                     "Winner" +
-                    (winnerNames.size() == 1 ? ": " : "s: ") +
-                    String.join(", ", winnerNames)
+                    (winningTeams.size() == 1 ? ": " : "s: ")
             );
+            for (int i = 0; i < winners.size(); i++) {
+                Player winner = winners.get(i);
+                if (i > 0) result.append(ChatColor.GRAY).append(", ");
+                Team team = SnapshotPvpPlugin.getTeam(winner);
+                result
+                    .append(team == null ? ChatColor.WHITE : team.getColor())
+                    .append(winner.getName());
+            }
+            recipient.sendMessage(result.toString());
         }
     }
 

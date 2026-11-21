@@ -22,6 +22,10 @@ public abstract class Gamemode {
 
     public abstract boolean isOver();
 
+    public boolean allowsEarlyEndVote() {
+        return true;
+    }
+
     public abstract void sendGameOverMessage(Player p);
 
     public abstract void onDestroy();

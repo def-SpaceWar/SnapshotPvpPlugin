@@ -4,6 +4,7 @@ import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 import com.defspacemine.snapshotpvp.enchantment.EnchantmentListener;
 import com.defspacemine.snapshotpvp.lobby.LobbyManager;
 import com.defspacemine.snapshotpvp.lobby.ManaKitLobbyType;
+import com.defspacemine.snapshotpvp.manakit.ManaKit;
 import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
 import com.defspacemine.snapshotpvp.scoreboard.GlobalScoreboardManager;
 import com.destroystokyo.paper.event.player.PlayerJumpEvent;
@@ -315,6 +316,53 @@ public final class SnapshotPvpPlugin extends JavaPlugin implements Listener {
                             }
                             return Command.SINGLE_SUCCESS;
                         })
+                        .build()
+                );
+
+                commands.registrar().register(
+                    Commands.literal("shadowworld")
+                        .requires(source ->
+                            source.getExecutor() instanceof Player player &&
+                            player.isOp()
+                        )
+                        .then(
+                            Commands.argument(
+                                "ticks",
+                                IntegerArgumentType.integer(1)
+                            ).executes(ctx -> {
+                                Player player = (Player) ctx
+                                    .getSource()
+                                    .getExecutor();
+                                int ticks = IntegerArgumentType.getInteger(
+                                    ctx,
+                                    "ticks"
+                                );
+                                boolean entered;
+                                if (ManaKit.isInShadowWorld(player)) {
+                                    ManaKit.setShadowWorldTimer(player, ticks);
+                                    entered = true;
+                                } else {
+                                    entered = ManaKit.enterShadowWorld(
+                                        player,
+                                        ticks
+                                    );
+                                }
+                                if (entered) {
+                                    player.sendMessage(
+                                        ChatColor.GREEN +
+                                            "Shadow world duration set to " +
+                                            ticks +
+                                            " ticks."
+                                    );
+                                } else {
+                                    player.sendMessage(
+                                        ChatColor.RED +
+                                            "You must be in a map world to enter its shadow world."
+                                    );
+                                }
+                                return Command.SINGLE_SUCCESS;
+                            })
+                        )
                         .build()
                 );
 
