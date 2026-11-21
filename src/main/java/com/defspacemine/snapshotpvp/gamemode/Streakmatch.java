@@ -157,18 +157,15 @@ public class Streakmatch extends Gamemode implements Listener {
 
             int killCount = killCounts.getOrDefault(p.getUniqueId(), 0);
             int deathCount = deaths.getOrDefault(p.getUniqueId(), 0);
+            int currentStreak = SnapshotPvpPlugin.getPlayerScore(
+                p,
+                "dummyKillstreak"
+            );
             boolean inCombat =
                 p.getScoreboardTags().contains("fighting") &&
                 p.getScoreboardTags().contains("combat") &&
                 p.getGameMode() != GameMode.SPECTATOR;
             if (inCombat) {
-                int currentStreak = SnapshotPvpPlugin.getPlayerScore(
-                    p,
-                    "dummyKillstreak"
-                );
-                int bestStreak = streakRequired == -1
-                    ? highestStreaks.getOrDefault(p.getUniqueId(), 0)
-                    : highestStreaks.getOrDefault(p.getUniqueId(), 0);
                 int hp = (int) p.getHealth();
                 int absorp = (int) p.getAbsorptionAmount();
                 String hpText = "" + ChatColor.GREEN + hp + "❤";
@@ -176,11 +173,12 @@ public class Streakmatch extends Gamemode implements Listener {
 
                 rightSide = statsDisplay(killCount, deathCount) +
                     ChatColor.GOLD +
-                    streakDisplay(currentStreak, bestStreak) +
+                    currentStreak +
                     "🔥" +
                     ChatColor.GRAY +
                     " | " +
-                    hpText;
+                    hpText +
+                    goalStreakDisplay(p);
             } else {
                 rightSide =
                     statsDisplay(killCount, deathCount) +
@@ -190,8 +188,9 @@ public class Streakmatch extends Gamemode implements Listener {
                     ChatColor.GRAY +
                     " | " +
                     ChatColor.GOLD +
-                    highestStreaks.getOrDefault(p.getUniqueId(), 0) +
-                    "🔥";
+                    currentStreak +
+                    "🔥" +
+                    goalStreakDisplay(p);
             }
 
             GlobalScoreboardManager.setHiddenScore(
@@ -223,11 +222,6 @@ public class Streakmatch extends Gamemode implements Listener {
         updateHighestStreaks();
     }
 
-    private String streakDisplay(int currentStreak, int bestStreak) {
-        if (currentStreak == bestStreak) return String.valueOf(currentStreak);
-        return currentStreak + "/" + bestStreak;
-    }
-
     private String statsDisplay(int killCount, int deathCount) {
         return ChatColor.RED +
             "" +
@@ -239,6 +233,21 @@ public class Streakmatch extends Gamemode implements Listener {
             "☠" +
             ChatColor.GRAY +
             " | ";
+    }
+
+    private String goalStreakDisplay(Player player) {
+        int highestStreak = highestStreaks.getOrDefault(
+            player.getUniqueId(),
+            0
+        );
+        String display = streakRequired == -1
+            ? String.valueOf(highestStreak)
+            : highestStreak + "/" + streakRequired;
+        return ChatColor.GRAY +
+            " | " +
+            ChatColor.LIGHT_PURPLE +
+            display +
+            "🔥";
     }
 
     private void updateHighestStreaks() {
