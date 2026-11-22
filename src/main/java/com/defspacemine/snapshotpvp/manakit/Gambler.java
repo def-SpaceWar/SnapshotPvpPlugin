@@ -503,7 +503,9 @@ public class Gambler extends ManaKit {
         tnt.setFuseTicks(0);
         tnt.setYield(radius);
         tnt.setIsIncendiary(false);
-        tnt.setSource(p);
+        PersistentDataContainer pdc = tnt.getPersistentDataContainer();
+        pdc.set(CustomEggListener.CUSTOM_DAMAGE_MULTIPLIER, PersistentDataType.FLOAT, .5f);
+        CustomEggListener.injectOwner(tnt, p);
     }
 
     private void triggerTeleport(

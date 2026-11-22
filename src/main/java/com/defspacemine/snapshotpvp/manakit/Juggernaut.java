@@ -3,18 +3,18 @@ package com.defspacemine.snapshotpvp.manakit;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.World;
-import org.bukkit.Color;
 import org.bukkit.Particle;
-import org.bukkit.entity.Projectile;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.PlayerInventory;
@@ -25,11 +25,11 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class Juggernaut extends ManaKit {
+
     @Override
     public org.bukkit.inventory.ItemStack getIcon() {
         return getIconFromShulker(-185, 1, -185);
     }
-
 
     private final int SMASH_COOLDOWN = 400;
     private final int SMASH_IMMUNITY_DURATION = 100;
@@ -73,11 +73,7 @@ public class Juggernaut extends ManaKit {
             0
         );
         if (cooldown > 0) {
-            pdc.set(
-                smashCooldown,
-                PersistentDataType.INTEGER,
-                cooldown - 1
-            );
+            pdc.set(smashCooldown, PersistentDataType.INTEGER, cooldown - 1);
         }
 
         int meter = pdc.getOrDefault(
@@ -85,23 +81,28 @@ public class Juggernaut extends ManaKit {
             PersistentDataType.INTEGER,
             0
         );
-        boolean nearbyPlayer = p.getWorld().getPlayers().stream().anyMatch(
-            other ->
-                !other.equals(p) &&
-                !other.isDead() &&
-                other.getGameMode() != org.bukkit.GameMode.SPECTATOR &&
-                other.getLocation().distanceSquared(p.getLocation()) <= 25
-        );
+        boolean nearbyPlayer = p
+            .getWorld()
+            .getPlayers()
+            .stream()
+            .anyMatch(
+                other ->
+                    !other.equals(p) &&
+                    !other.isDead() &&
+                    other.getGameMode() != org.bukkit.GameMode.SPECTATOR &&
+                    other.getLocation().distanceSquared(p.getLocation()) <= 25
+            );
         meter = nearbyPlayer
             ? Math.min(400, meter + 1)
             : Math.max(0, meter - 1);
         pdc.set(unstoppableMeter, PersistentDataType.INTEGER, meter);
 
-        Color dustColor = meter >= 400
-            ? Color.RED
-            : meter > 100
-                ? Color.ORANGE
-                : meter > 0
+        Color dustColor =
+            meter >= 400
+                ? Color.RED
+                : meter > 100
+                  ? Color.ORANGE
+                  : meter > 0
                     ? Color.YELLOW
                     : Color.GRAY;
         Particle.DustOptions dust = new Particle.DustOptions(dustColor, 1.1f);
@@ -118,16 +119,16 @@ public class Juggernaut extends ManaKit {
 
         p.sendActionBar(
             ChatColor.DARK_PURPLE +
-            "Unstoppable: " +
-            ChatColor.WHITE +
-            meter +
-            ChatColor.GRAY +
-            " | " +
-            ChatColor.RED +
-            "Killstreak: " +
-            ChatColor.WHITE +
-            killstreak +
-            "/2"
+                "Unstoppable: " +
+                ChatColor.WHITE +
+                meter +
+                ChatColor.GRAY +
+                " | " +
+                ChatColor.RED +
+                "Killstreak: " +
+                ChatColor.WHITE +
+                killstreak +
+                "/2"
         );
 
         if (
@@ -216,11 +217,14 @@ public class Juggernaut extends ManaKit {
             );
         }
 
-        java.util.Random random = java.util.concurrent.ThreadLocalRandom.current();
+        java.util.Random random =
+            java.util.concurrent.ThreadLocalRandom.current();
 
         int blockCount = (int) (SMASH_RADIUS * 18);
-        org.bukkit.block.data.BlockData netheriteData = Material.NETHERITE_BLOCK.createBlockData();
-        org.bukkit.block.data.BlockData amethystData = Material.AMETHYST_BLOCK.createBlockData();
+        org.bukkit.block.data.BlockData netheriteData =
+            Material.NETHERITE_BLOCK.createBlockData();
+        org.bukkit.block.data.BlockData amethystData =
+            Material.AMETHYST_BLOCK.createBlockData();
 
         for (int i = 0; i < blockCount; i++) {
             double theta = random.nextDouble() * 2 * Math.PI;
@@ -230,7 +234,11 @@ public class Juggernaut extends ManaKit {
             double pZ = posZ + r * Math.sin(theta);
             Location spawnLoc = new Location(world, pX, posY + 0.2, pZ);
 
-            org.bukkit.block.Block groundBlock = world.getBlockAt((int) Math.floor(pX), (int) Math.floor(posY - 0.5), (int) Math.floor(pZ));
+            org.bukkit.block.Block groundBlock = world.getBlockAt(
+                (int) Math.floor(pX),
+                (int) Math.floor(posY - 0.5),
+                (int) Math.floor(pZ)
+            );
 
             org.bukkit.block.data.BlockData data;
             if (groundBlock.getType().isAir()) {
@@ -258,7 +266,13 @@ public class Juggernaut extends ManaKit {
             );
         }
 
-        p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, SMASH_IMMUNITY_DURATION, 2));
+        p.addPotionEffect(
+            new PotionEffect(
+                PotionEffectType.ABSORPTION,
+                SMASH_IMMUNITY_DURATION,
+                2
+            )
+        );
         new BukkitRunnable() {
             int currentTick = 0;
 
@@ -300,11 +314,7 @@ public class Juggernaut extends ManaKit {
             PersistentDataType.INTEGER,
             0
         );
-        pdc.set(
-            unstoppableMeter,
-            PersistentDataType.INTEGER,
-            meter / 2
-        );
+        pdc.set(unstoppableMeter, PersistentDataType.INTEGER, meter / 2);
 
         double multiplier = meter >= 400 ? 2.0 : meter > 100 ? 1.0 : 0.5;
         e.setDamage(e.getDamage() * multiplier);

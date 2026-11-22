@@ -94,6 +94,10 @@ public class CustomEggListener implements Listener {
         "defspacemine",
         "custom_damage"
     );
+    public static final NamespacedKey CUSTOM_DAMAGE_MULTIPLIER = new NamespacedKey(
+        "defspacemine",
+        "custom_damage_multiplier"
+    );
 
     public static final NamespacedKey RED_TERROR = new NamespacedKey(
         "defspacemine",
@@ -243,7 +247,12 @@ public class CustomEggListener implements Listener {
             PersistentDataType.FLOAT,
             (float) e.getDamage()
         );
-        e.setDamage(damage);
+        double multiplier = pdc.getOrDefault(
+            CUSTOM_DAMAGE_MULTIPLIER,
+            PersistentDataType.FLOAT,
+            1f
+        );
+        e.setDamage(damage * multiplier);
 
         Player owner = getOwner(entity);
         if (owner == null) return;

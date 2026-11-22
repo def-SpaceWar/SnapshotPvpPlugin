@@ -11,8 +11,8 @@ import org.bukkit.Particle;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.SpectralArrow;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.SpectralArrow;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -30,11 +30,11 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.w3c.dom.Text;
 
 public class Ranger extends ManaKit {
+
     @Override
     public org.bukkit.inventory.ItemStack getIcon() {
         return getIconFromShulker(-184, 10, -185);
     }
-
 
     private static final int MAX_ARROWS = 3;
     private static final int ACCURATE_SHOT_DELAY_TICKS = 10;
@@ -116,13 +116,14 @@ public class Ranger extends ManaKit {
             pdc.set(accurateShotCharge, PersistentDataType.INTEGER, 0);
         }
 
-        int accurateShotPercent = charge <= ACCURATE_SHOT_DELAY_TICKS
-            ? 0
-            : Math.min(
-                100,
-                (charge - ACCURATE_SHOT_DELAY_TICKS) /
-                    ACCURATE_SHOT_TICKS_PER_PERCENT
-            );
+        int accurateShotPercent =
+            charge <= ACCURATE_SHOT_DELAY_TICKS
+                ? 0
+                : Math.min(
+                      100,
+                      (charge - ACCURATE_SHOT_DELAY_TICKS) /
+                          ACCURATE_SHOT_TICKS_PER_PERCENT
+                  );
         int arrowRestockC = pdc.get(
             arrowRestockCounter,
             PersistentDataType.INTEGER
@@ -249,13 +250,15 @@ public class Ranger extends ManaKit {
         int ticksPerPercent = ACCURATE_SHOT_TICKS_PER_PERCENT;
         ticksPerPercent = Math.max(1, ticksPerPercent);
 
-        int percent = charge <= delay
-            ? 0
-            : Math.min(100, (charge - delay) / ticksPerPercent);
+        int percent =
+            charge <= delay
+                ? 0
+                : Math.min(100, (charge - delay) / ticksPerPercent);
 
         if (percent > 0) {
-            PersistentDataContainer projectilePdc =
-                e.getProjectile().getPersistentDataContainer();
+            PersistentDataContainer projectilePdc = e
+                .getProjectile()
+                .getPersistentDataContainer();
             projectilePdc.set(
                 accurateShotBonus,
                 PersistentDataType.INTEGER,
@@ -293,8 +296,7 @@ public class Ranger extends ManaKit {
     @Override
     public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
         if (!(e.getDamager() instanceof Projectile projectile)) return;
-        PersistentDataContainer pdc =
-            projectile.getPersistentDataContainer();
+        PersistentDataContainer pdc = projectile.getPersistentDataContainer();
         int percent = pdc.getOrDefault(
             accurateShotBonus,
             PersistentDataType.INTEGER,

@@ -42,11 +42,11 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 public class SculkWarrior extends ManaKit {
+
     @Override
     public org.bukkit.inventory.ItemStack getIcon() {
         return getIconFromShulker(-186, 10, -185);
     }
-
 
     private static final double SONIC_BOOM_RANGE = 15.0;
     private static final double SONIC_BOOM_DAMAGE = 10.0;
@@ -235,11 +235,7 @@ public class SculkWarrior extends ManaKit {
                 0
             );
             if (cooldown > 0) return;
-            pdc.set(
-                sonicBoomCooldown,
-                PersistentDataType.INTEGER,
-                30 * 20
-            );
+            pdc.set(sonicBoomCooldown, PersistentDataType.INTEGER, 30 * 20);
 
             p.addPotionEffect(
                 new PotionEffect(
@@ -494,7 +490,11 @@ public class SculkWarrior extends ManaKit {
                     player.removePotionEffect(PotionEffectType.MINING_FATIGUE);
 
                     // fireSonicBoomBeam(player, lockedYaw, lockedPitch);
-                    fireSonicBoomBeam(player, currentLoc.getYaw(), currentLoc.getPitch());
+                    fireSonicBoomBeam(
+                        player,
+                        currentLoc.getYaw(),
+                        currentLoc.getPitch()
+                    );
                     cancel();
                 }
             }
