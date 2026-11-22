@@ -37,8 +37,8 @@ public class Ranger extends ManaKit {
     }
 
     private static final int MAX_ARROWS = 3;
-    private static final int ACCURATE_SHOT_DELAY_TICKS = 10;
-    private static final int ACCURATE_SHOT_TICKS_PER_PERCENT = 2;
+    private static final int ACCURATE_SHOT_DELAY_TICKS = 20;
+    private static final int ACCURATE_SHOT_TICKS_PER_PERCENT = 1;
 
     final int arrowRestock = 120; // arrow restock every 6 seconds. only runs when doesn't have an arrow
     final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;

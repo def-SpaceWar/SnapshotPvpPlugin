@@ -99,9 +99,9 @@ public class Juggernaut extends ManaKit {
 
         Color dustColor =
             meter >= 400
-                ? Color.RED
+                ? Color.PURPLE
                 : meter > 100
-                  ? Color.ORANGE
+                  ? Color.RED
                   : meter > 0
                     ? Color.YELLOW
                     : Color.GRAY;
@@ -118,9 +118,21 @@ public class Juggernaut extends ManaKit {
         );
 
         p.sendActionBar(
-            ChatColor.DARK_PURPLE +
+            (cooldown > 0
+                ? ChatColor.LIGHT_PURPLE +
+                  "Counter Smash: " +
+                  ChatColor.WHITE +
+                  cooldown
+                : ChatColor.LIGHT_PURPLE + "Counter Smash!") +
+                ChatColor.DARK_PURPLE +
                 "Unstoppable: " +
-                ChatColor.WHITE +
+                (meter >= 400
+                    ? ChatColor.LIGHT_PURPLE
+                    : meter > 100
+                      ? ChatColor.RED
+                      : meter > 0
+                        ? ChatColor.YELLOW
+                        : ChatColor.GRAY) +
                 meter +
                 ChatColor.GRAY +
                 " | " +

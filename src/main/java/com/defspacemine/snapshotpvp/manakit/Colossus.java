@@ -109,10 +109,13 @@ public class Colossus extends ManaKit {
         p.sendActionBar(
             ChatColor.GOLD +
                 "Trample: " +
-                ChatColor.WHITE +
-                trampleTicks +
-                "/" +
-                TRAMPLE_TICKS +
+                (trampleTicks >= TRAMPLE_TICKS
+                    ? ChatColor.GREEN + "READY"
+                    : "" +
+                      ChatColor.WHITE +
+                      trampleTicks +
+                      "/" +
+                      TRAMPLE_TICKS) +
                 ChatColor.GRAY +
                 " | " +
                 ChatColor.RED +
@@ -197,7 +200,7 @@ public class Colossus extends ManaKit {
             .getWorld()
             .spawnEntity(location, EntityType.TNT);
         tnt.setFuseTicks(0);
-        tnt.setYield(2.5f);
+        tnt.setYield(5f);
         tnt.setIsIncendiary(false);
         PersistentDataContainer pdc = tnt.getPersistentDataContainer();
         pdc.set(CustomEggListener.CUSTOM_DAMAGE, PersistentDataType.FLOAT, 1f);

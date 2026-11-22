@@ -145,6 +145,12 @@ public class SculkWarrior extends ManaKit {
         );
 
         p.sendActionBar(
+            (sonicCooldown > 0
+                ? ChatColor.LIGHT_PURPLE +
+                  "Echo Location: " +
+                  ChatColor.WHITE +
+                  sonicCooldown
+                : ChatColor.LIGHT_PURPLE + "Echo Location!") +
             ChatColor.DARK_AQUA +
                 "Sonic Charge: " +
                 ChatColor.WHITE +
