@@ -504,7 +504,7 @@ public class Gambler extends ManaKit {
         tnt.setYield(radius);
         tnt.setIsIncendiary(false);
         PersistentDataContainer pdc = tnt.getPersistentDataContainer();
-        pdc.set(CustomEggListener.CUSTOM_DAMAGE_MULTIPLIER, PersistentDataType.FLOAT, .5f);
+        pdc.set(CustomEggListener.CUSTOM_DAMAGE_MULTIPLIER, PersistentDataType.FLOAT, .25f);
         CustomEggListener.injectOwner(tnt, p);
     }
 

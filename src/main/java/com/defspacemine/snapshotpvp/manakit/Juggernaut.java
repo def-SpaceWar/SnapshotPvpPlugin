@@ -124,6 +124,8 @@ public class Juggernaut extends ManaKit {
                   ChatColor.WHITE +
                   cooldown
                 : ChatColor.LIGHT_PURPLE + "Counter Smash!") +
+                ChatColor.GRAY +
+                " | " +
                 ChatColor.DARK_PURPLE +
                 "Unstoppable: " +
                 (meter >= 400

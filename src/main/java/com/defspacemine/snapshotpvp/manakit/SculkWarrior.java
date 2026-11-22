@@ -151,7 +151,9 @@ public class SculkWarrior extends ManaKit {
                   ChatColor.WHITE +
                   sonicCooldown
                 : ChatColor.LIGHT_PURPLE + "Echo Location!") +
-            ChatColor.DARK_AQUA +
+                ChatColor.GRAY +
+                "  |  " +
+                ChatColor.DARK_AQUA +
                 "Sonic Charge: " +
                 ChatColor.WHITE +
                 Math.min(sonicBoomShardC, sonicBoomShard) +
