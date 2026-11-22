@@ -28,7 +28,7 @@ import org.bukkit.util.Vector;
 
 public class Colossus extends ManaKit {
 
-    private static final int TRAMPLE_TICKS = 200;
+    private static final int TRAMPLE_TICKS = 400;
     final NamespacedKey trampleCounter = ManaKitListener.MANA_KIT_DATA2;
     private final ItemStack trampleHorn;
 
@@ -188,7 +188,7 @@ public class Colossus extends ManaKit {
                 Location explosionLocation = p
                     .getLocation()
                     .add(direction.clone().multiply(1.5))
-                    .add(0, -1, 0);
+                    .add(0, .25, 0);
                 triggerExplosion(p, explosionLocation);
                 ticks++;
             }
@@ -200,7 +200,7 @@ public class Colossus extends ManaKit {
             .getWorld()
             .spawnEntity(location, EntityType.TNT);
         tnt.setFuseTicks(0);
-        tnt.setYield(5f);
+        tnt.setYield(3.5f);
         tnt.setIsIncendiary(false);
         PersistentDataContainer pdc = tnt.getPersistentDataContainer();
         pdc.set(CustomEggListener.CUSTOM_DAMAGE, PersistentDataType.FLOAT, 1f);
