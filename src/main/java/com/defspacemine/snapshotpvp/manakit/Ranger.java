@@ -7,12 +7,17 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Particle;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.SpectralArrow;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.Damageable;
@@ -32,9 +37,16 @@ public class Ranger extends ManaKit {
 
 
     private static final int MAX_ARROWS = 3;
+    private static final int ACCURATE_SHOT_DELAY_TICKS = 10;
+    private static final int ACCURATE_SHOT_TICKS_PER_PERCENT = 2;
 
     final int arrowRestock = 120; // arrow restock every 6 seconds. only runs when doesn't have an arrow
     final NamespacedKey arrowRestockCounter = ManaKitListener.MANA_KIT_DATA0;
+    final NamespacedKey accurateShotCharge = ManaKitListener.MANA_KIT_DATA5;
+    final NamespacedKey accurateShotBonus = new NamespacedKey(
+        "defspacemine",
+        "ranger_accurate_shot_bonus"
+    );
 
     private ItemStack arrow;
     private ItemStack kbSword;
@@ -80,18 +92,50 @@ public class Ranger extends ManaKit {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(ManaKitListener.MANA_KIT, PersistentDataType.STRING, this.id);
         pdc.set(arrowRestockCounter, PersistentDataType.INTEGER, 0);
+        pdc.set(accurateShotCharge, PersistentDataType.INTEGER, 0);
     }
 
     @Override
     public void onCombatTick(Player p) {
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         PersistentDataContainer pdc = p.getPersistentDataContainer();
+        int charge = pdc.getOrDefault(
+            accurateShotCharge,
+            PersistentDataType.INTEGER,
+            0
+        );
+        if (
+            p.getInventory().getItemInMainHand().getType() == Material.BOW &&
+            p.isHandRaised()
+        ) {
+            charge++;
+            pdc.set(accurateShotCharge, PersistentDataType.INTEGER, charge);
+        } else if (
+            p.getInventory().getItemInMainHand().getType() != Material.BOW
+        ) {
+            pdc.set(accurateShotCharge, PersistentDataType.INTEGER, 0);
+        }
+
+        int accurateShotPercent = charge <= ACCURATE_SHOT_DELAY_TICKS
+            ? 0
+            : Math.min(
+                100,
+                (charge - ACCURATE_SHOT_DELAY_TICKS) /
+                    ACCURATE_SHOT_TICKS_PER_PERCENT
+            );
         int arrowRestockC = pdc.get(
             arrowRestockCounter,
             PersistentDataType.INTEGER
         );
 
         String displayMessage =
+            ChatColor.GREEN +
+            "Accurate Shot: " +
+            ChatColor.WHITE +
+            accurateShotPercent +
+            "%" +
+            ChatColor.GRAY +
+            " | " +
             ChatColor.RED +
             "Killstreak: " +
             ChatColor.WHITE +
@@ -182,5 +226,82 @@ public class Ranger extends ManaKit {
         arrowCount++;
         if (arrowCount >= MAX_ARROWS) return;
         inv.addItem(this.arrow);
+    }
+
+    @Override
+    public void onItemHeldChange(Player p, PlayerItemHeldEvent e) {
+        p.getPersistentDataContainer().set(
+            accurateShotCharge,
+            PersistentDataType.INTEGER,
+            0
+        );
+    }
+
+    @Override
+    public void onShootBow(Player p, EntityShootBowEvent e) {
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        int charge = pdc.getOrDefault(
+            accurateShotCharge,
+            PersistentDataType.INTEGER,
+            0
+        );
+        int delay = ACCURATE_SHOT_DELAY_TICKS;
+        int ticksPerPercent = ACCURATE_SHOT_TICKS_PER_PERCENT;
+        ticksPerPercent = Math.max(1, ticksPerPercent);
+
+        int percent = charge <= delay
+            ? 0
+            : Math.min(100, (charge - delay) / ticksPerPercent);
+
+        if (percent > 0) {
+            PersistentDataContainer projectilePdc =
+                e.getProjectile().getPersistentDataContainer();
+            projectilePdc.set(
+                accurateShotBonus,
+                PersistentDataType.INTEGER,
+                percent
+            );
+
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (
+                        !e.getProjectile().isValid() ||
+                        e.getProjectile().isDead()
+                    ) {
+                        cancel();
+                        return;
+                    }
+                    e.getProjectile()
+                        .getWorld()
+                        .spawnParticle(
+                            Particle.HAPPY_VILLAGER,
+                            e.getProjectile().getLocation(),
+                            2,
+                            0.08,
+                            0.08,
+                            0.08,
+                            0
+                        );
+                }
+            }.runTaskTimer(SnapshotPvpPlugin.instance, 0L, 1L);
+        }
+
+        pdc.set(accurateShotCharge, PersistentDataType.INTEGER, 0);
+    }
+
+    @Override
+    public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
+        if (!(e.getDamager() instanceof Projectile projectile)) return;
+        PersistentDataContainer pdc =
+            projectile.getPersistentDataContainer();
+        int percent = pdc.getOrDefault(
+            accurateShotBonus,
+            PersistentDataType.INTEGER,
+            0
+        );
+        if (percent <= 0) return;
+        e.setDamage(e.getDamage() * (1.0 + percent / 100.0));
+        pdc.remove(accurateShotBonus);
     }
 }

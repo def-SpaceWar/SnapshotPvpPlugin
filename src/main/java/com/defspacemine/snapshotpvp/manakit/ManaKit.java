@@ -25,6 +25,7 @@ import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -317,6 +318,8 @@ public abstract class ManaKit {
     public void onShootBow(Player p, EntityShootBowEvent e) {}
 
     public void onShootBowShadow(Player p, EntityShootBowEvent e) {}
+
+    public void onItemHeldChange(Player p, PlayerItemHeldEvent e) {}
 
     public void onToggleGlide(Player p, EntityToggleGlideEvent e) {}
 

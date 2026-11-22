@@ -59,6 +59,7 @@ public class SculkWarrior extends ManaKit {
     final NamespacedKey sculkWardenUUID = ManaKitListener.MANA_KIT_DATASTR0;
     final int shriekerRestock = 3; // 3 kills = warden
     final NamespacedKey shriekerRestockCounter = ManaKitListener.MANA_KIT_DATA1;
+    final NamespacedKey sonicBoomCooldown = ManaKitListener.MANA_KIT_DATA2;
 
     public SculkWarrior() {
         super("sculk_warrior", "Sculk Warrior", "[Melee Assassin]", 2);
@@ -85,6 +86,7 @@ public class SculkWarrior extends ManaKit {
         pdc.set(isChargingKey, PersistentDataType.BOOLEAN, false);
         pdc.set(sculkWardenUUID, PersistentDataType.STRING, "");
         pdc.set(shriekerRestockCounter, PersistentDataType.INTEGER, 0);
+        pdc.set(sonicBoomCooldown, PersistentDataType.INTEGER, 0);
     }
 
     @Override
@@ -94,6 +96,7 @@ public class SculkWarrior extends ManaKit {
         pdc.set(isChargingKey, PersistentDataType.BOOLEAN, false);
         pdc.set(sculkWardenUUID, PersistentDataType.STRING, "");
         pdc.set(shriekerRestockCounter, PersistentDataType.INTEGER, 0);
+        pdc.set(sonicBoomCooldown, PersistentDataType.INTEGER, 0);
     }
 
     @Override
@@ -118,6 +121,18 @@ public class SculkWarrior extends ManaKit {
     public void onCombatTick(Player p) {
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         PersistentDataContainer pdc = p.getPersistentDataContainer();
+        int sonicCooldown = pdc.getOrDefault(
+            sonicBoomCooldown,
+            PersistentDataType.INTEGER,
+            0
+        );
+        if (sonicCooldown > 0) {
+            pdc.set(
+                sonicBoomCooldown,
+                PersistentDataType.INTEGER,
+                sonicCooldown - 1
+            );
+        }
         int sonicBoomShardC = pdc.getOrDefault(
             sonicBoomShardCounter,
             PersistentDataType.INTEGER,
@@ -214,8 +229,17 @@ public class SculkWarrior extends ManaKit {
         if (material.equals(Material.NETHERITE_SWORD)) {
             e.setCancelled(true);
 
-            if (p.hasCooldown(Material.NETHERITE_SWORD)) return;
-            p.setCooldown(Material.NETHERITE_SWORD, 30 * 20);
+            int cooldown = pdc.getOrDefault(
+                sonicBoomCooldown,
+                PersistentDataType.INTEGER,
+                0
+            );
+            if (cooldown > 0) return;
+            pdc.set(
+                sonicBoomCooldown,
+                PersistentDataType.INTEGER,
+                30 * 20
+            );
 
             p.addPotionEffect(
                 new PotionEffect(

@@ -5,7 +5,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.Color;
+import org.bukkit.Particle;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.LivingEntity;
@@ -30,6 +35,8 @@ public class Juggernaut extends ManaKit {
     private final int SMASH_IMMUNITY_DURATION = 100;
     private final double SMASH_RADIUS = 4;
     private final double SMASH_RADIUS_SQUARED = SMASH_RADIUS * SMASH_RADIUS;
+    final NamespacedKey smashCooldown = ManaKitListener.MANA_KIT_DATA2;
+    final NamespacedKey unstoppableMeter = ManaKitListener.MANA_KIT_DATA3;
 
     public Juggernaut() {
         super("juggernaut", "Juggernaut", "[Melee Damage Tank]", 2);
@@ -52,11 +59,62 @@ public class Juggernaut extends ManaKit {
     public void resetKit(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(ManaKitListener.MANA_KIT, PersistentDataType.STRING, this.id);
+        pdc.set(smashCooldown, PersistentDataType.INTEGER, 0);
+        pdc.set(unstoppableMeter, PersistentDataType.INTEGER, 0);
     }
 
     @Override
     public void onCombatTick(Player p) {
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        int cooldown = pdc.getOrDefault(
+            smashCooldown,
+            PersistentDataType.INTEGER,
+            0
+        );
+        if (cooldown > 0) {
+            pdc.set(
+                smashCooldown,
+                PersistentDataType.INTEGER,
+                cooldown - 1
+            );
+        }
+
+        int meter = pdc.getOrDefault(
+            unstoppableMeter,
+            PersistentDataType.INTEGER,
+            0
+        );
+        boolean nearbyPlayer = p.getWorld().getPlayers().stream().anyMatch(
+            other ->
+                !other.equals(p) &&
+                !other.isDead() &&
+                other.getGameMode() != org.bukkit.GameMode.SPECTATOR &&
+                other.getLocation().distanceSquared(p.getLocation()) <= 25
+        );
+        meter = nearbyPlayer
+            ? Math.min(400, meter + 1)
+            : Math.max(0, meter - 1);
+        pdc.set(unstoppableMeter, PersistentDataType.INTEGER, meter);
+
+        Color dustColor = meter >= 400
+            ? Color.RED
+            : meter > 100
+                ? Color.ORANGE
+                : meter > 0
+                    ? Color.YELLOW
+                    : Color.GRAY;
+        Particle.DustOptions dust = new Particle.DustOptions(dustColor, 1.1f);
+        p.getWorld().spawnParticle(
+            Particle.DUST,
+            p.getLocation().add(0, 1.5, 0),
+            Math.max(1, meter / 100),
+            0.25,
+            0.35,
+            0.25,
+            0,
+            dust
+        );
 
         p.sendActionBar(
             ChatColor.RED + "Killstreak: " + ChatColor.WHITE + killstreak + "/2"
@@ -80,6 +138,13 @@ public class Juggernaut extends ManaKit {
     }
 
     @Override
+    public void onEnterCombat(Player p) {
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        pdc.set(smashCooldown, PersistentDataType.INTEGER, 0);
+        pdc.set(unstoppableMeter, PersistentDataType.INTEGER, 0);
+    }
+
+    @Override
     public void onKill(Player p, PlayerDeathEvent e) {
         if (p.isDead()) return;
         p.addPotionEffect(
@@ -94,8 +159,14 @@ public class Juggernaut extends ManaKit {
         if (
             e.getItem() == null || e.getItem().getType() != Material.MACE
         ) return;
-        if (p.hasCooldown(Material.MACE) || !p.isOnGround()) return;
-        p.setCooldown(Material.MACE, SMASH_COOLDOWN);
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        int cooldown = pdc.getOrDefault(
+            smashCooldown,
+            PersistentDataType.INTEGER,
+            0
+        );
+        if (cooldown > 0 || !p.isOnGround()) return;
+        pdc.set(smashCooldown, PersistentDataType.INTEGER, SMASH_COOLDOWN);
         World world = p.getWorld();
 
         PotionEffect jumpBoost = p.getPotionEffect(PotionEffectType.JUMP_BOOST);
@@ -208,5 +279,24 @@ public class Juggernaut extends ManaKit {
 
     double square(double x) {
         return x * x;
+    }
+
+    @Override
+    public void onDamageDealt(Player p, EntityDamageByEntityEvent e) {
+        if (!(e.getEntity() instanceof LivingEntity)) return;
+        PersistentDataContainer pdc = p.getPersistentDataContainer();
+        int meter = pdc.getOrDefault(
+            unstoppableMeter,
+            PersistentDataType.INTEGER,
+            0
+        );
+        pdc.set(
+            unstoppableMeter,
+            PersistentDataType.INTEGER,
+            meter / 2
+        );
+
+        double multiplier = meter >= 400 ? 2.0 : meter > 100 ? 1.0 : 0.5;
+        e.setDamage(e.getDamage() * multiplier);
     }
 }

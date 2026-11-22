@@ -40,6 +40,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -481,6 +482,16 @@ public final class ManaKitListener implements Listener {
             event
         );
         else shooterKit.onShootBow(shooter, event);
+    }
+
+    @EventHandler
+    public void onPlayerItemHeld(PlayerItemHeldEvent event) {
+        Player player = event.getPlayer();
+        if (!player.getScoreboardTags().contains("combat")) return;
+        ManaKit kit = getPlayerKit(player);
+        if (kit == null) return;
+        if (ManaKit.isInShadowWorld(player)) kit.onItemHeldChange(player, event);
+        else kit.onItemHeldChange(player, event);
     }
 
     @EventHandler(ignoreCancelled = true)
