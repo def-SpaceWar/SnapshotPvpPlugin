@@ -117,7 +117,17 @@ public class Juggernaut extends ManaKit {
         );
 
         p.sendActionBar(
-            ChatColor.RED + "Killstreak: " + ChatColor.WHITE + killstreak + "/2"
+            ChatColor.DARK_PURPLE +
+            "Unstoppable: " +
+            ChatColor.WHITE +
+            meter +
+            ChatColor.GRAY +
+            " | " +
+            ChatColor.RED +
+            "Killstreak: " +
+            ChatColor.WHITE +
+            killstreak +
+            "/2"
         );
 
         if (
