@@ -1,14 +1,21 @@
 package com.defspacemine.snapshotpvp.manakit;
 
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.Location;
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -16,21 +23,15 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.NamespacedKey;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.TNTPrimed;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.block.Action;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
-import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
-
 public class Colossus extends ManaKit {
+
     private static final int TRAMPLE_TICKS = 200;
     final NamespacedKey trampleCounter = ManaKitListener.MANA_KIT_DATA2;
     private final ItemStack trampleHorn;
+
     @Override
     public org.bukkit.inventory.ItemStack getIcon() {
         return getIconFromShulker(-186, 7, -185);
@@ -46,7 +47,7 @@ public class Colossus extends ManaKit {
         meta.lore(
             java.util.List.of(
                 Component.text(
-                    "Right-click to trample forward and destroy blocks.",
+                    "Right-click to destroy the terrain.",
                     NamedTextColor.GRAY
                 )
             )
@@ -59,7 +60,13 @@ public class Colossus extends ManaKit {
     public void giveKit(Player p) {
         resetKit(p);
 
-		ManaKitListener.giveItemsFromShulker(p, "goopshotpeshvp", -186, 7, -185);
+        ManaKitListener.giveItemsFromShulker(
+            p,
+            "goopshotpeshvp",
+            -186,
+            7,
+            -185
+        );
     }
 
     @Override
@@ -101,24 +108,26 @@ public class Colossus extends ManaKit {
 
         p.sendActionBar(
             ChatColor.GOLD +
-            "Trample: " +
-            ChatColor.WHITE +
-            trampleTicks +
-            "/" +
-            TRAMPLE_TICKS +
-            ChatColor.GRAY +
-            " | " +
-            ChatColor.RED +
-            "Killstreak: " +
-            ChatColor.WHITE +
-            killstreak +
-            "/2"
+                "Trample: " +
+                ChatColor.WHITE +
+                trampleTicks +
+                "/" +
+                TRAMPLE_TICKS +
+                ChatColor.GRAY +
+                " | " +
+                ChatColor.RED +
+                "Killstreak: " +
+                ChatColor.WHITE +
+                killstreak +
+                "/2"
         );
 
-        if (killstreak == 1)
-            p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 100, 0));
-        else if (killstreak >= 2)
-            p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 100, 1));
+        if (killstreak == 1) p.addPotionEffect(
+            new PotionEffect(PotionEffectType.HASTE, 100, 0)
+        );
+        else if (killstreak >= 2) p.addPotionEffect(
+            new PotionEffect(PotionEffectType.HASTE, 100, 1)
+        );
     }
 
     @Override
@@ -142,11 +151,8 @@ public class Colossus extends ManaKit {
 
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         if (
-            pdc.getOrDefault(
-                trampleCounter,
-                PersistentDataType.INTEGER,
-                0
-            ) < TRAMPLE_TICKS
+            pdc.getOrDefault(trampleCounter, PersistentDataType.INTEGER, 0) <
+            TRAMPLE_TICKS
         ) return;
         pdc.set(trampleCounter, PersistentDataType.INTEGER, 0);
         if (p.getGameMode() != org.bukkit.GameMode.CREATIVE) {
@@ -170,17 +176,14 @@ public class Colossus extends ManaKit {
 
             @Override
             public void run() {
-                if (
-                    ticks >= 30 ||
-                    !p.isOnline() ||
-                    p.isDead()
-                ) {
+                if (ticks >= 30 || !p.isOnline() || p.isDead()) {
                     cancel();
                     return;
                 }
 
                 p.setVelocity(direction.clone().multiply(0.75));
-                Location explosionLocation = p.getLocation()
+                Location explosionLocation = p
+                    .getLocation()
                     .add(direction.clone().multiply(1.5))
                     .add(0, -1, 0);
                 triggerExplosion(p, explosionLocation);
@@ -197,11 +200,7 @@ public class Colossus extends ManaKit {
         tnt.setYield(2.5f);
         tnt.setIsIncendiary(false);
         PersistentDataContainer pdc = tnt.getPersistentDataContainer();
-        pdc.set(
-            CustomEggListener.CUSTOM_DAMAGE,
-            PersistentDataType.FLOAT,
-            1f
-        );
+        pdc.set(CustomEggListener.CUSTOM_DAMAGE, PersistentDataType.FLOAT, 1f);
         CustomEggListener.injectOwner(tnt, p);
     }
 
@@ -216,6 +215,8 @@ public class Colossus extends ManaKit {
     @Override
     public void onKill(Player p, PlayerDeathEvent e) {
         playAbilityFeedback(p);
-        p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 200, 0));
+        p.addPotionEffect(
+            new PotionEffect(PotionEffectType.REGENERATION, 200, 0)
+        );
     }
 }
