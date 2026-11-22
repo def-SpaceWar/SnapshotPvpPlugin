@@ -2,6 +2,7 @@ package com.defspacemine.snapshotpvp.manakit;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Location;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -16,13 +17,15 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.NamespacedKey;
-import org.bukkit.block.Block;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.block.Action;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import com.defspacemine.snapshotpvp.customegg.CustomEggListener;
 
 public class Colossus extends ManaKit {
     private static final int TRAMPLE_TICKS = 200;
@@ -177,34 +180,29 @@ public class Colossus extends ManaKit {
                 }
 
                 p.setVelocity(direction.clone().multiply(0.75));
-                org.bukkit.Location foot = p.getLocation();
-                Vector side = new Vector(-direction.getZ(), 0, direction.getX());
-                if (side.lengthSquared() == 0) side = new Vector(1, 0, 0);
-                side.normalize();
-
-                for (int y = -1; y <= 1; y++) {
-                    for (int x = -1; x <= 1; x++) {
-                        org.bukkit.Location blockLocation = foot.clone()
-                            .add(direction.clone().multiply(1.5))
-                            .add(side.clone().multiply(x))
-                            .add(0, y, 0);
-                        Block block = blockLocation.getBlock();
-                        if (
-                            block.getType() == Material.AIR ||
-                            block.getType() == Material.CAVE_AIR ||
-                            block.getType() == Material.VOID_AIR ||
-                            block.getType() == Material.BEDROCK ||
-                            block.getType() == Material.BARRIER ||
-                            block.getType() == Material.END_PORTAL ||
-                            block.getType() == Material.END_PORTAL_FRAME ||
-                            block.getType() == Material.END_GATEWAY
-                        ) continue;
-                        block.setType(Material.AIR);
-                    }
-                }
+                Location explosionLocation = p.getLocation()
+                    .add(direction.clone().multiply(1.5))
+                    .add(0, -1, 0);
+                triggerExplosion(p, explosionLocation);
                 ticks++;
             }
         }.runTaskTimer(SnapshotPvpPlugin.instance, 0L, 1L);
+    }
+
+    private void triggerExplosion(Player p, Location location) {
+        TNTPrimed tnt = (TNTPrimed) location
+            .getWorld()
+            .spawnEntity(location, EntityType.TNT);
+        tnt.setFuseTicks(0);
+        tnt.setYield(2.5f);
+        tnt.setIsIncendiary(false);
+        PersistentDataContainer pdc = tnt.getPersistentDataContainer();
+        pdc.set(
+            CustomEggListener.CUSTOM_DAMAGE,
+            PersistentDataType.FLOAT,
+            1f
+        );
+        CustomEggListener.injectOwner(tnt, p);
     }
 
     @Override
