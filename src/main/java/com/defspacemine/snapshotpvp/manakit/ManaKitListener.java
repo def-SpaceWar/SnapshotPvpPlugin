@@ -1,5 +1,9 @@
 package com.defspacemine.snapshotpvp.manakit;
 
+import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
+import com.defspacemine.snapshotpvp.lobby.ManaKitLobbyType;
+import dev.triumphteam.gui.guis.Gui;
+import dev.triumphteam.gui.guis.GuiItem;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -7,10 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-
-import com.defspacemine.snapshotpvp.lobby.ManaKitLobbyType;
-import dev.triumphteam.gui.guis.Gui;
-import dev.triumphteam.gui.guis.GuiItem;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -50,8 +50,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Team;
-
-import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public final class ManaKitListener implements Listener {
 
@@ -320,53 +318,51 @@ public final class ManaKitListener implements Listener {
 
     public static void clearManaKitData(Player player) {
         PersistentDataContainer pdc = player.getPersistentDataContainer();
-        for (
-            NamespacedKey key : List.of(
-                ManaKit.SHADOW_WORLD_TIMER,
-                MANA_KIT,
-                MANA_FOOD,
-                MANA_KIT_DATA0,
-                MANA_KIT_DATA1,
-                MANA_KIT_DATA2,
-                MANA_KIT_DATA3,
-                MANA_KIT_DATA4,
-                MANA_KIT_DATA5,
-                MANA_KIT_DATA6,
-                MANA_KIT_DATA7,
-                MANA_KIT_DATA8,
-                MANA_KIT_DATA9,
-                MANA_KIT_DATASTR0,
-                MANA_KIT_DATASTR1,
-                MANA_KIT_DATASTR2,
-                MANA_KIT_DATASTR3,
-                MANA_KIT_DATASTR4,
-                MANA_KIT_DATASTR5,
-                MANA_KIT_DATASTR6,
-                MANA_KIT_DATASTR7,
-                MANA_KIT_DATASTR8,
-                MANA_KIT_DATASTR9,
-                MANA_KIT_DATABOOL0,
-                MANA_KIT_DATABOOL1,
-                MANA_KIT_DATABOOL2,
-                MANA_KIT_DATABOOL3,
-                MANA_KIT_DATABOOL4,
-                MANA_KIT_DATABOOL5,
-                MANA_KIT_DATABOOL6,
-                MANA_KIT_DATABOOL7,
-                MANA_KIT_DATABOOL8,
-                MANA_KIT_DATABOOL9,
-                MANA_KIT_DATADBL0,
-                MANA_KIT_DATADBL1,
-                MANA_KIT_DATADBL2,
-                MANA_KIT_DATADBL3,
-                MANA_KIT_DATADBL4,
-                MANA_KIT_DATADBL5,
-                MANA_KIT_DATADBL6,
-                MANA_KIT_DATADBL7,
-                MANA_KIT_DATADBL8,
-                MANA_KIT_DATADBL9
-            )
-        ) {
+        for (NamespacedKey key : List.of(
+            ManaKit.SHADOW_WORLD_TIMER,
+            MANA_KIT,
+            MANA_FOOD,
+            MANA_KIT_DATA0,
+            MANA_KIT_DATA1,
+            MANA_KIT_DATA2,
+            MANA_KIT_DATA3,
+            MANA_KIT_DATA4,
+            MANA_KIT_DATA5,
+            MANA_KIT_DATA6,
+            MANA_KIT_DATA7,
+            MANA_KIT_DATA8,
+            MANA_KIT_DATA9,
+            MANA_KIT_DATASTR0,
+            MANA_KIT_DATASTR1,
+            MANA_KIT_DATASTR2,
+            MANA_KIT_DATASTR3,
+            MANA_KIT_DATASTR4,
+            MANA_KIT_DATASTR5,
+            MANA_KIT_DATASTR6,
+            MANA_KIT_DATASTR7,
+            MANA_KIT_DATASTR8,
+            MANA_KIT_DATASTR9,
+            MANA_KIT_DATABOOL0,
+            MANA_KIT_DATABOOL1,
+            MANA_KIT_DATABOOL2,
+            MANA_KIT_DATABOOL3,
+            MANA_KIT_DATABOOL4,
+            MANA_KIT_DATABOOL5,
+            MANA_KIT_DATABOOL6,
+            MANA_KIT_DATABOOL7,
+            MANA_KIT_DATABOOL8,
+            MANA_KIT_DATABOOL9,
+            MANA_KIT_DATADBL0,
+            MANA_KIT_DATADBL1,
+            MANA_KIT_DATADBL2,
+            MANA_KIT_DATADBL3,
+            MANA_KIT_DATADBL4,
+            MANA_KIT_DATADBL5,
+            MANA_KIT_DATADBL6,
+            MANA_KIT_DATADBL7,
+            MANA_KIT_DATADBL8,
+            MANA_KIT_DATADBL9
+        )) {
             pdc.remove(key);
         }
     }
@@ -490,7 +486,10 @@ public final class ManaKitListener implements Listener {
         if (!player.getScoreboardTags().contains("combat")) return;
         ManaKit kit = getPlayerKit(player);
         if (kit == null) return;
-        if (ManaKit.isInShadowWorld(player)) kit.onItemHeldChange(player, event);
+        if (ManaKit.isInShadowWorld(player)) kit.onItemHeldChange(
+            player,
+            event
+        );
         else kit.onItemHeldChange(player, event);
     }
 
@@ -559,8 +558,7 @@ public final class ManaKitListener implements Listener {
         }
 
         if (
-            attacker != null &&
-            attacker.getScoreboardTags().contains("combat")
+            attacker != null && attacker.getScoreboardTags().contains("combat")
         ) {
             ManaKit attackerKit = getPlayerKit(attacker);
             if (attackerKit != null) {
@@ -709,8 +707,8 @@ public final class ManaKitListener implements Listener {
             }
             ItemStack icon = kit.getIcon();
             ItemMeta meta = icon.getItemMeta();
-            boolean selected = selectedKit != null &&
-                kit.getId().equals(selectedKit.getId());
+            boolean selected =
+                selectedKit != null && kit.getId().equals(selectedKit.getId());
             meta.displayName(
                 Component.text(
                     kit.getDisplayName() + (selected ? " [Selected]" : ""),
@@ -720,14 +718,10 @@ public final class ManaKitListener implements Listener {
             meta.setEnchantmentGlintOverride(selected);
             meta.lore(
                 List.of(
-                    Component.text(
-                        kit.getDescription(),
-                        NamedTextColor.GRAY
+                    Component.text(kit.getDescription(), NamedTextColor.GRAY),
+                    Component.text("Difficulty: ", NamedTextColor.AQUA).append(
+                        kit.getStarRatingComponent()
                     ),
-                    Component.text(
-                        "Difficulty: ",
-                        NamedTextColor.AQUA
-                    ).append(kit.getStarRatingComponent()),
                     Component.text(
                         selected ? "Already selected" : "Click to select",
                         selected ? NamedTextColor.GREEN : NamedTextColor.YELLOW
@@ -875,8 +869,12 @@ public final class ManaKitListener implements Listener {
             @Override
             public void run() {
                 for (Player player : SnapshotPvpPlugin.server.getOnlinePlayers()) {
+                    Set<String> playerTags = player.getScoreboardTags();
                     if (ManaKit.isInShadowWorld(player)) {
-                        int ticksRemaining = ManaKit.getShadowWorldTimer(player);
+                        if (!playerTags.contains("fighting")) continue;
+                        int ticksRemaining = ManaKit.getShadowWorldTimer(
+                            player
+                        );
                         if (ticksRemaining <= 1) {
                             if (!ManaKit.returnFromShadowWorld(player)) {
                                 ManaKit kit = getPlayerKit(player);
@@ -884,15 +882,11 @@ public final class ManaKitListener implements Listener {
                             }
                             continue;
                         }
-                        ManaKit.setShadowWorldTimer(
-                            player,
-                            ticksRemaining - 1
-                        );
+                        ManaKit.setShadowWorldTimer(player, ticksRemaining - 1);
                         ManaKit kit = getPlayerKit(player);
                         if (kit != null) kit.onShadowTick(player);
                         continue;
                     }
-                    Set<String> playerTags = player.getScoreboardTags();
                     setPlayerKit(player);
 
                     if (!hasKit(player)) {
