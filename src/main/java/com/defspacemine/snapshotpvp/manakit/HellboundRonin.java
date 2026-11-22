@@ -129,7 +129,7 @@ public class HellboundRonin extends ManaKit {
             new PotionEffect(PotionEffectType.STRENGTH, 100, 0)
         );
 
-        if (p.isSprinting() && p.getTicksLived() % 5 == 0) {
+        if (p.getTicksLived() % 5 == 0) {
             Location trailLoc = p.getLocation().clone().add(0, 1.0, 0);
 
             new BukkitRunnable() {
