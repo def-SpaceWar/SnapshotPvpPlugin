@@ -2,9 +2,15 @@ package com.defspacemine.snapshotpvp.manakit;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -19,8 +25,9 @@ import org.bukkit.util.Vector;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 
 public class Colossus extends ManaKit {
-    private static final int TRAMPLE_COOLDOWN = 200;
-    final NamespacedKey trampleCooldown = ManaKitListener.MANA_KIT_DATA2;
+    private static final int TRAMPLE_TICKS = 200;
+    final NamespacedKey trampleCounter = ManaKitListener.MANA_KIT_DATA2;
+    private final ItemStack trampleHorn;
     @Override
     public org.bukkit.inventory.ItemStack getIcon() {
         return getIconFromShulker(-186, 7, -185);
@@ -28,6 +35,21 @@ public class Colossus extends ManaKit {
 
     public Colossus() {
         super("colossus", "Colossus", "[Melee Knockback Tank]", 1);
+        trampleHorn = new ItemStack(Material.GOAT_HORN);
+        ItemMeta meta = trampleHorn.getItemMeta();
+        meta.displayName(
+            Component.text("Trample", NamedTextColor.GOLD, TextDecoration.BOLD)
+        );
+        meta.lore(
+            java.util.List.of(
+                Component.text(
+                    "Right-click to trample forward and destroy blocks.",
+                    NamedTextColor.GRAY
+                )
+            )
+        );
+        meta.addEnchant(Enchantment.VANISHING_CURSE, 1, false);
+        trampleHorn.setItemMeta(meta);
     }
 
     @Override
@@ -41,28 +63,54 @@ public class Colossus extends ManaKit {
     public void resetKit(Player p) {
         PersistentDataContainer pdc = p.getPersistentDataContainer();
         pdc.set(ManaKitListener.MANA_KIT, PersistentDataType.STRING, this.id);
-        pdc.set(trampleCooldown, PersistentDataType.INTEGER, 0);
+        pdc.set(trampleCounter, PersistentDataType.INTEGER, 0);
     }
 
     @Override
     public void onCombatTick(Player p) {
         int killstreak = SnapshotPvpPlugin.getPlayerScore(p, "dummyKillstreak");
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        int cooldown = pdc.getOrDefault(
-            trampleCooldown,
+        int trampleTicks = pdc.getOrDefault(
+            trampleCounter,
             PersistentDataType.INTEGER,
             0
         );
-        if (cooldown > 0) {
+        PlayerInventory inv = p.getInventory();
+        if (
+            SnapshotPvpPlugin.countInv(p, Material.GOAT_HORN) == 0 &&
+            trampleTicks < TRAMPLE_TICKS
+        ) {
             pdc.set(
-                trampleCooldown,
+                trampleCounter,
                 PersistentDataType.INTEGER,
-                cooldown - 1
+                trampleTicks + 1
             );
+            trampleTicks++;
         }
 
-        p.sendActionBar(ChatColor.RED + "Killstreak: " +
-                ChatColor.WHITE + killstreak + "/2");
+        if (trampleTicks >= TRAMPLE_TICKS) {
+            if (SnapshotPvpPlugin.countInv(p, Material.GOAT_HORN) == 0) {
+                inv.addItem(trampleHorn.clone());
+                playItemGainFeedback(p);
+            }
+            pdc.set(trampleCounter, PersistentDataType.INTEGER, TRAMPLE_TICKS);
+        }
+
+        p.sendActionBar(
+            ChatColor.GOLD +
+            "Trample: " +
+            ChatColor.WHITE +
+            trampleTicks +
+            "/" +
+            TRAMPLE_TICKS +
+            ChatColor.GRAY +
+            " | " +
+            ChatColor.RED +
+            "Killstreak: " +
+            ChatColor.WHITE +
+            killstreak +
+            "/2"
+        );
 
         if (killstreak == 1)
             p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 100, 0));
@@ -73,10 +121,11 @@ public class Colossus extends ManaKit {
     @Override
     public void onEnterCombat(Player p) {
         p.getPersistentDataContainer().set(
-            trampleCooldown,
+            trampleCounter,
             PersistentDataType.INTEGER,
-            0
+            TRAMPLE_TICKS
         );
+        p.getInventory().addItem(trampleHorn.clone());
     }
 
     @Override
@@ -86,21 +135,20 @@ public class Colossus extends ManaKit {
             e.getAction() != Action.RIGHT_CLICK_BLOCK
         ) return;
         if (e.getItem() == null) return;
-        Material held = e.getItem().getType();
-        if (
-            held != Material.NETHERITE_AXE &&
-            held != Material.NETHERITE_SWORD &&
-            held != Material.MACE
-        ) return;
+        if (e.getItem().getType() != Material.GOAT_HORN) return;
 
         PersistentDataContainer pdc = p.getPersistentDataContainer();
-        int cooldown = pdc.getOrDefault(
-            trampleCooldown,
-            PersistentDataType.INTEGER,
-            0
-        );
-        if (cooldown > 0) return;
-        pdc.set(trampleCooldown, PersistentDataType.INTEGER, TRAMPLE_COOLDOWN);
+        if (
+            pdc.getOrDefault(
+                trampleCounter,
+                PersistentDataType.INTEGER,
+                0
+            ) < TRAMPLE_TICKS
+        ) return;
+        pdc.set(trampleCounter, PersistentDataType.INTEGER, 0);
+        if (p.getGameMode() != org.bukkit.GameMode.CREATIVE) {
+            e.getItem().setAmount(e.getItem().getAmount() - 1);
+        }
         e.setCancelled(true);
 
         Vector facing = p.getLocation().getDirection().setY(0).normalize();
@@ -163,6 +211,7 @@ public class Colossus extends ManaKit {
     public void onLeaveCombat(Player p) {
         PlayerInventory inv = p.getInventory();
         p.clearActivePotionEffects();
+        SnapshotPvpPlugin.clearInv(p, Material.GOAT_HORN);
         resetKit(p);
     }
 
