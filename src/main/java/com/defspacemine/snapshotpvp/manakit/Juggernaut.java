@@ -328,7 +328,7 @@ public class Juggernaut extends ManaKit {
             PersistentDataType.INTEGER,
             0
         );
-        pdc.set(unstoppableMeter, PersistentDataType.INTEGER, meter / 2);
+        pdc.set(unstoppableMeter, PersistentDataType.INTEGER, Math.max(0, meter - 50));
 
         double multiplier = meter >= 400 ? 2.0 : meter > 100 ? 1.0 : 0.5;
         e.setDamage(e.getDamage() * multiplier);
