@@ -15,6 +15,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.PlayerInventory;
@@ -328,7 +329,11 @@ public class Juggernaut extends ManaKit {
             PersistentDataType.INTEGER,
             0
         );
-        pdc.set(unstoppableMeter, PersistentDataType.INTEGER, Math.max(0, meter - 50));
+        pdc.set(
+            unstoppableMeter,
+            PersistentDataType.INTEGER,
+            Math.max(0, meter - 50)
+        );
 
         double multiplier = meter >= 400 ? 2.0 : meter > 100 ? 1.0 : 0.5;
         e.setDamage(e.getDamage() * multiplier);
