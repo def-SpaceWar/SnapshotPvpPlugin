@@ -316,9 +316,6 @@ public final class ManaKitListener implements Listener {
         player.clearActivePotionEffects();
         givePlayerKit(player, kit);
         kit.onEnterCombat(player);
-        player.addPotionEffect(
-            new PotionEffect(PotionEffectType.INSTANT_HEALTH, 1, 14)
-        );
     }
 
     public static void clearManaKitData(Player player) {

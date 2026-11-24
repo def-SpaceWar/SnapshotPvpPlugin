@@ -37,7 +37,7 @@ public class HellboundRonin extends ManaKit {
     private final NamespacedKey soulEndCounter = ManaKitListener.MANA_KIT_DATA1;
 
     public HellboundRonin() {
-        super("hellbound_ronin", "Hellbound Ronin", "[Melee Movement]", 3);
+        super("hellbound_ronin", "Hellbound Ronin", "[Melee Movement]", 2);
     }
 
     @Override

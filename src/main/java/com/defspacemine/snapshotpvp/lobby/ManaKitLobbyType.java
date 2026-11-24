@@ -51,6 +51,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Team;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -776,6 +778,8 @@ public class ManaKitLobbyType extends LobbyType {
             player.addScoreboardTag("fighting");
             if (targetWorld.equals(mapWorld)) {
                 ManaKitListener.instance.enterCombat(player);
+                // TODO: fix
+                player.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH, 5, 5));
             }
         }
 
