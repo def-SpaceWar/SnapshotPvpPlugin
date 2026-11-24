@@ -302,6 +302,7 @@ public final class ManaKitListener implements Listener {
         pdc.set(MANA_KIT, PersistentDataType.STRING, kit.getId());
         kit.giveKit(player);
         kit.playItemGainFeedback(player);
+        player.heal(999);
     }
 
     public void enterCombat(Player player) {
