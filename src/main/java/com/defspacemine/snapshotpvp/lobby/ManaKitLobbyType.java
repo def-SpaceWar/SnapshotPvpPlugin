@@ -3,15 +3,17 @@ package com.defspacemine.snapshotpvp.lobby;
 import com.defspacemine.snapshotpvp.SnapshotPvpPlugin;
 import com.defspacemine.snapshotpvp.gamemode.Gamemode;
 import com.defspacemine.snapshotpvp.gamemode.GamemodeRegistry;
-import com.defspacemine.snapshotpvp.gamemode.KitRotation;
 import com.defspacemine.snapshotpvp.gamemode.GamemodeRegistry.GamemodeDefinition;
+import com.defspacemine.snapshotpvp.gamemode.KitRotation;
 import com.defspacemine.snapshotpvp.manakit.ManaKit;
 import com.defspacemine.snapshotpvp.manakit.ManaKitListener;
 import com.defspacemine.snapshotpvp.map.GameMap;
 import com.defspacemine.snapshotpvp.map.GameMapRegistry;
-import com.defspacemine.snapshotpvp.map.GameMapRegistry.MapDefinition;
 import com.defspacemine.snapshotpvp.map.GameMapRegistry.GamemodeCompatibility;
+import com.defspacemine.snapshotpvp.map.GameMapRegistry.MapDefinition;
+import com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,8 +33,12 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -44,7 +50,6 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
@@ -53,8 +58,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scoreboard.Team;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.Team;
 
 public class ManaKitLobbyType extends LobbyType {
 
@@ -124,7 +129,8 @@ public class ManaKitLobbyType extends LobbyType {
             StringBuilder result = new StringBuilder();
             for (String word : words) {
                 if (!result.isEmpty()) result.append(' ');
-                result.append(Character.toUpperCase(word.charAt(0)))
+                result
+                    .append(Character.toUpperCase(word.charAt(0)))
                     .append(word.substring(1));
             }
             return result.toString();
@@ -178,7 +184,8 @@ public class ManaKitLobbyType extends LobbyType {
         private final Set<UUID> readyPlayers = new HashSet<>();
         private final Set<UUID> forceNextVote = new HashSet<>();
         private final Set<UUID> kitGuiOpened = new HashSet<>();
-        private final Set<UUID> lateJoinTeamSelectionAvailable = new HashSet<>();
+        private final Set<UUID> lateJoinTeamSelectionAvailable =
+            new HashSet<>();
         private final Set<UUID> matchPlayers = new HashSet<>();
         private final Set<UUID> pendingJoiners = new HashSet<>();
         private final Set<UUID> earlyEndVotes = new HashSet<>();
@@ -192,9 +199,11 @@ public class ManaKitLobbyType extends LobbyType {
                 world.getUID().toString().replace("-", ""),
                 16
             ).toString(36);
-            teamScope = encodedTeamScope.length() >= 11
-                ? encodedTeamScope.substring(0, 11)
-                : "0".repeat(11 - encodedTeamScope.length()) + encodedTeamScope;
+            teamScope =
+                encodedTeamScope.length() >= 11
+                    ? encodedTeamScope.substring(0, 11)
+                    : "0".repeat(11 - encodedTeamScope.length()) +
+                      encodedTeamScope;
             mapWorld = Bukkit.getWorld(world.getName() + "_map");
             if (mapWorld == null) {
                 throw new IllegalStateException(
@@ -211,7 +220,7 @@ public class ManaKitLobbyType extends LobbyType {
             if (loadedShadowMap == null) {
                 throw new IllegalStateException(
                     "Could not load or create shadow map world: " +
-                    shadowMapName
+                        shadowMapName
                 );
             }
             shadowMap = loadedShadowMap;
@@ -270,7 +279,8 @@ public class ManaKitLobbyType extends LobbyType {
             List<Player> lobbyPlayers = getPlayers();
             if (lobbyPlayers == null) return;
             String map = selectedMap == null ? "Voting" : mapName(selectedMap);
-            String mode = selectedMode == null ? "Voting" : modeName(selectedMode);
+            String mode =
+                selectedMode == null ? "Voting" : modeName(selectedMode);
             Component header = Component.text()
                 .append(Component.text("MANA KIT", NamedTextColor.GOLD))
                 .append(Component.newline())
@@ -284,10 +294,20 @@ public class ManaKitLobbyType extends LobbyType {
                 .append(Component.text(mode, NamedTextColor.WHITE))
                 .append(Component.newline())
                 .append(Component.text("Phase: ", NamedTextColor.GRAY))
-                .append(Component.text(phaseTitle(lobbyState), NamedTextColor.YELLOW))
+                .append(
+                    Component.text(
+                        phaseTitle(lobbyState),
+                        NamedTextColor.YELLOW
+                    )
+                )
                 .append(Component.text("  |  ", NamedTextColor.DARK_GRAY))
                 .append(Component.text("Players: ", NamedTextColor.GRAY))
-                .append(Component.text(String.valueOf(lobbyPlayers.size()), NamedTextColor.GREEN))
+                .append(
+                    Component.text(
+                        String.valueOf(lobbyPlayers.size()),
+                        NamedTextColor.GREEN
+                    )
+                )
                 .build();
 
             for (Player player : lobbyPlayers) {
@@ -324,8 +344,8 @@ public class ManaKitLobbyType extends LobbyType {
                     if (
                         spectator == null ||
                         !matchPlayers.contains(spectatorId) ||
-                        !spectator.getWorld().equals(mapWorld) &&
-                        !spectator.getWorld().equals(shadowMap)
+                        (!spectator.getWorld().equals(mapWorld) &&
+                            !spectator.getWorld().equals(shadowMap))
                     ) continue;
                     if (spectator.getGameMode() != GameMode.SPECTATOR) {
                         spectator.setGameMode(GameMode.SPECTATOR);
@@ -360,9 +380,10 @@ public class ManaKitLobbyType extends LobbyType {
                 boolean shadowCombatantsPresent = shadowMap
                     .getPlayers()
                     .stream()
-                    .anyMatch(player ->
-                        player.getScoreboardTags().contains("combat") &&
-                        player.getScoreboardTags().contains("fighting")
+                    .anyMatch(
+                        player ->
+                            player.getScoreboardTags().contains("combat") &&
+                            player.getScoreboardTags().contains("fighting")
                     );
                 if (!shadowCombatantsPresent) {
                     for (Player player : List.copyOf(shadowMap.getPlayers())) {
@@ -455,10 +476,7 @@ public class ManaKitLobbyType extends LobbyType {
             }
             updateLobbyTabVisibility();
             updateLobbyTabList();
-            if (
-                lobbyState == LobbyState.IN_GAME &&
-                !pendingJoiners.isEmpty()
-            ) {
+            if (lobbyState == LobbyState.IN_GAME && !pendingJoiners.isEmpty()) {
                 if (matchPlayers.isEmpty()) {
                     finishMatch(
                         true,
@@ -482,12 +500,13 @@ public class ManaKitLobbyType extends LobbyType {
             if (lobbyState == LobbyState.IN_GAME) {
                 player.hideBossBar(phaseBossBar);
                 matchPlayers.add(playerId);
-                if (!player.getWorld().equals(world) &&
-                    !player.teleport(new Location(world, 0.5, 65, 0.5))) {
+                if (
+                    !player.getWorld().equals(world) &&
+                    !player.teleport(new Location(world, 0.5, 65, 0.5))
+                ) {
                     matchPlayers.remove(playerId);
                     player.sendMessage(
-                        ChatColor.RED +
-                            "Could not move you to the match lobby."
+                        ChatColor.RED + "Could not move you to the match lobby."
                     );
                     return;
                 }
@@ -575,15 +594,15 @@ public class ManaKitLobbyType extends LobbyType {
 
         public boolean canSelectKit(Player player) {
             return (
-                !kitSelectionLimited ||
-                lobbyState == LobbyState.KIT_SELECTION ||
-                isInMatchLobby(player)
-            ) &&
+                (!kitSelectionLimited ||
+                    lobbyState == LobbyState.KIT_SELECTION ||
+                    isInMatchLobby(player)) &&
                 !(
                     gamemode instanceof KitRotation rotation &&
                     kitSelectionLimited &&
                     rotation.getDeaths(player) > 0
-                );
+                )
+            );
         }
 
         public boolean isKitAvailable(Player player, String kitId) {
@@ -628,9 +647,11 @@ public class ManaKitLobbyType extends LobbyType {
         }
 
         private boolean isInMatchLobby(Player player) {
-            return lobbyState == LobbyState.IN_GAME &&
+            return (
+                lobbyState == LobbyState.IN_GAME &&
                 matchPlayers.contains(player.getUniqueId()) &&
-                player.getWorld().equals(world);
+                player.getWorld().equals(world)
+            );
         }
 
         public void voteToEndMatch(Player player) {
@@ -644,7 +665,8 @@ public class ManaKitLobbyType extends LobbyType {
                 !matchPlayers.contains(playerId)
             ) {
                 player.sendMessage(
-                    ChatColor.RED + "There is no match-end vote for you to join."
+                    ChatColor.RED +
+                        "There is no match-end vote for you to join."
                 );
                 return;
             }
@@ -667,7 +689,9 @@ public class ManaKitLobbyType extends LobbyType {
 
         public void skipCurrentPhase(Player player) {
             if (!player.isOp()) {
-                player.sendMessage(ChatColor.RED + "Only operators can skip phases.");
+                player.sendMessage(
+                    ChatColor.RED + "Only operators can skip phases."
+                );
                 return;
             }
 
@@ -696,12 +720,7 @@ public class ManaKitLobbyType extends LobbyType {
                             NamedTextColor.GOLD
                         )
                     )
-                    .append(
-                        Component.text(
-                            " ",
-                            NamedTextColor.WHITE
-                        )
-                    )
+                    .append(Component.text(" ", NamedTextColor.WHITE))
                     .append(kit.getStarRatingComponent())
                     .append(
                         Component.text(
@@ -778,16 +797,35 @@ public class ManaKitLobbyType extends LobbyType {
             player.addScoreboardTag("fighting");
             if (targetWorld.equals(mapWorld)) {
                 ManaKitListener.instance.enterCombat(player);
+                for (Attribute attribute : Registry.ATTRIBUTE) {
+                    AttributeInstance instance = player.getAttribute(attribute);
+                    if (instance == null) continue;
+
+                    for (AttributeModifier modifier : new ArrayList<>(
+                        instance.getModifiers()
+                    )) {
+                        if (
+                            "defspacemine".equals(
+                                modifier.getKey().getNamespace()
+                            )
+                        ) {
+                            instance.removeModifier(modifier);
+                        }
+                    }
+                }
                 // TODO: fix
-                player.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH, 5, 5));
+                player.addPotionEffect(
+                    new PotionEffect(PotionEffectType.INSTANT_HEALTH, 5, 5)
+                );
             }
         }
 
         private void beginPhase(LobbyState state) {
             lobbyState = state;
-            phaseTicksRemaining = state == LobbyState.WAITING
-                ? WAITING_DURATION_TICKS
-                : PHASE_DURATION_TICKS;
+            phaseTicksRemaining =
+                state == LobbyState.WAITING
+                    ? WAITING_DURATION_TICKS
+                    : PHASE_DURATION_TICKS;
             readyPlayers.clear();
             skipVotes.clear();
             forceNextVote.clear();
@@ -801,8 +839,7 @@ public class ManaKitLobbyType extends LobbyType {
             if (state == LobbyState.KIT_SELECTION) {
                 kitGuiOpened.clear();
                 broadcast(
-                    ChatColor.GOLD +
-                        "Kit selection is open for 20 seconds."
+                    ChatColor.GOLD + "Kit selection is open for 20 seconds."
                 );
                 for (Player player : getPlayers()) {
                     player.closeInventory();
@@ -829,7 +866,9 @@ public class ManaKitLobbyType extends LobbyType {
             for (Player player : getPlayers()) setupPhaseGui(player);
             updatePhaseBossBar();
             broadcast(
-                ChatColor.GOLD + "Lobby phase: " + phaseTitle(state) +
+                ChatColor.GOLD +
+                    "Lobby phase: " +
+                    phaseTitle(state) +
                     (state == LobbyState.WAITING
                         ? " (1 minute)"
                         : " (20 seconds)")
@@ -845,11 +884,7 @@ public class ManaKitLobbyType extends LobbyType {
         }
 
         private ItemStack teamChangeItem() {
-            return lobbyItem(
-                Material.WHITE_BANNER,
-                "Change team",
-                "team_gui"
-            );
+            return lobbyItem(Material.WHITE_BANNER, "Change team", "team_gui");
         }
 
         private void openKitSelectionGui(Player player) {
@@ -894,10 +929,7 @@ public class ManaKitLobbyType extends LobbyType {
                     beginPhase(LobbyState.VOTE_MODE);
                 }
                 case VOTE_MODE -> {
-                    selectedMode = resolveVote(
-                        modeVotes,
-                        availableGamemodes()
-                    );
+                    selectedMode = resolveVote(modeVotes, availableGamemodes());
                     announceResult("Gamemode", modeName(selectedMode));
                     beginPhase(LobbyState.VOTE_CONFIG);
                 }
@@ -916,9 +948,9 @@ public class ManaKitLobbyType extends LobbyType {
                     kitSelectionLimited = kitSelectionVotes.isEmpty()
                         ? false
                         : resolveVote(
-                            kitSelectionVotes,
-                            List.of(Boolean.TRUE, Boolean.FALSE)
-                        );
+                              kitSelectionVotes,
+                              List.of(Boolean.TRUE, Boolean.FALSE)
+                          );
                     announceResult(
                         "Kit selection",
                         kitSelectionLimited ? "Limited" : "Unlimited"
@@ -929,9 +961,9 @@ public class ManaKitLobbyType extends LobbyType {
                     teamChangeLimited = teamChangeVotes.isEmpty()
                         ? false
                         : resolveVote(
-                            teamChangeVotes,
-                            List.of(Boolean.TRUE, Boolean.FALSE)
-                        );
+                              teamChangeVotes,
+                              List.of(Boolean.TRUE, Boolean.FALSE)
+                          );
                     announceResult(
                         "Team changes",
                         teamChangeLimited ? "Limited" : "Unlimited"
@@ -943,7 +975,8 @@ public class ManaKitLobbyType extends LobbyType {
                     beginPhase(LobbyState.KIT_SELECTION);
                 }
                 case KIT_SELECTION -> beginMatch();
-                case IN_GAME -> {}
+                case IN_GAME -> {
+                }
             }
         }
 
@@ -1024,7 +1057,9 @@ public class ManaKitLobbyType extends LobbyType {
             lobbyState = LobbyState.WAITING;
             phaseTicksRemaining = WAITING_DURATION_TICKS;
             readyPlayers.clear();
-            if (earlyMessage != null) broadcast(ChatColor.YELLOW + earlyMessage);
+            if (earlyMessage != null) broadcast(
+                ChatColor.YELLOW + earlyMessage
+            );
             resetAfterMatch = true;
         }
 
@@ -1062,7 +1097,11 @@ public class ManaKitLobbyType extends LobbyType {
 
         private void announceResult(String category, String result) {
             broadcast(
-                ChatColor.GREEN + category + " vote result: " + ChatColor.GOLD + result
+                ChatColor.GREEN +
+                    category +
+                    " vote result: " +
+                    ChatColor.GOLD +
+                    result
             );
         }
 
@@ -1071,8 +1110,8 @@ public class ManaKitLobbyType extends LobbyType {
                 case WAITING -> "Waiting";
                 case VOTE_MAP -> "Map vote";
                 case VOTE_MODE -> "Gamemode vote for " + mapName(selectedMap);
-                case VOTE_CONFIG ->
-                    "Win condition vote for " + modeName(selectedMode);
+                case VOTE_CONFIG -> "Win condition vote for " +
+                    modeName(selectedMode);
                 case VOTE_KIT_SELECTION -> "Kit selection vote";
                 case VOTE_TEAM_CHANGE -> "Team change vote";
                 case TEAM_SELECTION -> "Team selection";
@@ -1092,20 +1131,25 @@ public class ManaKitLobbyType extends LobbyType {
             }
 
             int ticksRemaining = phaseTicksRemaining;
-            int phaseDuration = lobbyState == LobbyState.WAITING
-                ? WAITING_DURATION_TICKS
-                : PHASE_DURATION_TICKS;
-            String title = lobbyState == LobbyState.WAITING
-                ? "Waiting - " + readyPlayers.size() + "/" + lobbyPlayers.size() + " ready"
-                : phaseTitle(lobbyState) + " - " + formatTime(ticksRemaining);
+            int phaseDuration =
+                lobbyState == LobbyState.WAITING
+                    ? WAITING_DURATION_TICKS
+                    : PHASE_DURATION_TICKS;
+            String title =
+                lobbyState == LobbyState.WAITING
+                    ? "Waiting - " +
+                      readyPlayers.size() +
+                      "/" +
+                      lobbyPlayers.size() +
+                      " ready"
+                    : phaseTitle(lobbyState) +
+                      " - " +
+                      formatTime(ticksRemaining);
             phaseBossBar.name(Component.text(title, NamedTextColor.GOLD));
             phaseBossBar.progress(
                 Math.max(
                     0f,
-                    Math.min(
-                        1f,
-                        ticksRemaining / (float) phaseDuration
-                    )
+                    Math.min(1f, ticksRemaining / (float) phaseDuration)
                 )
             );
             for (Player player : lobbyPlayers) player.showBossBar(phaseBossBar);
@@ -1113,7 +1157,7 @@ public class ManaKitLobbyType extends LobbyType {
 
         private String formatTime(int ticks) {
             int seconds = Math.max(0, ticks) / 20;
-            return (seconds / 60) + ":" + String.format("%02d", seconds % 60);
+            return seconds / 60 + ":" + String.format("%02d", seconds % 60);
         }
 
         private String mapName(MapDefinition map) {
@@ -1137,8 +1181,7 @@ public class ManaKitLobbyType extends LobbyType {
 
         private List<Integer> winConditionOptions() {
             if (selectedMap == null || selectedMode == null) return List.of();
-            for (GamemodeCompatibility compatibility :
-                selectedMap.gamemodes()) {
+            for (GamemodeCompatibility compatibility : selectedMap.gamemodes()) {
                 if (compatibility.gamemodeId().equals(selectedMode.id())) {
                     return compatibility.winConditions();
                 }
@@ -1149,10 +1192,10 @@ public class ManaKitLobbyType extends LobbyType {
         private List<GamemodeDefinition> availableGamemodes() {
             if (selectedMap == null) return List.of();
             List<GamemodeDefinition> modes = new java.util.ArrayList<>();
-            for (GamemodeCompatibility compatibility :
-                selectedMap.gamemodes()) {
-                GamemodeDefinition mode =
-                    GamemodeRegistry.findById(compatibility.gamemodeId());
+            for (GamemodeCompatibility compatibility : selectedMap.gamemodes()) {
+                GamemodeDefinition mode = GamemodeRegistry.findById(
+                    compatibility.gamemodeId()
+                );
                 if (mode != null) modes.add(mode);
             }
             return modes;
@@ -1163,14 +1206,19 @@ public class ManaKitLobbyType extends LobbyType {
             for (T option : options) counts.put(option, 0);
             for (T vote : votes.values()) counts.merge(vote, 1, Integer::sum);
 
-            int highestCount = counts.values().stream()
+            int highestCount = counts
+                .values()
+                .stream()
                 .mapToInt(Integer::intValue)
                 .max()
                 .orElse(0);
-            List<T> winners = options.stream()
+            List<T> winners = options
+                .stream()
                 .filter(option -> counts.get(option) == highestCount)
                 .toList();
-            return winners.get(ThreadLocalRandom.current().nextInt(winners.size()));
+            return winners.get(
+                ThreadLocalRandom.current().nextInt(winners.size())
+            );
         }
 
         private void setupPhaseGui(Player player) {
@@ -1180,14 +1228,16 @@ public class ManaKitLobbyType extends LobbyType {
             ) return;
             player.closeInventory();
             player.getInventory().clear();
-            player.getInventory().setItem(
-                8,
-                lobbyItem(
-                    Material.CHEST,
-                    "Reopen " + phaseTitle(lobbyState),
-                    "reopen"
-                )
-            );
+            player
+                .getInventory()
+                .setItem(
+                    8,
+                    lobbyItem(
+                        Material.CHEST,
+                        "Reopen " + phaseTitle(lobbyState),
+                        "reopen"
+                    )
+                );
             if (lobbyState == LobbyState.TEAM_SELECTION) {
                 player.getInventory().setItem(7, teamChangeItem());
             }
@@ -1309,7 +1359,9 @@ public class ManaKitLobbyType extends LobbyType {
                     );
                 }
                 case TEAM_SELECTION -> {
-                    int[] slots = { 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23 };
+                    int[] slots = {
+                        10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23,
+                    };
                     TeamChoice[] choices = TeamChoice.values();
                     for (int i = 0; i < choices.length; i++) {
                         TeamChoice choice = choices[i];
@@ -1324,14 +1376,17 @@ public class ManaKitLobbyType extends LobbyType {
                         );
                     }
                 }
-                case KIT_SELECTION, IN_GAME -> {}
+                case KIT_SELECTION, IN_GAME -> {
+                }
             }
 
             if (lobbyState != LobbyState.WAITING) {
                 gui.setItem(
                     compactChoices
                         ? 13
-                        : lobbyState == LobbyState.TEAM_SELECTION ? 25 : 22,
+                        : lobbyState == LobbyState.TEAM_SELECTION
+                          ? 25
+                          : 22,
                     lobbyItem(
                         Material.CLOCK,
                         player.isOp()
@@ -1367,10 +1422,10 @@ public class ManaKitLobbyType extends LobbyType {
                 case VOTE_MAP -> mapVotes.containsKey(playerId);
                 case VOTE_MODE -> modeVotes.containsKey(playerId);
                 case VOTE_CONFIG -> configVotes.containsKey(playerId);
-                case VOTE_KIT_SELECTION ->
-                    kitSelectionVotes.containsKey(playerId);
-                case VOTE_TEAM_CHANGE ->
-                    teamChangeVotes.containsKey(playerId);
+                case VOTE_KIT_SELECTION -> kitSelectionVotes.containsKey(
+                    playerId
+                );
+                case VOTE_TEAM_CHANGE -> teamChangeVotes.containsKey(playerId);
                 case TEAM_SELECTION -> teamSelections.containsKey(playerId);
                 default -> true;
             };
@@ -1443,29 +1498,32 @@ public class ManaKitLobbyType extends LobbyType {
             }
             if (action.startsWith("team:")) {
                 TeamChoice selected = teamSelections.get(playerId);
-                return selected != null &&
-                    action.equals("team:" + selected.name());
+                return (
+                    selected != null && action.equals("team:" + selected.name())
+                );
             }
             if (action.startsWith("map:")) {
                 MapDefinition selected = mapVotes.get(playerId);
-                return selected != null &&
-                    action.equals(selected.voteAction());
+                return selected != null && action.equals(selected.voteAction());
             }
             if (action.startsWith("mode:")) {
                 GamemodeDefinition selected = modeVotes.get(playerId);
-                return selected != null &&
-                    action.equals(selected.voteAction());
+                return selected != null && action.equals(selected.voteAction());
             }
 
             return switch (action) {
-                case "kit_selection:limited" ->
-                    Boolean.TRUE.equals(kitSelectionVotes.get(playerId));
-                case "kit_selection:unlimited" ->
-                    Boolean.FALSE.equals(kitSelectionVotes.get(playerId));
-                case "team_change:limited" ->
-                    Boolean.TRUE.equals(teamChangeVotes.get(playerId));
-                case "team_change:unlimited" ->
-                    Boolean.FALSE.equals(teamChangeVotes.get(playerId));
+                case "kit_selection:limited" -> Boolean.TRUE.equals(
+                    kitSelectionVotes.get(playerId)
+                );
+                case "kit_selection:unlimited" -> Boolean.FALSE.equals(
+                    kitSelectionVotes.get(playerId)
+                );
+                case "team_change:limited" -> Boolean.TRUE.equals(
+                    teamChangeVotes.get(playerId)
+                );
+                case "team_change:unlimited" -> Boolean.FALSE.equals(
+                    teamChangeVotes.get(playerId)
+                );
                 default -> false;
             };
         }
@@ -1486,9 +1544,7 @@ public class ManaKitLobbyType extends LobbyType {
         ) {
             ItemStack item = new ItemStack(material);
             ItemMeta meta = item.getItemMeta();
-            String displayName = selected
-                ? ChatColor.stripColor(name)
-                : name;
+            String displayName = selected ? ChatColor.stripColor(name) : name;
             meta.setDisplayName(
                 (selected ? ChatColor.GREEN : ChatColor.GOLD) +
                     displayName +
@@ -1497,14 +1553,12 @@ public class ManaKitLobbyType extends LobbyType {
             String lore = selected
                 ? "Already selected."
                 : switch (action) {
-                    case "reopen" -> "Click, right-click, or drop to reopen.";
-                    case "ready" -> "Click to ready up or cancel readiness.";
-                    case "kit_gui" ->
-                        "Click, right-click, or drop to open kit selection.";
-                    case "team_gui" ->
-                        "Click, right-click, or drop to change teams.";
-                    default -> "Click or right-click to vote.";
-                };
+                      case "reopen" -> "Click, right-click, or drop to reopen.";
+                      case "ready" -> "Click to ready up or cancel readiness.";
+                      case "kit_gui" -> "Click, right-click, or drop to open kit selection.";
+                      case "team_gui" -> "Click, right-click, or drop to change teams.";
+                      default -> "Click or right-click to vote.";
+                  };
             meta.setLore(
                 List.of((selected ? ChatColor.GREEN : ChatColor.GRAY) + lore)
             );
@@ -1520,13 +1574,16 @@ public class ManaKitLobbyType extends LobbyType {
         @EventHandler(priority = EventPriority.HIGHEST)
         public void onLobbyItemInteract(PlayerInteractEvent event) {
             Player player = event.getPlayer();
-            if (event.getHand() == EquipmentSlot.OFF_HAND ||
-                !isLobbyWorld(player.getWorld())) return;
+            if (
+                event.getHand() == EquipmentSlot.OFF_HAND ||
+                !isLobbyWorld(player.getWorld())
+            ) return;
             ItemStack item = event.getItem();
             if (item == null) item = player.getInventory().getItemInMainHand();
             if (item == null || !item.hasItemMeta()) return;
 
-            String action = item.getItemMeta()
+            String action = item
+                .getItemMeta()
                 .getPersistentDataContainer()
                 .get(LOBBY_ITEM, PersistentDataType.STRING);
             if (action == null) return;
@@ -1539,10 +1596,7 @@ public class ManaKitLobbyType extends LobbyType {
         public void onLobbyItemClick(InventoryClickEvent event) {
             if (!(event.getWhoClicked() instanceof Player player)) return;
             Inventory gui = choiceGuis.get(player.getUniqueId());
-            if (
-                gui != null &&
-                event.getView().getTopInventory().equals(gui)
-            ) {
+            if (gui != null && event.getView().getTopInventory().equals(gui)) {
                 event.setCancelled(true);
                 if (event.getClickedInventory() != gui) return;
 
@@ -1587,8 +1641,7 @@ public class ManaKitLobbyType extends LobbyType {
             if (!(event.getWhoClicked() instanceof Player player)) return;
             Inventory gui = choiceGuis.get(player.getUniqueId());
             if (
-                gui != null &&
-                event.getView().getTopInventory().equals(gui)
+                gui != null && event.getView().getTopInventory().equals(gui)
             ) event.setCancelled(true);
         }
 
@@ -1647,7 +1700,8 @@ public class ManaKitLobbyType extends LobbyType {
             return (
                 item != null &&
                 item.hasItemMeta() &&
-                item.getItemMeta()
+                item
+                    .getItemMeta()
                     .getPersistentDataContainer()
                     .has(LOBBY_ITEM, PersistentDataType.STRING)
             );
@@ -1655,7 +1709,8 @@ public class ManaKitLobbyType extends LobbyType {
 
         private String lobbyItemAction(ItemStack item) {
             if (!isLobbyItem(item)) return null;
-            return item.getItemMeta()
+            return item
+                .getItemMeta()
                 .getPersistentDataContainer()
                 .get(LOBBY_ITEM, PersistentDataType.STRING);
         }
@@ -1694,10 +1749,7 @@ public class ManaKitLobbyType extends LobbyType {
                     );
                 }
                 updatePhaseBossBar();
-                if (
-                    !players.isEmpty() &&
-                    readyCount == players.size()
-                ) {
+                if (!players.isEmpty() && readyCount == players.size()) {
                     broadcast(
                         ChatColor.GREEN +
                             "Everyone is ready. Lobby setup is starting."
@@ -1714,8 +1766,7 @@ public class ManaKitLobbyType extends LobbyType {
                 if (lobbyState == LobbyState.IN_GAME) return;
                 if (lobbyState == LobbyState.WAITING) return;
                 if (
-                    lobbyState == LobbyState.WAITING &&
-                    getPlayers().size() <= 1
+                    lobbyState == LobbyState.WAITING && getPlayers().size() <= 1
                 ) {
                     player.sendMessage(
                         ChatColor.RED +
@@ -1750,7 +1801,9 @@ public class ManaKitLobbyType extends LobbyType {
             if (action.equals("force")) {
                 if (!player.isOp()) return;
                 if (forceNextVote.remove(playerId)) {
-                    player.sendMessage(ChatColor.YELLOW + "Force vote disabled.");
+                    player.sendMessage(
+                        ChatColor.YELLOW + "Force vote disabled."
+                    );
                 } else {
                     forceNextVote.add(playerId);
                     player.sendMessage(
@@ -1779,8 +1832,10 @@ public class ManaKitLobbyType extends LobbyType {
                 case VOTE_CONFIG -> voteForConfig(player, action);
                 case VOTE_KIT_SELECTION -> voteForKitSelection(player, action);
                 case VOTE_TEAM_CHANGE -> voteForTeamChange(player, action);
-                case TEAM_SELECTION -> {}
-                default -> {}
+                case TEAM_SELECTION -> {
+                }
+                default -> {
+                }
             }
             if (action.startsWith("team:") && canChangeTeam(player)) {
                 voteForTeam(player, action);
@@ -1819,10 +1874,7 @@ public class ManaKitLobbyType extends LobbyType {
             team.setColor(choice.color);
             team.addEntry(player.getName());
             teamSelections.put(playerId, choice);
-            if (
-                lobbyState == LobbyState.KIT_SELECTION &&
-                teamChangeLimited
-            ) {
+            if (lobbyState == LobbyState.KIT_SELECTION && teamChangeLimited) {
                 lateJoinTeamSelectionAvailable.remove(playerId);
                 player.getInventory().setItem(7, null);
             }
@@ -1902,9 +1954,9 @@ public class ManaKitLobbyType extends LobbyType {
             GamemodeDefinition choice = GamemodeRegistry.findById(id);
             if (
                 choice == null ||
-                availableGamemodes().stream().noneMatch(
-                    available -> available.id().equals(choice.id())
-                )
+                availableGamemodes()
+                    .stream()
+                    .noneMatch(available -> available.id().equals(choice.id()))
             ) return;
             if (choice == null) return;
             if (consumeForceVote(player)) {
@@ -1977,8 +2029,8 @@ public class ManaKitLobbyType extends LobbyType {
             Player p = event.getPlayer();
             if (
                 lobbyState != LobbyState.IN_GAME ||
-                !p.getWorld().equals(mapWorld) &&
-                !p.getWorld().equals(shadowMap)
+                (!p.getWorld().equals(mapWorld) &&
+                    !p.getWorld().equals(shadowMap))
             ) return;
             event.getDrops().clear();
             p.removeScoreboardTag("fighting");
