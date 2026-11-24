@@ -158,10 +158,6 @@ public class HellboundRonin extends ManaKit {
 
         boolean isSoulActive = soulEndTick > currentTick;
 
-        SnapshotPvpPlugin.server.sendMessage(
-            Component.text("Cause: " + e.getCause())
-        );
-
         if (
             isSoulActive &&
             e.getEntity() instanceof LivingEntity target &&
