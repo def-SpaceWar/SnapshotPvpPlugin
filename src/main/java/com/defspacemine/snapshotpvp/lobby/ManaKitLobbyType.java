@@ -777,6 +777,7 @@ public class ManaKitLobbyType extends LobbyType {
             if (targetWorld.equals(mapWorld)) {
                 ManaKitListener.instance.enterCombat(player);
             }
+            player.heal(999);
         }
 
         private void beginPhase(LobbyState state) {
