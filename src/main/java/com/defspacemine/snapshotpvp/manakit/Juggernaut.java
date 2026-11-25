@@ -91,7 +91,7 @@ public class Juggernaut extends ManaKit {
                     !other.equals(p) &&
                     !other.isDead() &&
                     other.getGameMode() != org.bukkit.GameMode.SPECTATOR &&
-                    other.getLocation().distanceSquared(p.getLocation()) <= 25
+                    other.getLocation().distanceSquared(p.getLocation()) <= 49
             );
         meter = nearbyPlayer
             ? Math.min(400, meter + 1)
