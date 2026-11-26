@@ -97,7 +97,7 @@ public abstract class ManaKit {
 
     protected final ItemStack getIconFromShulker(int x, int y, int z) {
         ItemStack icon = ManaKitListener.getItemFromShulker(
-            2,
+            26,
             "goopshotpeshvp",
             x,
             y,
