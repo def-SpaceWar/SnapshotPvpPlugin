@@ -387,7 +387,7 @@ public final class ManaKitListener implements Listener {
 
         Inventory shulkerInv = shulker.getInventory();
 
-        for (int i = 0; i < shulkerInv.getSize(); i++) {
+        for (int i = 0; i < shulkerInv.getSize() - 1; i++) {
             ItemStack item = shulkerInv.getItem(i);
             if (item == null || item.getType() == Material.AIR) continue;
 
