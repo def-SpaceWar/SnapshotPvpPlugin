@@ -29,7 +29,7 @@ public class Berserk extends ManaKit {
         return getIconFromShulker(-186, 1, -185);
     }
 
-    final int enrage = 20; // 20 attacks or getting hit 20 times!
+    final int enrage = 35; // 35 attacks or getting hit 35 times!
     final NamespacedKey enrageCounter = ManaKitListener.MANA_KIT_DATA0;
 
     private ItemStack ragePotion;
@@ -45,7 +45,7 @@ public class Berserk extends ManaKit {
         meta.addCustomEffect(new PotionEffect(
                 PotionEffectType.RESISTANCE,
                 250,
-                0,
+                1,
                 false,
                 true,
                 true), true);
